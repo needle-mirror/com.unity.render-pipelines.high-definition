@@ -1,4 +1,4 @@
-Shader "HDRenderPipeline/TerrainLit"
+Shader "HDRP/TerrainLit"
 {
     Properties
     {
@@ -237,6 +237,14 @@ Shader "HDRenderPipeline/TerrainLit"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/ShaderPass/LitDepthPass.hlsl"
             #endif
 
+            #ifdef WRITE_NORMAL_BUFFER
+                #if defined(_NORMALMAP)
+                    #define OVERRIDE_SAMPLER_NAME sampler_Normal0
+                #elif defined(_MASKMAP)
+                    #define OVERRIDE_SAMPLER_NAME sampler_Mask0
+                #endif
+            #endif
+
 			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData.hlsl"
 			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
 
@@ -316,7 +324,7 @@ Shader "HDRenderPipeline/TerrainLit"
         UsePass "Hidden/Nature/Terrain/Utilities/SELECTION"
     }
 
-    Dependency "BaseMapShader" = "Hidden/HDRenderPipeline/TerrainLit_Basemap"
-    Dependency "BaseMapGenShader" = "Hidden/HDRenderPipeline/TerrainLit_Basemap_Gen"
+    Dependency "BaseMapShader" = "Hidden/HDRP/TerrainLit_Basemap"
+    Dependency "BaseMapGenShader" = "Hidden/HDRP/TerrainLit_Basemap_Gen"
     CustomEditor "UnityEditor.Experimental.Rendering.HDPipeline.TerrainLitGUI"
 }

@@ -10,6 +10,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
     public class HDRenderPipeline : RenderPipeline
     {
+        public const string k_ShaderTagName = "HDRenderPipeline";
         const string k_OldQualityShadowKey = "HDRP:oldQualityShadows";
 
         enum ForwardPass
@@ -566,12 +567,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             };
         }
 
-        public void OnSceneLoad()
-        {
-            // Recreate the textures which went NULL
-            m_MaterialList.ForEach(material => material.Build(m_Asset));
-        }
-
         public override void Dispose()
         {
             UnsetRenderingFeatures();
@@ -756,6 +751,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             CoreUtils.SetKeyword(cmd, "LIGHT_LAYERS", hdCamera.frameSettings.enableLightLayers);
             cmd.SetGlobalInt(HDShaderIDs._EnableLightLayers, hdCamera.frameSettings.enableLightLayers ? 1 : 0);
 
+            // configure keyword for both decal.shader and material
             if (m_Asset.renderPipelineSettings.supportDecals)
             {
                 CoreUtils.SetKeyword(cmd, "DECALS_OFF", false);
@@ -806,6 +802,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 }
                 else
                 {
+                    // If we switch to other scene Time.realtimeSinceStartup is reset, so we need to
+                    // reset also m_Time. Here we simply detect ill case to trigger the reset.
+                    m_Time = m_Time > t ? 0.0f : m_Time;
+
                     newFrame = (t - m_Time) > 0.0166f;
 
                     if (newFrame)
@@ -1051,7 +1051,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                     // TODO: Find a correct place to bind these material textures
                     // We have to bind the material specific global parameters in this mode
-                    m_MaterialList.ForEach(material => material.Bind());
+                    m_MaterialList.ForEach(material => material.Bind(cmd));
 
                     // Frustum cull density volumes on the CPU. Can be performed as soon as the camera is set up.
                     DensityVolumeList densityVolumes = m_VolumetricLightingSystem.PrepareVisibleDensityVolumeList(hdCamera, cmd, m_Time);
@@ -1162,7 +1162,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                         // Clear and copy the stencil texture needs to be moved to before we invoke the async light list build,
                         // otherwise the async compute queue can end up using that texture before the graphics queue is done with it.
                         // TODO: Move this code inside LightLoop
-                        if (m_LightLoop.GetFeatureVariantsEnabled())
+                        // For the SSR we need the lighting flags to be copied into the stencil texture (it is use to discard object that have no lighting)
+                        if (m_LightLoop.GetFeatureVariantsEnabled() || hdCamera.frameSettings.enableSSR)
                         {
                             // For material classification we use compute shader and so can't read into the stencil, so prepare it.
                             using (new ProfilingSample(cmd, "Clear and copy stencil texture", CustomSamplerId.ClearAndCopyStencilTexture.GetSampler()))
@@ -1394,6 +1395,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
                             RenderColorPyramid(hdCamera, cmd, true);
                         }
+
+                        // Bind current color pyramid for shader graph SceneColorNode on transparent objects
+                        var currentColorPyramid = hdCamera.GetCurrentFrameRT((int)HDCameraFrameHistoryType.ColorBufferMipChain);
+                        cmd.SetGlobalTexture(HDShaderIDs._ColorPyramidTexture, currentColorPyramid);
 
                         // Render all type of transparent forward (unlit, lit, complex (hair...)) to keep the sorting between transparent objects.
                         RenderForward(m_CullResults, hdCamera, renderContext, cmd, ForwardPass.Transparent);
@@ -2070,7 +2075,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Conditional("DEVELOPMENT_BUILD"), Conditional("UNITY_EDITOR")]
         void RenderForwardError(CullResults cullResults, HDCamera hdCamera, ScriptableRenderContext renderContext, CommandBuffer cmd)
         {
-            using (new ProfilingSample(cmd, "Render Forward Error", CustomSamplerId.RenderForwardError.GetSampler()))
+            using (new ProfilingSample(cmd, "Forward Error", CustomSamplerId.RenderForwardError.GetSampler()))
             {
                 HDUtils.SetRenderTarget(cmd, hdCamera, m_CameraColorBuffer, m_SharedRTManager.GetDepthStencilBuffer());
                 RenderOpaqueRenderList(cullResults, hdCamera, renderContext, cmd, m_ForwardErrorPassNames, 0, RenderQueueRange.all, null, m_ErrorMaterial);
@@ -2095,7 +2100,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (!hdCamera.frameSettings.enableTransparentPostpass)
                 return;
 
-            using (new ProfilingSample(cmd, "Render Transparent Depth Post ", CustomSamplerId.TransparentDepthPostpass.GetSampler()))
+            using (new ProfilingSample(cmd, "Transparent Depth Post ", CustomSamplerId.TransparentDepthPostpass.GetSampler()))
             {
                 HDUtils.SetRenderTarget(cmd, hdCamera, m_SharedRTManager.GetDepthStencilBuffer());
                 RenderTransparentRenderList(cullResults, hdCamera, renderContext, cmd, m_TransparentDepthPostpassNames);
@@ -2461,7 +2466,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (hdCamera.camera.cameraType == CameraType.Reflection || hdCamera.camera.cameraType == CameraType.Preview)
                 return;
 
-            using (new ProfilingSample(cmd, "Render Debug", CustomSamplerId.RenderDebug.GetSampler()))
+            using (new ProfilingSample(cmd, "Debug", CustomSamplerId.RenderDebug.GetSampler()))
             {
                 // First render full screen debug texture
                 if (NeedsFullScreenDebugMode() && m_FullScreenDebugPushed)

@@ -4,6 +4,59 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [4.8.0-preview] - 2018-01-16
+
+### Fixed
+- Fixed remove sync with render thread when updating decal texture atlas
+- Fixed issue with TerrainLit not compiling with depth only pass and normal buffer
+- Fixed geometric normal use for shadow bias with PBR master node in forward
+- Fixed error message when having more than one directional light casting shadow
+- Fixed issue with MicroShadowing and SpecularOcclusion
+- Fixed issue with vertex animation in shader graph not compatible with SRP Batcher
+
+## [4.7.0-preview] - 2018-01-13
+
+### Added
+- Added replace blending mode for distortion
+- Added icons for assets.
+- Added new UI for decal material to allow remapping and scaling of some properties
+- Added first draft of documentation for HDRP
+
+### Fixed
+- Fixed normal map use for shadow bias with forward lit - now use geometric normal
+- Fixed transparent depth prepass and postpass access so they can be use without alpha clipping for lit shader
+- Fixed support of alpha clip shadow for lit master node
+- Fixed unlit master node not compiling
+- Fixed issue with debug display of reflection probe
+- Fixed issue with phong tessellations not working with lit shader
+- Fixed issue with vertex displacement being affected by heightmap setting even if not heightmap where assign
+- Fixed issue with density mode on Lit terrain producing NaN
+- Fixed issue when going back and forth from Lit to LitTesselation for displacement mode
+- Fixed issue with ambient occlusion incorrectly applied to emissiveColor with light layers in deferred
+- Fixed issue with fabric convolution not using the correct convolved texture when fabric convolution is enabled
+- Fixed issue with Thick mode for Transmission that was disabling transmission with directional light
+- Fixed issue on XBoxOne Player throwing error due to ICharpCode.NRefactory.dll
+- Fixed slowdow when enabling Fabric convolution in HDRP asset
+- Fixed specularAA not compiling in StackLit Master node
+- Fixed coat normal to be the neutral (geometric one) when coat normal is enabled but port is disconnected in StackLit master node.
+- Fixed missing multicompile for MSAA for AxF
+- Fixed Scene Color and Depth nodes for shader graph
+- Fixed SSR in forward
+- Fixed custom editor of PBR shader graph master node
+- Fixed issue with NewFrame not correctly calcualted in Editor when switching scene
+
+### Changed
+- Update several properties naming and caption based on feedback from documentation team
+- Remove tile shader variant for transparent backface pass of lit shader
+- Rename all HDRenderPipeline to HDRP folder for shaders
+- Rename decal property label (based on doc team feedback)
+- Add command buffer parameter to all Bind() method of material
+- Lit shader mode now default to Deferred to reduce build time
+- Update UI of Emission parameters in shaders
+- Updated AxF shader
+- Improve shader variant stripping including shader graph variant
+- Micro-shadowing in Lit forward now use ambientOcclusion instead of SpecularOcclusion
+
 ## [4.6.0-preview] - 2018-12-07
 
 ### Added
@@ -300,7 +353,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Decal now support per channel selection mask. There is now two mode. One with BaseColor, Normal and Smoothness and another one more expensive with BaseColor, Normal, Smoothness, Metal and AO. Control is on HDRP Asset. This may require to launch an update script for old scene: 'Edit/Render Pipeline/Single step upgrade script/Upgrade all DecalMaterial MaskBlendMode'.
 - Decal now supports depth bias for decal mesh, to prevent z-fighting
-- Decal material now supports draw order for decal projectors 
+- Decal material now supports draw order for decal projectors
 - Added LightLayers support (Base on mask from renderers name RenderingLayers and mask from light name LightLayers - if they match, the light apply) - cost an extra GBuffer in deferred (more bandwidth)
 - When LightLayers is enabled, the AmbientOclusion is store in the GBuffer in deferred path allowing to avoid double occlusion with SSAO. In forward the double occlusion is now always avoided.
 - Added the possibility to add an override transform on the camera for volume interpolation
@@ -478,7 +531,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Fix ConvertPhysicalLightIntensityToLightIntensity() function used when creating light from script to match HDLightEditor behavior
-- Fix numerical issues with the default value of mean free path of volumetric fog 
+- Fix numerical issues with the default value of mean free path of volumetric fog
 - Fix the bug preventing decals from coexisting with density volumes
 - Fix issue with alpha tested geometry using planar/triplanar mapping not render correctly or flickering (due to being wrongly alpha tested in depth prepass)
 - Fix meta pass with triplanar (was not handling correctly the normal)
