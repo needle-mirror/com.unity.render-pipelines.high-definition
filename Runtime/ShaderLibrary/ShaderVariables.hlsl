@@ -24,7 +24,7 @@
     #define unity_CameraInvProjection unity_StereoCameraInvProjection[unity_StereoEyeIndex]
     #define unity_WorldToCamera unity_StereoWorldToCamera[unity_StereoEyeIndex]
     #define unity_CameraToWorld unity_StereoCameraToWorld[unity_StereoEyeIndex]
-    #define _WorldSpaceCameraPos unity_StereoWorldSpaceCameraPos[unity_StereoEyeIndex]
+    #define _WorldSpaceCameraPos _WorldSpaceCameraPosStereo[unity_StereoEyeIndex].xyz
 #endif
 
 #define UNITY_LIGHTMODEL_AMBIENT (glstate_lightmodel_ambient * 2)
@@ -170,6 +170,7 @@ TEXTURE2D(unity_DynamicDirectionality);
 
 // We can have shadowMask only if we have lightmap, so no sampler
 TEXTURE2D(unity_ShadowMask);
+SAMPLER(samplerunity_ShadowMask);
 
 // TODO: Change code here so probe volume use only one transform instead of all this parameters!
 TEXTURE3D(unity_ProbeVolumeSH);
@@ -264,9 +265,14 @@ CBUFFER_START(UnityGlobal)
 
     // Volumetric lighting.
     float4 _AmbientProbeCoeffs[7];      // 3 bands of SH, packed, rescaled and convolved with the phase function
-    float  _GlobalAnisotropy;
-    float3 _GlobalScattering;
-    float  _GlobalExtinction;
+
+    float3 _HeightFogBaseScattering;
+    float  _HeightFogBaseExtinction;
+
+    float2 _HeightFogExponents;         // {a, 1/a}
+    float  _HeightFogBaseHeight;
+    float  _GlobalFogAnisotropy;
+
     float4 _VBufferResolution;          // { w, h, 1/w, 1/h }
     float4 _VBufferSliceCount;          // { count, 1/count, 0, 0 }
     float4 _VBufferUvScaleAndLimit;     // Necessary us to work with sub-allocation (resource aliasing) in the RTHandle system
@@ -298,12 +304,13 @@ CBUFFER_END
 
 CBUFFER_START(UnityPerPassStereo)
 float4x4 _ViewMatrixStereo[2];
-// Proj not needed...yet?
+float4x4 _ProjMatrixStereo[2];
 float4x4 _ViewProjMatrixStereo[2];
 float4x4 _InvViewMatrixStereo[2];
 float4x4 _InvProjMatrixStereo[2];
 float4x4 _InvViewProjMatrixStereo[2];
 float4x4 _PrevViewProjMatrixStereo[2];
+float4   _WorldSpaceCameraPosStereo[2];
 #if SHADER_STAGE_COMPUTE
 // Currently the Unity engine doesn't automatically update stereo indices, offsets, and matrices for compute shaders.
 // Instead, we manually update _ComputeEyeIndex in SRP code. 
@@ -345,7 +352,6 @@ float4x4 OptimizeProjectionMatrix(float4x4 M)
 float4x4 ApplyCameraTranslationToMatrix(float4x4 modelMatrix)
 {
     // To handle camera relative rendering we substract the camera position in the model matrix
-    // User must not use UNITY_MATRIX_M directly, unless they understand what they do
 #if (SHADEROPTIONS_CAMERA_RELATIVE_RENDERING != 0)
     modelMatrix._m03_m13_m23 -= _WorldSpaceCameraPos;
 #endif
@@ -366,12 +372,13 @@ float4x4 ApplyCameraTranslationToInverseMatrix(float4x4 inverseModelMatrix)
 // Define Model Matrix Macro
 // Note: In order to be able to define our macro to forbid usage of unity_ObjectToWorld/unity_WorldToObject
 // We need to declare inline function. Using uniform directly mean they are expand with the macro
-float4x4 GetUnityObjectToWorld() { return unity_ObjectToWorld; }
-float4x4 GetUnityWorldToObject() { return unity_WorldToObject; }
+float4x4 GetRawUnityObjectToWorld() { return unity_ObjectToWorld; }
+float4x4 GetRawUnityWorldToObject() { return unity_WorldToObject; }
 
-#define UNITY_MATRIX_M     ApplyCameraTranslationToMatrix(GetUnityObjectToWorld())
-#define UNITY_MATRIX_I_M   ApplyCameraTranslationToInverseMatrix(GetUnityWorldToObject())
+#define UNITY_MATRIX_M     ApplyCameraTranslationToMatrix(GetRawUnityObjectToWorld())
+#define UNITY_MATRIX_I_M   ApplyCameraTranslationToInverseMatrix(GetRawUnityWorldToObject())
 
+// To get instanding working, we must use UNITY_MATRIX_M / UNITY_MATRIX_I_M as UnityInstancing.hlsl redefine them
 #define unity_ObjectToWorld Use_Macro_UNITY_MATRIX_M_instead_of_unity_ObjectToWorld
 #define unity_WorldToObject Use_Macro_UNITY_MATRIX_I_M_instead_of_unity_WorldToObject
 

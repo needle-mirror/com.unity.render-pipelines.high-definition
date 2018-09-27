@@ -1,7 +1,7 @@
 #ifndef UNITY_VBUFFER_INCLUDED
 #define UNITY_VBUFFER_INCLUDED
 
-// Interpolation in the log space is non-linear.
+// Interpolation of log-encoded values is non-linear.
 // Therefore, given 'logEncodedDepth', we compute a new depth value
 // which allows us to perform HW interpolation which is linear in the view space.
 float ComputeLerpPositionForLogEncoding(float  linearDepth,
@@ -57,6 +57,7 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
                      bool   quadraticFilterXY,
                      bool   clampToBorder)
 {
+    // These are the viewport coordinates.
     float2 uv = positionNDC;
     float  w;
 
@@ -76,22 +77,19 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
         w = d;
     }
 
-    float fadeWeight = 1;
+    bool coordIsInsideFrustum = true;
 
     if (clampToBorder)
     {
-        // Compute the distance to the edge, and remap it to the [0, 1] range.
-        // Smoothly fade from the center of the edge texel to the black border color.
-        float weightU = saturate((1 - 2 * abs(uv.x - 0.5)) * VBufferResolution.x);
-        float weightV = saturate((1 - 2 * abs(uv.y - 0.5)) * VBufferResolution.y);
-        float weightW = saturate((1 - 2 * abs(w    - 0.5)) * VBufferSliceCount.x);
+        // Coordinates are always clamped to edge. We just introduce a clipping operation.
+        float3 positionCS = float3(uv, w) * 2 - 1;
 
-        fadeWeight = weightU * weightV * weightW;
+        coordIsInsideFrustum = Max3(abs(positionCS.x), abs(positionCS.y), abs(positionCS.z)) < 1;
     }
 
     float4 result = 0;
 
-    if (fadeWeight > 0)
+    if (coordIsInsideFrustum)
     {
         if (quadraticFilterXY)
         {
@@ -102,21 +100,22 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
             float2 weights[2], offsets[2];
             BiquadraticFilter(1 - fc, weights, offsets); // Inverse-translate the filter centered around 0.5
 
-            // Apply the viewport scale right at the end.
+            const float2 ssToUv = VBufferResolution.zw * VBufferUvScale;
+
+            // The sampler clamps to edge. This takes care of 4 frustum faces out of 6.
+            // Due to the RTHandle scaling system, we must take care of the other 2 manually.
             // TODO: perform per-sample (4, in this case) bilateral filtering, rather than per-pixel. This should reduce leaking.
-            // TODO: precompute (VBufferResolution.zw * VBufferUvScale).
-            result = (weights[0].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[0].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0)  // Top left
-                   + (weights[1].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[0].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0)  // Top right
-                   + (weights[0].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[1].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0)  // Bottom left
-                   + (weights[1].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[1].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0); // Bottom right
+            result = (weights[0].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[0].y)) * ssToUv, VBufferUvLimit), w), 0)  // Top left
+                   + (weights[1].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[0].y)) * ssToUv, VBufferUvLimit), w), 0)  // Top right
+                   + (weights[0].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[1].y)) * ssToUv, VBufferUvLimit), w), 0)  // Bottom left
+                   + (weights[1].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[1].y)) * ssToUv, VBufferUvLimit), w), 0); // Bottom right
         }
         else
         {
-            // Apply the viewport scale right at the end.
+            // The sampler clamps to edge. This takes care of 4 frustum faces out of 6.
+            // Due to the RTHandle scaling system, we must take care of the other 2 manually.
             result = SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min(uv * VBufferUvScale, VBufferUvLimit), w), 0);
         }
-
-        result *= fadeWeight;
     }
 
     return result;
@@ -165,20 +164,22 @@ float4 SampleVolumetricLighting(TEXTURE3D_ARGS(VBufferLighting, clampSampler),
                                 bool   correctLinearInterpolation,
                                 bool   quadraticFilterXY)
 {
-    // TODO: add some slowly animated noise to the reconstructed value.
+    // TODO: add some slowly animated noise (dither?) to the reconstructed value.
+    float4 value = SampleVBuffer(TEXTURE3D_PARAM(VBufferLighting, clampSampler),
+                                 positionNDC,
+                                 linearDepth,
+                                 VBufferResolution,
+                                 VBufferSliceCount,
+                                 VBufferUvScale,
+                                 VBufferUvLimit,
+                                 VBufferDepthEncodingParams,
+                                 VBufferDepthDecodingParams,
+                                 correctLinearInterpolation,
+                                 quadraticFilterXY,
+                                 false);
+
     // TODO: re-enable tone mapping after implementing pre-exposure.
-    return /*FastTonemapInvert*/(SampleVBuffer(TEXTURE3D_PARAM(VBufferLighting, clampSampler),
-                                           positionNDC,
-                                           linearDepth,
-                                           VBufferResolution,
-                                           VBufferSliceCount,
-                                           VBufferUvScale,
-                                           VBufferUvLimit,
-                                           VBufferDepthEncodingParams,
-                                           VBufferDepthDecodingParams,
-                                           correctLinearInterpolation,
-                                           quadraticFilterXY,
-                                           false));
+    return DelinearizeRGBA(float4(/*FastTonemapInvert*/(value.rgb), value.a));
 }
 
 #endif // UNITY_VBUFFER_INCLUDED

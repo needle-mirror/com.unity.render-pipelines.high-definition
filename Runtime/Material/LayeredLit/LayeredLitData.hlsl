@@ -396,7 +396,7 @@ void GetLayerTexCoord(FragInputs input, inout LayerTexCoord layerTexCoord)
     GenerateLayerTexCoordBasisTB(input, layerTexCoord);
 #endif
 
-    GetLayerTexCoord(   input.texCoord0, input.texCoord1, input.texCoord2, input.texCoord3,
+    GetLayerTexCoord(   input.texCoord0.xy, input.texCoord1.xy, input.texCoord2.xy, input.texCoord3.xy,
                         input.positionRWS, input.worldToTangent[2].xyz, layerTexCoord);
 }
 
@@ -768,17 +768,21 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     }
 #endif
 
+#ifdef _ENABLE_GEOMETRIC_SPECULAR_AA
+    // Specular AA
+    surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], _SpecularAAScreenSpaceVariance, _SpecularAAThreshold);
+#endif
+
 #if defined(DEBUG_DISPLAY)
     if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
     {
         surfaceData.baseColor = GetTextureDataDebug(_DebugMipMapMode, layerTexCoord.base0.uv, _BaseColorMap0, _BaseColorMap0_TexelSize, _BaseColorMap0_MipInfo, surfaceData.baseColor);
         surfaceData.metallic = 0;
     }
-#endif
 
-#ifdef _ENABLE_GEOMETRIC_SPECULAR_AA
-    // Specular AA
-    surfaceData.perceptualSmoothness = GeometricNormalFiltering(surfaceData.perceptualSmoothness, input.worldToTangent[2], _SpecularAAScreenSpaceVariance, _SpecularAAThreshold);
+    // We need to call ApplyDebugToSurfaceData after filling the surfarcedata and before filling builtinData
+    // as it can modify attribute use for static lighting
+    ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);
 #endif
 
     GetBuiltinData(input, V, posInput, surfaceData, alpha, bentNormalWS, depthOffset, builtinData);

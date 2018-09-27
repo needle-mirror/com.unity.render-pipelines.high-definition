@@ -26,10 +26,10 @@ Shader "HDRenderPipeline/LayeredLitTessellation"
         _Metallic2("Metallic2", Range(0.0, 1.0)) = 0
         _Metallic3("Metallic3", Range(0.0, 1.0)) = 0
 
-        _Smoothness0("Smoothness0", Range(0.0, 1.0)) = 1.0
-        _Smoothness1("Smoothness1", Range(0.0, 1.0)) = 1.0
-        _Smoothness2("Smoothness2", Range(0.0, 1.0)) = 1.0
-        _Smoothness3("Smoothness3", Range(0.0, 1.0)) = 1.0
+        _Smoothness0("Smoothness0", Range(0.0, 1.0)) = 0.5
+        _Smoothness1("Smoothness1", Range(0.0, 1.0)) = 0.5
+        _Smoothness2("Smoothness2", Range(0.0, 1.0)) = 0.5
+        _Smoothness3("Smoothness3", Range(0.0, 1.0)) = 0.5
 
         _SmoothnessRemapMin0("SmoothnessRemapMin0", Range(0.0, 1.0)) = 0.0
         _SmoothnessRemapMin1("SmoothnessRemapMin1", Range(0.0, 1.0)) = 0.0
@@ -337,12 +337,6 @@ Shader "HDRenderPipeline/LayeredLitTessellation"
         [ToggleUI] _LinkDetailsWithBase2("LinkDetailsWithBase2", Float) = 1.0
         [ToggleUI] _LinkDetailsWithBase3("LinkDetailsWithBase3", Float) = 1.0
 
-        [HideInInspector] _ShowMaterialReferences("_ShowMaterialReferences", Float) = 0
-        [HideInInspector] _ShowLayer0("_ShowLayer0", Float) = 0
-        [HideInInspector] _ShowLayer1("_ShowLayer1", Float) = 0
-        [HideInInspector] _ShowLayer2("_ShowLayer2", Float) = 0
-        [HideInInspector] _ShowLayer3("_ShowLayer3", Float) = 0
-
         // Tessellation specific
         [Enum(None, 0, Phong, 1)] _TessellationMode("Tessellation mode", Float) = 0
         _TessellationFactor("Tessellation Factor", Range(0.0, 64.0)) = 4.0
@@ -362,9 +356,7 @@ Shader "HDRenderPipeline/LayeredLitTessellation"
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         [ToggleUI] _SupportDecals("Support Decals", Float) = 1.0
-
-        // this will let collapsable element of material be persistant
-        [HideInInspector] _EditorExpendedAreas("_EditorExpendedAreas", Float) = 0
+        [ToggleUI] _ReceivesSSR("Receives SSR", Float) = 1.0
     }
 
     HLSLINCLUDE
@@ -434,6 +426,7 @@ Shader "HDRenderPipeline/LayeredLitTessellation"
     #pragma shader_feature _ _LAYEREDLIT_3_LAYERS _LAYEREDLIT_4_LAYERS
 
     #pragma shader_feature _DISABLE_DECALS
+    #pragma shader_feature _DISABLE_SSR
     #pragma shader_feature _ENABLE_GEOMETRIC_SPECULAR_AA
 
     // Keyword for transparent
@@ -449,7 +442,7 @@ Shader "HDRenderPipeline/LayeredLitTessellation"
     // enable dithering LOD crossfade
     #pragma multi_compile _ LOD_FADE_CROSSFADE
 
-    // enable GPU instancing
+    //enable GPU instancing support
     #pragma multi_compile_instancing
     #pragma instancing_options renderinglayer
 

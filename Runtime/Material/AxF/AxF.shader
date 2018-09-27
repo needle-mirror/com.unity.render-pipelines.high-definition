@@ -103,9 +103,6 @@ Shader "HDRenderPipeline/AxF"
         _Color("Color", Color) = (1,1,1,1)
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
-        // this will let collapsable element of material be persistant
-        [HideInInspector] _EditorExpendedAreas("_EditorExpendedAreas", Float) = 0
-
         // This is required by motion vector pass to be able to disable the pass by default
         [HideInInspector] _EnableMotionVectorForVertexAnimation("EnableMotionVectorForVertexAnimation", Float) = 0.0
     }
@@ -129,8 +126,12 @@ Shader "HDRenderPipeline/AxF"
     #pragma shader_feature _BLENDMODE_PRESERVE_SPECULAR_LIGHTING // easily handled in material.hlsl, so adding this already.
     #pragma shader_feature _ENABLE_FOG_ON_TRANSPARENT
 
+    // enable dithering LOD crossfade
+    #pragma multi_compile _ LOD_FADE_CROSSFADE
+
     //enable GPU instancing support
     #pragma multi_compile_instancing
+    #pragma instancing_options renderinglayer
 
     //-------------------------------------------------------------------------------------
     // Define
@@ -201,7 +202,7 @@ Shader "HDRenderPipeline/AxF"
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
-            #include "ShaderPass/AxFDepthPass.hlsl"
+            #include "ShaderPass/AxFSharePass.hlsl"
             #include "AxFData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
 

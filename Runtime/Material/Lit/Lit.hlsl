@@ -87,7 +87,7 @@ TEXTURE2D(_ShadowMaskTexture); // Alias for shadow mask, so we don't need to kno
 #define OUT_GBUFFER_SHADOWMASK outGBuffer4
 #endif
 
-#define HAS_REFRACTION (defined(_REFRACTION_PLANE) || defined(_REFRACTION_SPHERE)) && (defined(_REFRACTION_SSRAY_PROXY) || defined(_REFRACTION_SSRAY_HIZ))
+#define HAS_REFRACTION (defined(_REFRACTION_PLANE) || defined(_REFRACTION_SPHERE))
 
 // Enum for materialFeatureId (only use for encode/decode GBuffer)
 #define GBUFFER_LIT_STANDARD         0
@@ -331,9 +331,31 @@ void UpdateSurfaceDataFromNormalData(uint2 positionSS, inout BSDFData bsdfData)
     bsdfData.perceptualRoughness = normalData.perceptualRoughness;
 }
 
-float3 GetShadowNormalBias(BSDFData bsdfData)
+float3 GetNormalForShadowBias(BSDFData bsdfData)
 {
     return bsdfData.normalWS;
+}
+
+void ClampRoughness(inout BSDFData bsdfData, float minRoughness)
+{
+    bsdfData.roughnessT    = max(minRoughness, bsdfData.roughnessT);
+    bsdfData.roughnessB    = max(minRoughness, bsdfData.roughnessB);
+    bsdfData.coatRoughness = max(minRoughness, bsdfData.coatRoughness);
+}
+
+float ComputeMicroShadowing(BSDFData bsdfData, float NdotL)
+{
+#ifdef LIGHT_LAYERS
+    return ComputeMicroShadowing(bsdfData.ambientOcclusion, NdotL, _MicroShadowOpacity);
+#else
+    // No extra G-Buffer for AO, so 'bsdfData.ambientOcclusion' does not hold a meaningful value.
+    return ComputeMicroShadowing(bsdfData.specularOcclusion, NdotL, _MicroShadowOpacity);
+#endif
+}
+
+bool MaterialSupportsTransmission(BSDFData bsdfData)
+{
+    return HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION);
 }
 
 //-----------------------------------------------------------------------------
@@ -1097,9 +1119,6 @@ LightTransportData GetLightTransportData(SurfaceData surfaceData, BuiltinData bu
 
 #ifdef HAS_LIGHTLOOP
 
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialEvaluation.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightEvaluation.hlsl"
-
 //-----------------------------------------------------------------------------
 // BSDF share between directional light, punctual light and area light (reference)
 //-----------------------------------------------------------------------------
@@ -1188,6 +1207,14 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
 }
 
 //-----------------------------------------------------------------------------
+// Surface shading (all light types) below
+//-----------------------------------------------------------------------------
+
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightEvaluation.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialEvaluation.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/SurfaceShading.hlsl"
+
+//-----------------------------------------------------------------------------
 // EvaluateBSDF_Directional
 //-----------------------------------------------------------------------------
 
@@ -1196,79 +1223,8 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
                                         DirectionalLightData lightData, BSDFData bsdfData,
                                         BuiltinData builtinData)
 {
-    DirectLighting lighting;
-    ZERO_INITIALIZE(DirectLighting, lighting);
-
-    float3 L = -lightData.forward;
-    float3 N = bsdfData.normalWS;
-    float3 R = reflect(-V, N); // Not always the same as preLightData.iblR
-
-    // Fake a highlight of the sun disk by modifying the light vector.
-    float t = AngleAttenuation(dot(L, R), lightData.angleScale, lightData.angleOffset);
-
-    // This will be quite inaccurate for large disk radii. Would be better to use SLerp().
-    L = NLerp(L, R, t);
-
-    float NdotL = dot(N, L);
-
-    // We must clamp here, otherwise our disk light hack for smooth surfaces does not work.
-    // Explanation: for a perfectly smooth surface, lighting is only reflected if (NdotL = NdotV).
-    // This implies that (NdotH = 1).
-    // Due to the floating point arithmetic (see the math above and also GetBSDFAngle()),
-    // we will never arrive at this exact number, so no lighting will be reflected.
-    // If we increase the roughness somewhat, the trick still works.
-    bsdfData.roughnessT = max(bsdfData.roughnessT, 1.0 / (255 * 255));
-    bsdfData.roughnessB = max(bsdfData.roughnessB, 1.0 / (255 * 255));
-
-    float3 transmittance = float3(0.0, 0.0, 0.0);
-    if (HasFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_THIN_THICKNESS))
-    {
-        // Caution: This function modify N and contactShadowIndex
-        transmittance = PreEvaluateDirectionalLightTransmission(NdotL, lightData, bsdfData, N, lightData.contactShadowIndex); // contactShadowIndex is only modify for the code of this function
-    }
-
-    float3 color;
-    float attenuation;
-#ifdef LIGHT_LAYERS
-    float AOForMicroshadowing = bsdfData.ambientOcclusion;
-#else
-    float AOForMicroshadowing = bsdfData.specularOcclusion;
-#endif
-    EvaluateLight_Directional(lightLoopContext, posInput, lightData, builtinData, N, L, AOForMicroshadowing, color, attenuation);
-
-    float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
-
-    // Note: We use NdotL here to early out, but in case of clear coat this is not correct. But we are ok with this
-    UNITY_BRANCH if (intensity > 0.0)
-    {
-        BSDF(V, L, NdotL, posInput.positionWS, preLightData, bsdfData, lighting.diffuse, lighting.specular);
-
-        lighting.diffuse  *= intensity * lightData.diffuseScale;
-        lighting.specular *= intensity * lightData.specularScale;
-    }
-
-    // The mixed thickness mode is not supported by directional lights due to poor quality and high performance impact.
-    if (HasFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_THIN_THICKNESS))
-    {
-        float  NdotV = ClampNdotV(preLightData.NdotV);
-        float  LdotV = dot(L, V);
-        // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
-        lighting.diffuse += EvaluateTransmission(bsdfData, transmittance, NdotL, NdotV, LdotV, attenuation * lightData.diffuseScale);
-    }
-
-    // Save ALU by applying light and cookie colors only once.
-    lighting.diffuse  *= color;
-    lighting.specular *= color;
-
-#ifdef DEBUG_DISPLAY
-    if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
-    {
-        // Only lighting, not BSDF
-        lighting.diffuse = color * intensity * lightData.diffuseScale;
-    }
-#endif
-
-    return lighting;
+    return ShadeSurface_Directional(lightLoopContext, posInput, builtinData, preLightData, lightData,
+                                    bsdfData, bsdfData.normalWS, V);
 }
 
 //-----------------------------------------------------------------------------
@@ -1279,68 +1235,8 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                      float3 V, PositionInputs posInput,
                                      PreLightData preLightData, LightData lightData, BSDFData bsdfData, BuiltinData builtinData)
 {
-    DirectLighting lighting;
-    ZERO_INITIALIZE(DirectLighting, lighting);
-
-    float3 L;
-    float3 lightToSample;
-    float4 distances; // {d, d^2, 1/d, d_proj}
-    GetPunctualLightVectors(posInput.positionWS, lightData, L, lightToSample, distances);
-
-    float3 N     = bsdfData.normalWS;
-    float  NdotL = dot(N, L);
-
-    float3 transmittance = float3(0.0, 0.0, 0.0);
-    if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
-    {
-        // Caution: This function modify N and lightData.contactShadowIndex
-        transmittance = PreEvaluatePunctualLightTransmission(lightLoopContext, posInput, distances.x, NdotL, L, bsdfData, N, lightData);
-    }
-
-    float3 color;
-    float attenuation;
-    EvaluateLight_Punctual(lightLoopContext, posInput, lightData, builtinData, N, L,
-                           lightToSample, distances, color, attenuation);
-
-    float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
-
-    // Note: We use NdotL here to early out, but in case of clear coat this is not correct. But we are ok with this
-    UNITY_BRANCH if (intensity > 0.0)
-    {
-        // Simulate a sphere light with this hack
-        // Note that it is not correct with our pre-computation of PartLambdaV (mean if we disable the optimization we will not have the
-        // same result) but we don't care as it is a hack anyway
-        bsdfData.coatRoughness = max(bsdfData.coatRoughness, lightData.minRoughness);
-        bsdfData.roughnessT = max(bsdfData.roughnessT, lightData.minRoughness);
-        bsdfData.roughnessB = max(bsdfData.roughnessB, lightData.minRoughness);
-
-        BSDF(V, L, NdotL, posInput.positionWS, preLightData, bsdfData, lighting.diffuse, lighting.specular);
-
-        lighting.diffuse  *= intensity * lightData.diffuseScale;
-        lighting.specular *= intensity * lightData.specularScale;
-    }
-
-    if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
-    {
-        float  NdotV = ClampNdotV(preLightData.NdotV);
-        float  LdotV = dot(L, V);
-        // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
-        lighting.diffuse += EvaluateTransmission(bsdfData, transmittance, NdotL, NdotV, LdotV, attenuation * lightData.diffuseScale);
-    }
-
-    // Save ALU by applying light and cookie colors only once.
-    lighting.diffuse  *= color;
-    lighting.specular *= color;
-
-#ifdef DEBUG_DISPLAY
-    if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
-    {
-        // Only lighting, not BSDF
-        lighting.diffuse = color * intensity * lightData.diffuseScale;
-    }
-#endif
-
-    return lighting;
+    return ShadeSurface_Punctual(lightLoopContext, posInput, builtinData, preLightData, lightData,
+                                 bsdfData, bsdfData.normalWS, V);
 }
 
 #include "LitReference.hlsl"
@@ -1384,8 +1280,8 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
     if (intensity == 0.0)
         return lighting;
 
-    lightData.diffuseScale  *= intensity;
-    lightData.specularScale *= intensity;
+    lightData.diffuseDimmer  *= intensity;
+    lightData.specularDimmer *= intensity;
 
     // Translate the light s.t. the shaded point is at the origin of the coordinate system.
     lightData.positionRWS -= positionWS;
@@ -1405,7 +1301,7 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
 
     // Evaluate the diffuse part
     ltcValue = LTCEvaluate(P1, P2, B, preLightData.ltcTransformDiffuse);
-    ltcValue *= lightData.diffuseScale;
+    ltcValue *= lightData.diffuseDimmer;
     // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
 
     // See comment for specular magnitude, it apply to diffuse as well
@@ -1422,7 +1318,7 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
         // The matrix multiplication should not generate any extra ALU on GCN.
         // TODO: double evaluation is very inefficient! This is a temporary solution.
         ltcValue  = LTCEvaluate(P1, P2, B, mul(flipMatrix, k_identity3x3));
-        ltcValue *= lightData.diffuseScale;
+        ltcValue *= lightData.diffuseDimmer;
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
         // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
         lighting.diffuse += bsdfData.transmittance * ltcValue;
@@ -1430,7 +1326,7 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
 
     // Evaluate the specular part
     ltcValue = LTCEvaluate(P1, P2, B, preLightData.ltcTransformSpecular);
-    ltcValue *= lightData.specularScale;
+    ltcValue *= lightData.specularDimmer;
     // We need to multiply by the magnitude of the integral of the BRDF
     // ref: http://advances.realtimerendering.com/s2016/s2016_ltc_fresnel.pdf
     // This value is what we store in specularFGD, so reuse it
@@ -1440,7 +1336,7 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
     if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
     {
         ltcValue = LTCEvaluate(P1, P2, B, preLightData.ltcTransformCoat);
-        ltcValue *= lightData.specularScale;
+        ltcValue *= lightData.specularDimmer;
         // For clear coat we don't fetch specularFGD we can use directly the perfect fresnel coatIblF
         lighting.diffuse *= (1.0 - preLightData.coatIblF);
         lighting.specular *= (1.0 - preLightData.coatIblF);
@@ -1457,7 +1353,7 @@ DirectLighting EvaluateBSDF_Line(   LightLoopContext lightLoopContext,
         // Only lighting, not BSDF
         // Apply area light on lambert then multiply by PI to cancel Lambert
         lighting.diffuse = LTCEvaluate(P1, P2, B, k_identity3x3);
-        lighting.diffuse *= PI * lightData.diffuseScale;
+        lighting.diffuse *= PI * lightData.diffuseDimmer;
     }
 #endif
 
@@ -1527,8 +1423,8 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     if (intensity == 0.0)
         return lighting;
 
-    lightData.diffuseScale  *= intensity;
-    lightData.specularScale *= intensity;
+    lightData.diffuseDimmer  *= intensity;
+    lightData.specularDimmer *= intensity;
 
     // Translate the light s.t. the shaded point is at the origin of the coordinate system.
     lightData.positionRWS -= positionWS;
@@ -1549,7 +1445,7 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     // Evaluate the diffuse part
     // Polygon irradiance in the transformed configuration.
     ltcValue  = PolygonIrradiance(mul(lightVerts, preLightData.ltcTransformDiffuse));
-    ltcValue *= lightData.diffuseScale;
+    ltcValue *= lightData.diffuseDimmer;
     // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
     // See comment for specular magnitude, it apply to diffuse as well
     lighting.diffuse = preLightData.diffuseFGD * ltcValue;
@@ -1568,7 +1464,7 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
         // Polygon irradiance in the transformed configuration.
         // TODO: double evaluation is very inefficient! This is a temporary solution.
         ltcValue  = PolygonIrradiance(mul(lightVerts, ltcTransform));
-        ltcValue *= lightData.diffuseScale;
+        ltcValue *= lightData.diffuseDimmer;
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
         // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
         lighting.diffuse += bsdfData.transmittance * ltcValue;
@@ -1577,7 +1473,7 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     // Evaluate the specular part
     // Polygon irradiance in the transformed configuration.
     ltcValue  = PolygonIrradiance(mul(lightVerts, preLightData.ltcTransformSpecular));
-    ltcValue *= lightData.specularScale;
+    ltcValue *= lightData.specularDimmer;
     // We need to multiply by the magnitude of the integral of the BRDF
     // ref: http://advances.realtimerendering.com/s2016/s2016_ltc_fresnel.pdf
     // This value is what we store in specularFGD, so reuse it
@@ -1587,7 +1483,7 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
     if (HasFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
     {
         ltcValue = PolygonIrradiance(mul(lightVerts, preLightData.ltcTransformCoat));
-        ltcValue *= lightData.specularScale;
+        ltcValue *= lightData.specularDimmer;
         // For clear coat we don't fetch specularFGD we can use directly the perfect fresnel coatIblF
         lighting.diffuse *= (1.0 - preLightData.coatIblF);
         lighting.specular *= (1.0 - preLightData.coatIblF);
@@ -1604,7 +1500,7 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
         // Only lighting, not BSDF
         // Apply area light on lambert then multiply by PI to cancel Lambert
         lighting.diffuse = PolygonIrradiance(mul(lightVerts, k_identity3x3));
-        lighting.diffuse *= PI * lightData.diffuseScale;
+        lighting.diffuse *= PI * lightData.diffuseDimmer;
     }
 #endif
 
@@ -1651,179 +1547,45 @@ IndirectLighting EvaluateBSDF_ScreenSpaceReflection(PositionInputs posInput,
     return lighting;
 }
 
-IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
-                                            float3 V, PositionInputs posInput,
-                                            PreLightData preLightData, BSDFData bsdfData,
-                                            EnvLightData envLightData,
-                                            int GPUImageBasedLightingType,
-                                            inout float hierarchyWeight)
+IndirectLighting EvaluateBSDF_ScreenspaceRefraction(LightLoopContext lightLoopContext,
+                                                    float3 V, PositionInputs posInput,
+                                                    PreLightData preLightData, BSDFData bsdfData,
+                                                    EnvLightData envLightData,
+                                                    inout float hierarchyWeight)
 {
     IndirectLighting lighting;
     ZERO_INITIALIZE(IndirectLighting, lighting);
 
-    // -------------------------------
-    // Early out
-    // -------------------------------
-#if !HAS_REFRACTION
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-    {
-         // No refraction, no need to go further
-        hierarchyWeight = 1.0;
-        return lighting;
-    }
-#endif
-
-    // -------------------------------
-    // Choose projection model
-    // -------------------------------
-    int projectionModel = PROJECTIONMODEL_NONE;
 #if HAS_REFRACTION
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-    {
-    #if defined(_REFRACTION_SSRAY_HIZ)
-        projectionModel = PROJECTIONMODEL_HI_Z;
-    #elif defined(_REFRACTION_SSRAY_PROXY)
-        projectionModel = PROJECTIONMODEL_PROXY;
-    #endif
-    }
-#else
-    if (_SSReflectionEnabled != 0)
-        projectionModel = _SSReflectionProjectionModel;
-#endif
 
-    if (projectionModel == PROJECTIONMODEL_NONE)
-       return lighting;
+    // Refraction process:
+    //  1. Depending on the shape model, we calculate the refracted point in world space and the optical depth
+    //  2. We calculate the screen space position of the refracted point
+    //  3. If this point is available (ie: in color buffer and point is not in front of the object)
+    //    a. Get the corresponding color depending on the roughness from the gaussian pyramid of the color buffer
+    //    b. Multiply by the transmittance for absorption (depends on the optical depth)
 
-    // -------------------------------
-    // Initialize screen space tracing
-    // -------------------------------
-    float3 rayOriginWS              = float3(0, 0, 0);
-    float3 rayDirWS                 = float3(0, 0, 0);
-    float mipLevel                  = 0;
-#ifdef DEBUG_DISPLAY
-    int debugMode                   = 0;
-#endif
-    float invScreenWeightDistance   = 0;
-    float temporalFilteringWeight   = 0.1;
+    // Proxy raycasting
+    ScreenSpaceProxyRaycastInput ssRayInput;
+    ZERO_INITIALIZE(ScreenSpaceProxyRaycastInput, ssRayInput);
 
-#if HAS_REFRACTION
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-    {
-        // Refraction process:
-        //  1. Depending on the shape model, we calculate the refracted point in world space and the optical depth
-        //  2. We calculate the screen space position of the refracted point
-        //  3. If this point is available (ie: in color buffer and point is not in front of the object)
-        //    a. Get the corresponding color depending on the roughness from the gaussian pyramid of the color buffer
-        //    b. Multiply by the transmittance for absorption (depends on the optical depth)
+    ssRayInput.rayOriginWS = preLightData.transparentPositionWS;
+    ssRayInput.rayDirWS = preLightData.transparentRefractV;
+    ssRayInput.proxyData = envLightData;
 
-        rayOriginWS             = preLightData.transparentPositionWS;
-        rayDirWS                = preLightData.transparentRefractV;
-        mipLevel                = preLightData.transparentSSMipLevel;
-        invScreenWeightDistance = _SSRefractionInvScreenWeightDistance;
-#ifdef DEBUG_DISPLAY
-        debugMode               = DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFRACTION;
-#endif
-    }
-    else
-#endif
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-    {
-        rayOriginWS             = posInput.positionWS;
-        rayDirWS                = preLightData.iblR;
-        mipLevel                = PlanarPerceptualRoughnessToMipmapLevel(preLightData.iblPerceptualRoughness, _ColorPyramidScale.z);
-        invScreenWeightDistance = _SSReflectionInvScreenWeightDistance;
-#ifdef DEBUG_DISPLAY
-        debugMode               = DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFLECTION;
-#endif
-    }
-
-#ifdef DEBUG_DISPLAY
-            bool debug              = _DebugLightingMode == debugMode
-                && !any(int2(_MouseClickPixelCoord.xy) - int2(posInput.positionSS));
-#endif
-
-    // -------------------------------
-    // Screen space tracing query
-    // -------------------------------
     ScreenSpaceRayHit hit;
     ZERO_INITIALIZE(ScreenSpaceRayHit, hit);
     bool hitSuccessful = false;
     float hitWeight = 1;
-
-    // -------------------------------
-    // Proxy raycasting
-    // -------------------------------
-    if (projectionModel == PROJECTIONMODEL_PROXY)
-    {
-        ScreenSpaceProxyRaycastInput ssRayInput;
-        ZERO_INITIALIZE(ScreenSpaceProxyRaycastInput, ssRayInput);
-
-            ssRayInput.rayOriginWS = rayOriginWS;
-            ssRayInput.rayDirWS = rayDirWS;
-#ifdef DEBUG_DISPLAY
-            ssRayInput.debug = debug;
-#endif
-            ssRayInput.proxyData = envLightData;
-
-#if HAS_REFRACTION
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-            hitSuccessful = ScreenSpaceProxyRaycastRefraction(ssRayInput, hit);
-        else
-#endif
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-            hitSuccessful = ScreenSpaceProxyRaycastReflection(ssRayInput, hit);
-    }
-
-    // -------------------------------
-    // HiZ raymarching
-    // -------------------------------
-    else if (projectionModel == PROJECTIONMODEL_HI_Z)
-    {
-        ScreenSpaceRaymarchInput ssRayInput;
-        ZERO_INITIALIZE(ScreenSpaceRaymarchInput, ssRayInput);
-
-        // Jitter the ray origin to trade some noise instead of banding effect
-        ssRayInput.rayOriginWS = rayOriginWS + rayDirWS * SampleBayer4(posInput.positionSS + uint2(_FrameCount, uint(_FrameCount) / 4u)) * 0.1;
-        ssRayInput.rayDirWS = rayDirWS;
-#ifdef DEBUG_DISPLAY
-        ssRayInput.debug = debug;
-#endif
-
-#if HAS_REFRACTION
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-            hitSuccessful = ScreenSpaceHiZRaymarchRefraction(ssRayInput, hit, hitWeight);
-        else
-#endif
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-            hitSuccessful = ScreenSpaceHiZRaymarchReflection(ssRayInput, hit, hitWeight);
-    }
-
-            // Debug screen space tracing
-#ifdef DEBUG_DISPLAY
-    if (_DebugLightingMode == debugMode
-        && _DebugLightingSubMode != DEBUGSCREENSPACETRACING_COLOR
-        && _DebugLightingSubMode != DEBUGSCREENSPACETRACING_LINEAR_SAMPLED_COLOR
-        && _DebugLightingSubMode != DEBUGSCREENSPACETRACING_HI_ZSAMPLED_COLOR
-        )
-    {
-        float weight = 1.0;
-        UpdateLightingHierarchyWeights(hierarchyWeight, weight);
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-            lighting.specularTransmitted = hit.debugOutput;
-        else if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-            lighting.specularReflected = hit.debugOutput;
-        return lighting;
-    }
-#endif
+    hitSuccessful = ScreenSpaceProxyRaycastRefraction(ssRayInput, hit);
 
     if (!hitSuccessful)
         return lighting;
 
-    // -------------------------------
     // Resolve weight and color
-    // -------------------------------
+
     // Fade pixels near the texture buffers' borders
-    float2 weightNDC = clamp(min(hit.positionNDC, 1 - hit.positionNDC) * invScreenWeightDistance, 0, 1);
+    float2  weightNDC = clamp(min(hit.positionNDC, 1 - hit.positionNDC) * _SSRefractionInvScreenWeightDistance, 0, 1);
             weightNDC = weightNDC * weightNDC * (3 - 2 * weightNDC);
     // TODO: Fade pixels with normal non facing the ray direction
     // TODO: Fade pixels marked as foreground in stencil
@@ -1838,93 +1600,23 @@ IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
     float hitLinearDepth = LinearEyeDepth(hitDeviceDepth, _ZBufferParams);
 
     float2 samplingPositionNDC = hit.positionNDC;
-#if HAS_REFRACTION
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION
-        && hitLinearDepth < posInput.linearDepth)
+
+    if (hitLinearDepth < posInput.linearDepth)
         samplingPositionNDC = posInput.positionNDC;
-#endif
 
-    UpdateLightingHierarchyWeights(hierarchyWeight, weight); // Shouldn't be needed, but safer in case we decide to change hierarchy priority
-
-    float2 hitVelocityNDC = 0;
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-    {
-        // Reproject color pyramid
-        float4 hitVelocityBuffer = LOAD_TEXTURE2D_LOD(
-            _CameraMotionVectorsTexture,
-            hit.positionSS,
-            0.0
-        );
-        DecodeVelocity(hitVelocityBuffer, hitVelocityNDC);
-    }
-
-    float3 preLD = SAMPLE_TEXTURE2D_LOD(
-        _ColorPyramidTexture,
-        s_trilinear_clamp_sampler,
-        // Offset by half a texel to properly interpolate between this pixel and its mips
-        (samplingPositionNDC - hitVelocityNDC) * _ColorPyramidScale.xy + _ColorPyramidSize.zw * 0.5,
-        mipLevel
-    ).rgb;
-
-    // With HiZ, we use a temporal filtering to reduce the noise from the ray origin jittering
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION && projectionModel == PROJECTIONMODEL_HI_Z)
-    {
-        float4 currentVelocityBuffer = LOAD_TEXTURE2D_LOD(
-            _CameraMotionVectorsTexture,
-            posInput.positionSS,
-            0.0
-        );
-
-        float2 currentVelocityNDC;
-        DecodeVelocity(currentVelocityBuffer, currentVelocityNDC);
-
-        float3 currentLD = LOAD_TEXTURE2D_LOD(
-            _ColorPyramidTexture,
-            int2(posInput.positionSS) - int2(currentVelocityNDC * _ScreenSize.xy),
-            0
-        ).rgb;
-        preLD = preLD * (1.0 - temporalFilteringWeight) + currentLD * temporalFilteringWeight;
-    }
+    float3 preLD = SAMPLE_TEXTURE2D_LOD(_ColorPyramidTexture, s_trilinear_clamp_sampler,
+                                        // Offset by half a texel to properly interpolate between this pixel and its mips
+                                        samplingPositionNDC * _ColorPyramidScale.xy + _ColorPyramidSize.zw * 0.5, preLightData.transparentSSMipLevel).rgb;
 
     // We use specularFGD as an approximation of the fresnel effect (that also handle smoothness)
     float3 F = preLightData.specularFGD;
+    lighting.specularTransmitted = (1.0 - F) * preLD.rgb * preLightData.transparentTransmittance * weight;
 
-    // -------------------------------
-    // Assign color
-    // -------------------------------
-#if HAS_REFRACTION
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-        lighting.specularTransmitted = (1.0 - F) * preLD.rgb * preLightData.transparentTransmittance * weight;
-    else
-#endif
-    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-        lighting.specularReflected = F * preLD.rgb * weight;
+    UpdateLightingHierarchyWeights(hierarchyWeight, weight); // Shouldn't be needed, but safer in case we decide to change hierarchy priority
 
-#ifdef DEBUG_DISPLAY
-    if (debug)
-    {
-        ScreenSpaceTracingDebug debug = _DebugScreenSpaceTracingData[0];
-        debug.lightingSampledColor = preLD;
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-            debug.lightingSpecularFGD = 1.0 - F;
-        else if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-            debug.lightingSpecularFGD = F;
-        debug.lightingWeight = weight;
-        _DebugScreenSpaceTracingData[0] = debug;
-    }
-
-    if (_DebugLightingMode == debugMode
-        && (_DebugLightingSubMode == DEBUGSCREENSPACETRACING_LINEAR_SAMPLED_COLOR
-            || _DebugLightingSubMode == DEBUGSCREENSPACETRACING_HI_ZSAMPLED_COLOR))
-    {
-        float weight = 1.0;
-        UpdateLightingHierarchyWeights(hierarchyWeight, weight);
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
-            lighting.specularTransmitted = preLD.rgb;
-        else if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
-            lighting.specularReflected = preLD.rgb;
-        return lighting;
-    }
+#else // HAS_REFRACTION
+    // No refraction, no need to go further
+    hierarchyWeight = 1.0;
 #endif
 
     return lighting;

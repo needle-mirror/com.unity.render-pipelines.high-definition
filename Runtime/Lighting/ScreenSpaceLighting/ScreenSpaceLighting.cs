@@ -13,24 +13,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             Sphere = 2
         };
 
-        [GenerateHLSL]
-        public enum ProjectionModel
-        {
-            None = 0,
-            Proxy = 1,
-            HiZ = 2,
-            Linear = 3,
-            Count
-        };
-
-        [GenerateHLSL]
-        public enum HiZIntersectionKind
-        {
-            None,
-            Cell,
-            Depth
-        }
-
         int m_RayLevelID;
         int m_RayMinLevelID;
         int m_RayMaxLevelID;
