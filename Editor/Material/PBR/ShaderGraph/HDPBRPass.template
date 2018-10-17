@@ -92,7 +92,6 @@ $splice(Defines)
     //-------------------------------------------------------------------------------------
 
     #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-    #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderGraphFunctions.hlsl"
     #ifdef DEBUG_DISPLAY
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
     #endif
@@ -106,6 +105,7 @@ $splice(Defines)
     #endif
     #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/BuiltinUtilities.hlsl"
     #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialUtilities.hlsl"
+    #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderGraphFunctions.hlsl"
 
     // this function assumes the bitangent flip is encoded in tangentWS.w
     // TODO: move this function to HDRP shared file, once we merge with HDRP repo
@@ -222,6 +222,18 @@ $include("SharedCode.template.hlsl")
         surfaceData.specularOcclusion = GetSpecularOcclusionFromBentAO(V, bentNormalWS, surfaceData);
 #elif defined(_MASKMAP)
         surfaceData.specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(NdotV, surfaceData.ambientOcclusion, PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness));
+#endif
+
+#ifdef DEBUG_DISPLAY
+        if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
+        {
+            // TODO: need to update mip info
+            surfaceData.metallic = 0;
+        }
+
+        // We need to call ApplyDebugToSurfaceData after filling the surfarcedata and before filling builtinData
+        // as it can modify attribute use for static lighting
+        ApplyDebugToSurfaceData(fragInputs.worldToTangent, surfaceData);
 #endif
     }
 

@@ -131,21 +131,20 @@ void FillVolumetricDensityBuffer(PositionInputs posInput, float3 rayOriginWS, fl
         uint3 voxelCoord = uint3(posInput.positionSS, slice);
 
         float e1 = slice * de + de; // (slice + 1) / sliceCount
-    #if defined(SHADER_API_METAL)
-        // Warning: this compiles, but it's nonsense. Use DecodeLogarithmicDepthGeneralized().
-        float z1 = DecodeLogarithmicDepth(e1, _VBufferDepthDecodingParams);
-    #else
         float z1 = DecodeLogarithmicDepthGeneralized(e1, _VBufferDepthDecodingParams);
-    #endif
 
         float  halfDZ        = 0.5 * (z1 - z0);
         float  z             = z0 + halfDZ;
         float3 voxelCenterWS = rayOriginWS + z * rayUnDirWS; // Works due to the length of of the dir
 
-        // TODO: define a function ComputeGlobalFogCoefficients(float3 voxelCenterWS),
-        // which allows procedural definition of extinction and scattering.
-        float3 voxelScattering = _GlobalScattering;
-        float  voxelExtinction = _GlobalExtinction;
+        // TODO: the fog value at the center is likely different from the average value across the voxel.
+        // Compute the average value.
+        float fragmentHeight   = voxelCenterWS.y;
+        float heightMultiplier = ComputeHeightFogMultiplier(fragmentHeight, _HeightFogBaseHeight, _HeightFogExponents);
+
+        // Start by sampling the height fog.
+        float3 voxelScattering = _HeightFogBaseScattering * heightMultiplier;
+        float  voxelExtinction = _HeightFogBaseExtinction * heightMultiplier;
 
     #ifdef USE_CLUSTERED_LIGHTLIST
 

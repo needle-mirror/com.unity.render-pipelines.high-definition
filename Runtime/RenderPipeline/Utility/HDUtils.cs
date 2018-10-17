@@ -32,12 +32,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             get
             {
-                HDRenderPipeline hdPipeline = RenderPipelineManager.currentPipeline as HDRenderPipeline;
-                if (hdPipeline != null)
-                {
-                    return hdPipeline.renderPipelineSettings;
-                }
-                return null;
+                HDRenderPipelineAsset hdPipelineAsset = GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset;
+
+                return hdPipelineAsset.renderPipelineSettings;
             }
         }
         public static int debugStep { get { return MousePositionDebug.instance.debugStep; } }
@@ -165,16 +162,37 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public static void SetRenderTarget(CommandBuffer cmd, HDCamera camera, RTHandleSystem.RTHandle colorBuffer, RTHandleSystem.RTHandle depthBuffer, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown, int depthSlice = 0)
         {
+            int cw = colorBuffer.rt.width;
+            int ch = colorBuffer.rt.height;
+            int dw = depthBuffer.rt.width;
+            int dh = depthBuffer.rt.height;
+
+            Debug.Assert(cw == dw && ch == dh);
+
             SetRenderTarget(cmd, camera, colorBuffer, depthBuffer, ClearFlag.None, CoreUtils.clearColorAllBlack, miplevel, cubemapFace, depthSlice);
         }
 
         public static void SetRenderTarget(CommandBuffer cmd, HDCamera camera, RTHandleSystem.RTHandle colorBuffer, RTHandleSystem.RTHandle depthBuffer, ClearFlag clearFlag, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown, int depthSlice = 0)
         {
+            int cw = colorBuffer.rt.width;
+            int ch = colorBuffer.rt.height;
+            int dw = depthBuffer.rt.width;
+            int dh = depthBuffer.rt.height;
+
+            Debug.Assert(cw == dw && ch == dh);
+
             SetRenderTarget(cmd, camera, colorBuffer, depthBuffer, clearFlag, CoreUtils.clearColorAllBlack, miplevel, cubemapFace, depthSlice);
         }
 
         public static void SetRenderTarget(CommandBuffer cmd, HDCamera camera, RTHandleSystem.RTHandle colorBuffer, RTHandleSystem.RTHandle depthBuffer, ClearFlag clearFlag, Color clearColor, int miplevel = 0, CubemapFace cubemapFace = CubemapFace.Unknown, int depthSlice = 0)
         {
+            int cw = colorBuffer.rt.width;
+            int ch = colorBuffer.rt.height;
+            int dw = depthBuffer.rt.width;
+            int dh = depthBuffer.rt.height;
+
+            Debug.Assert(cw == dw && ch == dh);
+
             CoreUtils.SetRenderTarget(cmd, colorBuffer, depthBuffer, miplevel, cubemapFace, depthSlice);
             SetViewportAndClear(cmd, camera, colorBuffer, clearFlag, clearColor);
         }
@@ -447,6 +465,87 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public static int DivRoundUp(int x, int y)
         {
             return (x + y - 1) / y;
+        }
+
+        // Note: If you add new platform in this function, think about adding support in IsSupportedBuildTarget() function below
+        public static bool IsSupportedGraphicDevice(GraphicsDeviceType graphicDevice)
+        {
+            return (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation4 ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12 ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan ||
+                    SystemInfo.graphicsDeviceType == (GraphicsDeviceType)22 /*GraphicsDeviceType.Switch*/);
+        }
+
+        public static void CheckRTCreated(RenderTexture rt)
+        {
+            // In some cases when loading a project for the first time in the editor, the internal resource is destroyed.
+            // When used as render target, the C++ code will re-create the resource automatically. Since here it's used directly as an UAV, we need to check manually
+            if (!rt.IsCreated())
+                rt.Create();
+        }
+
+        public static Vector4 ComputeUvScaleAndLimit(Vector2Int viewportResolution, Vector2Int bufferSize)
+        {
+            Vector2 rcpBufferSize = new Vector2(1.0f / bufferSize.x, 1.0f / bufferSize.y);
+
+            // vp_scale = vp_dim / tex_dim.
+            Vector2 uvScale = new Vector2(viewportResolution.x * rcpBufferSize.x,
+                                          viewportResolution.y * rcpBufferSize.y);
+
+            // clamp to (vp_dim - 0.5) / tex_dim.
+            Vector2 uvLimit = new Vector2((viewportResolution.x - 0.5f) * rcpBufferSize.x,
+                                          (viewportResolution.y - 0.5f) * rcpBufferSize.y);
+
+            return new Vector4(uvScale.x, uvScale.y, uvLimit.x, uvLimit.y);
+        }
+
+#if UNITY_EDITOR
+        // This function can't be in HDEditorUtils because we need it in HDRenderPipeline.cs (and HDEditorUtils is in an editor asmdef)
+        public static bool IsSupportedBuildTarget(UnityEditor.BuildTarget buildTarget)
+        {
+            return (buildTarget == UnityEditor.BuildTarget.StandaloneWindows ||
+                    buildTarget == UnityEditor.BuildTarget.StandaloneWindows64 ||
+                    buildTarget == UnityEditor.BuildTarget.StandaloneLinux64 ||
+                    buildTarget == UnityEditor.BuildTarget.StandaloneLinuxUniversal ||
+                    buildTarget == UnityEditor.BuildTarget.StandaloneOSX ||
+                    buildTarget == UnityEditor.BuildTarget.WSAPlayer ||
+                    buildTarget == UnityEditor.BuildTarget.XboxOne ||
+                    buildTarget == UnityEditor.BuildTarget.PS4 ||
+                    buildTarget == UnityEditor.BuildTarget.Switch);
+        }
+#endif
+
+        public static bool IsOperatingSystemSupported(string os)
+        {
+            // Metal support depends on OS version:
+            // macOS 10.11.x doesn't have tessellation / earlydepthstencil support, early driver versions were buggy in general
+            // macOS 10.12.x should usually work with AMD, but issues with Intel/Nvidia GPUs. Regardless of the GPU, there are issues with MTLCompilerService crashing with some shaders
+            // macOS 10.13.x is expected to work, and if it's a driver/shader compiler issue, there's still hope on getting it fixed to next shipping OS patch release
+            //
+            // Has worked experimentally with iOS in the past, but it's not currently supported
+            //
+
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
+            {
+                if (os.StartsWith("Mac"))
+                {
+                    // TODO: Expose in C# version number, for now assume "Mac OS X 10.10.4" format with version 10 at least
+                    int startIndex = os.LastIndexOf(" ");
+                    var parts = os.Substring(startIndex + 1).Split('.');
+                    int a = Convert.ToInt32(parts[0]);
+                    int b = Convert.ToInt32(parts[1]);
+                    // In case in the future there's a need to disable specific patch releases
+                    // int c = Convert.ToInt32(parts[2]);
+    
+                    if (a < 10 || b < 13)
+                        return false;
+                }
+            }
+
+            return true;
         }
     }
 }

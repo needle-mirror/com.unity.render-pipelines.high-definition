@@ -15,6 +15,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             switch (EditMode.editMode)
             {
                 case EditBaseShape:
+                    //important: following will init the container for box.
+                    //This must be done before drawing the contained handles
                     InfluenceVolumeUI.DrawHandles_EditBase(s.influenceVolume, d.influenceVolume, o, mat, probe);
                     break;
                 case EditInfluenceShape:
@@ -27,18 +29,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     {
                         using (new Handles.DrawingScope(Matrix4x4.TRS(Vector3.zero, Quaternion.identity, Vector3.one)))
                         {
-                            Vector3 offsetWorld = probe.transform.position + probe.transform.rotation * probe.influenceVolume.offset;
                             EditorGUI.BeginChangeCheck();
-                            var newOffsetWorld = Handles.PositionHandle(offsetWorld, probe.transform.rotation);
+                            var newCapturePosition = Handles.PositionHandle(probe.transform.position, probe.transform.rotation);
                             if (EditorGUI.EndChangeCheck())
                             {
-                                Vector3 newOffset = Quaternion.Inverse(probe.transform.rotation) * (newOffsetWorld - probe.transform.position);
+                                Vector3 newOffset = Quaternion.Inverse(probe.transform.rotation) * (newCapturePosition - probe.transform.position);
                                 Undo.RecordObjects(new Object[] { probe, probe.transform }, "Translate Influence Position");
-                                d.influenceVolume.offset.vector3Value = newOffset;
-                                d.influenceVolume.Apply();
+                                Vector3 delta = newCapturePosition - probe.transform.position;
+                                Matrix4x4 oldLocalToWorld = Matrix4x4.TRS(probe.transform.position, probe.transform.rotation, Vector3.one);
 
                                 //call modification to legacy ReflectionProbe
                                 probe.influenceVolume.offset = newOffset;
+
+                                probe.transform.position = newCapturePosition;
+                                d.influenceVolume.offset.vector3Value -= oldLocalToWorld.inverse.MultiplyVector(delta);
+                                d.influenceVolume.Apply();
                             }
                         }
                         break;
@@ -46,7 +51,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [DrawGizmo(GizmoType.Selected)]
+        [DrawGizmo(GizmoType.Selected|GizmoType.Active)]
         internal static void DrawGizmos(HDProbe d, GizmoType gizmoType)
         {
             HDProbeUI s;
@@ -65,25 +70,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     break;
                 case EditInfluenceShape:
                     InfluenceVolumeUI.DrawGizmos(
-                    s.influenceVolume,
-                    d.influenceVolume,
-                    mat,
-                    InfluenceVolumeUI.HandleType.Influence,
-                    InfluenceVolumeUI.HandleType.All);
+                        s.influenceVolume,
+                        d.influenceVolume,
+                        mat,
+                        InfluenceVolumeUI.HandleType.Influence,
+                        InfluenceVolumeUI.HandleType.All);
                     break;
                 case EditInfluenceNormalShape:
                     InfluenceVolumeUI.DrawGizmos(
-                    s.influenceVolume,
-                    d.influenceVolume,
-                    mat,
-                    InfluenceVolumeUI.HandleType.InfluenceNormal,
-                    InfluenceVolumeUI.HandleType.All);
+                        s.influenceVolume,
+                        d.influenceVolume,
+                        mat,
+                        InfluenceVolumeUI.HandleType.InfluenceNormal,
+                        InfluenceVolumeUI.HandleType.All);
                     break;
                 default:
                 {
                     var showedHandles = s.influenceVolume.showInfluenceHandles
                         ? InfluenceVolumeUI.HandleType.All
-                        : InfluenceVolumeUI.HandleType.Base;
+                        : InfluenceVolumeUI.HandleType.Base | InfluenceVolumeUI.HandleType.Influence;
                     InfluenceVolumeUI.DrawGizmos(
                         s.influenceVolume,
                         d.influenceVolume,

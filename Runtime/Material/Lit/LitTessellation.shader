@@ -13,7 +13,7 @@ Shader "HDRenderPipeline/LitTessellation"
         _BaseColorMap("BaseColorMap", 2D) = "white" {}
 
         _Metallic("_Metallic", Range(0.0, 1.0)) = 0
-        _Smoothness("Smoothness", Range(0.0, 1.0)) = 1.0
+        _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
         _MaskMap("MaskMap", 2D) = "white" {}
         _SmoothnessRemapMin("SmoothnessRemapMin", Float) = 0.0
         _SmoothnessRemapMax("SmoothnessRemapMax", Float) = 1.0
@@ -111,7 +111,7 @@ Shader "HDRenderPipeline/LitTessellation"
         _TransparentSortPriority("_TransparentSortPriority", Float) = 0
 
         // Transparency
-        [Enum(None, 0, Plane, 1, Sphere, 2)]_RefractionModel("Refraction Model", Int) = 0
+        [Enum(None, 0, Box, 1, Sphere, 2)]_RefractionModel("Refraction Model", Int) = 0
         [Enum(Proxy, 1, HiZ, 2)]_SSRefractionProjectionModel("Refraction Projection Model", Int) = 0
         _Ior("Index Of Refraction", Range(1.0, 2.5)) = 1.0
         _ThicknessMultiplier("Thickness Multiplier", Float) = 1.0
@@ -214,9 +214,7 @@ Shader "HDRenderPipeline/LitTessellation"
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         [ToggleUI] _SupportDecals("Support Decals", Float) = 1.0
-
-        // this will let collapsable element of material be persistant
-        [HideInInspector] _EditorExpendedAreas("_EditorExpendedAreas", Float) = 0
+        [ToggleUI] _ReceivesSSR("Receives SSR", Float) = 1.0
     }
 
     HLSLINCLUDE
@@ -238,7 +236,6 @@ Shader "HDRenderPipeline/LitTessellation"
     #pragma shader_feature _VERTEX_WIND
     #pragma shader_feature _ _TESSELLATION_PHONG
     #pragma shader_feature _ _REFRACTION_PLANE _REFRACTION_SPHERE
-    #pragma shader_feature _ _REFRACTION_SSRAY_PROXY _REFRACTION_SSRAY_HIZ
 
     #pragma shader_feature _ _EMISSIVE_MAPPING_PLANAR _EMISSIVE_MAPPING_TRIPLANAR
     #pragma shader_feature _ _MAPPING_PLANAR _MAPPING_TRIPLANAR
@@ -261,6 +258,7 @@ Shader "HDRenderPipeline/LitTessellation"
     #pragma shader_feature _TRANSMITTANCECOLORMAP
 
     #pragma shader_feature _DISABLE_DECALS
+    #pragma shader_feature _DISABLE_SSR
     #pragma shader_feature _ENABLE_GEOMETRIC_SPECULAR_AA
 
     // Keyword for transparent

@@ -20,7 +20,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             bool isTransparentForwardPass = snippet.passName == "TransparentDepthPostpass" || snippet.passName == "TransparentBackface" || snippet.passName == "TransparentDepthPrepass";
 
             // When using forward only, we never need GBuffer pass (only Forward)
-            if (hdrpAsset.renderPipelineSettings.supportOnlyForward && isGBufferPass)
+            if (hdrpAsset.renderPipelineSettings.supportedLitShaderMode == RenderPipelineSettings.SupportedLitShaderMode.ForwardOnly && isGBufferPass)
                 return true;
 
             if (inputData.shaderKeywordSet.IsEnabled(m_Transparent))
@@ -35,14 +35,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (isTransparentForwardPass)
                     return true;
 
+                // TODO: This check is disabled currently as it doesn't work. We have issue with lit VFX from VFX graph not working correctly, mean we are too agressive on
+                // removal. Need to check why.
                 // When we are in deferred (i.e !hdrpAsset.renderPipelineSettings.supportOnlyForward), we only support tile lighting
-                if (!hdrpAsset.renderPipelineSettings.supportOnlyForward && inputData.shaderKeywordSet.IsEnabled(m_ClusterLighting))
-                    return true;
+                //if (!hdrpAsset.renderPipelineSettings.supportOnlyForward && inputData.shaderKeywordSet.IsEnabled(m_ClusterLighting))
+                //    return true;
 
                 if (isDepthOnlyPass)
                 {
                     // When we are full forward, we don't have depth prepass without writeNormalBuffer
-                    if (hdrpAsset.renderPipelineSettings.supportOnlyForward && !inputData.shaderKeywordSet.IsEnabled(m_WriteNormalBuffer))
+                    if (hdrpAsset.renderPipelineSettings.supportedLitShaderMode == RenderPipelineSettings.SupportedLitShaderMode.ForwardOnly && !inputData.shaderKeywordSet.IsEnabled(m_WriteNormalBuffer))
                         return true;
                 }
 

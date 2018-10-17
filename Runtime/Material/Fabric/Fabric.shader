@@ -1,4 +1,4 @@
-Shader "HDRenderPipeline/Fabric"
+Shader "Hidden/HDRenderPipeline/Fabric"
 {
     Properties
     {
@@ -27,7 +27,7 @@ Shader "HDRenderPipeline/Fabric"
         _TangentMap("TangentMap", 2D) = "bump" {}
 
         // Smoothness values (overriden by the mask map)
-        _Smoothness("Smoothness", Range(0.0, 1.0)) = 1.0
+        _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
     
         // The mask texture and the matching remapping values for it        
         _MaskMap("MaskMap", 2D) = "white" {}
@@ -123,9 +123,6 @@ Shader "HDRenderPipeline/Fabric"
         _Color("Color", Color) = (1,1,1,1)
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
-        // this will let collapsable element of material be persistant
-        [HideInInspector] _EditorExpendedAreas("_EditorExpendedAreas", Float) = 0
-
         // This is required by motion vector pass to be able to disable the pass by default
         [HideInInspector] _EnableMotionVectorForVertexAnimation("EnableMotionVectorForVertexAnimation", Float) = 0.0
     }
@@ -165,8 +162,12 @@ Shader "HDRenderPipeline/Fabric"
     #pragma shader_feature _MATERIAL_FEATURE_TRANSMISSION
     #pragma shader_feature _MATERIAL_FEATURE_COTTON_WOOL
     
+    // enable dithering LOD crossfade
+    #pragma multi_compile _ LOD_FADE_CROSSFADE
+
     //enable GPU instancing support
     #pragma multi_compile_instancing
+    #pragma instancing_options renderinglayer
 
     // If we use subsurface scattering, enable output split lighting (for forward pass)
     #if defined(_MATERIAL_FEATURE_SUBSURFACE_SCATTERING)
@@ -374,6 +375,4 @@ Shader "HDRenderPipeline/Fabric"
         }
 
     }
-
-    CustomEditor "Experimental.Rendering.HDPipeline.FabricGUI"
 }

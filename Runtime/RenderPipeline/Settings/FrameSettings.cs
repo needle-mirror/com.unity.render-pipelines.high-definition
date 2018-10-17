@@ -4,11 +4,86 @@ using UnityEngine.Serialization;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
+    public enum LitShaderMode
+    {
+        Forward,
+        Deferred
+    }
+
+    [Flags]
+    public enum FrameSettingsOverrides
+    {
+        //lighting settings
+        Shadow = 1 << 0,
+        ContactShadow = 1 << 1,
+        ShadowMask = 1 << 2,
+        SSR = 1 << 3,
+        SSAO = 1 << 4,
+        SubsurfaceScattering = 1 << 5,
+        Transmission = 1 << 6,
+        AtmosphericScaterring = 1 << 7,
+        Volumetrics = 1 << 8,
+        ReprojectionForVolumetrics = 1 << 9,
+        LightLayers = 1 << 10,
+        MSAA = 1 << 11,
+
+        //rendering pass
+        TransparentPrepass = 1 << 13,
+        TransparentPostpass = 1 << 14,
+        MotionVectors = 1 << 15,
+        ObjectMotionVectors = 1 << 16,
+        Decals = 1 << 17,
+        RoughRefraction = 1 << 18,
+        Distortion = 1 << 19,
+        Postprocess = 1 << 20,
+
+        //rendering settings
+        ShaderLitMode = 1 << 21,
+        DepthPrepassWithDeferredRendering = 1 << 22,
+        AsyncCompute = 1 << 23,
+        OpaqueObjects = 1 << 24,
+        TransparentObjects = 1 << 25,
+        RealtimePlanarReflection = 1 << 26,
+    }
+
     // The settings here are per frame settings.
     // Each camera must have its own per frame settings
     [Serializable]
+    [System.Diagnostics.DebuggerDisplay("FrameSettings overriding {overrides.ToString(\"X\")}")]
     public class FrameSettings
     {
+        static Dictionary<FrameSettingsOverrides, Action<FrameSettings, FrameSettings>> s_Overrides = new Dictionary<FrameSettingsOverrides, Action<FrameSettings, FrameSettings>>
+        {
+            {FrameSettingsOverrides.Shadow, (a, b) => { a.enableShadow = b.enableShadow; } },
+            {FrameSettingsOverrides.ContactShadow, (a, b) => { a.enableContactShadows = b.enableContactShadows; } },
+            {FrameSettingsOverrides.ShadowMask, (a, b) => { a.enableShadowMask = b.enableShadowMask; } },
+            {FrameSettingsOverrides.SSR, (a, b) => { a.enableSSR = b.enableSSR; } },
+            {FrameSettingsOverrides.SSAO, (a, b) => { a.enableSSAO = b.enableSSAO; } },
+            {FrameSettingsOverrides.SubsurfaceScattering, (a, b) => { a.enableSubsurfaceScattering = b.enableSubsurfaceScattering; } },
+            {FrameSettingsOverrides.Transmission, (a, b) => { a.enableTransmission = b.enableTransmission; } },
+            {FrameSettingsOverrides.AtmosphericScaterring, (a, b) => { a.enableAtmosphericScattering = b.enableAtmosphericScattering; } },
+            {FrameSettingsOverrides.Volumetrics, (a, b) => { a.enableVolumetrics = b.enableVolumetrics; } },
+            {FrameSettingsOverrides.ReprojectionForVolumetrics, (a, b) => { a.enableReprojectionForVolumetrics = b.enableReprojectionForVolumetrics; } },
+            {FrameSettingsOverrides.LightLayers, (a, b) => { a.enableLightLayers = b.enableLightLayers; } },
+            {FrameSettingsOverrides.MSAA, (a, b) => { a.enableMSAA = b.enableMSAA; } },
+            {FrameSettingsOverrides.TransparentPrepass, (a, b) => { a.enableTransparentPrepass = b.enableTransparentPrepass; } },
+            {FrameSettingsOverrides.TransparentPostpass, (a, b) => { a.enableTransparentPostpass = b.enableTransparentPostpass; } },
+            {FrameSettingsOverrides.MotionVectors, (a, b) => { a.enableMotionVectors = b.enableMotionVectors; } },
+            {FrameSettingsOverrides.ObjectMotionVectors, (a, b) => { a.enableObjectMotionVectors = b.enableObjectMotionVectors; } },
+            {FrameSettingsOverrides.Decals, (a, b) => { a.enableDecals = b.enableDecals; } },
+            {FrameSettingsOverrides.RoughRefraction, (a, b) => { a.enableRoughRefraction = b.enableRoughRefraction; } },
+            {FrameSettingsOverrides.Distortion, (a, b) => { a.enableDistortion = b.enableDistortion; } },
+            {FrameSettingsOverrides.Postprocess, (a, b) => { a.enablePostprocess = b.enablePostprocess; } },
+            {FrameSettingsOverrides.ShaderLitMode, (a, b) => { a.shaderLitMode = b.shaderLitMode; } },
+            {FrameSettingsOverrides.DepthPrepassWithDeferredRendering, (a, b) => { a.enableDepthPrepassWithDeferredRendering = b.enableDepthPrepassWithDeferredRendering; } },
+            {FrameSettingsOverrides.AsyncCompute, (a, b) => { a.enableAsyncCompute = b.enableAsyncCompute; } },
+            {FrameSettingsOverrides.OpaqueObjects, (a, b) => { a.enableOpaqueObjects = b.enableOpaqueObjects; } },
+            {FrameSettingsOverrides.TransparentObjects, (a, b) => { a.enableTransparentObjects = b.enableTransparentObjects; } },
+            {FrameSettingsOverrides.RealtimePlanarReflection, (a, b) => { a.enableRealtimePlanarReflection = b.enableRealtimePlanarReflection; } },
+        };
+
+        public FrameSettingsOverrides overrides;
+
         // Lighting
         // Setup by users
         public bool enableShadow = true;
@@ -28,7 +103,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float specularGlobalDimmer = 1.0f;
 
         // View
-        public bool enableForwardRenderingOnly = false; // TODO: Currently there is no way to strip the extra forward shaders generated by the shaders compiler, so we can switch dynamically.
+        public LitShaderMode shaderLitMode = LitShaderMode.Deferred;
         public bool enableDepthPrepassWithDeferredRendering = false;
 
         public bool enableTransparentPrepass = true;
@@ -41,13 +116,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool enableDistortion = true;
         public bool enablePostprocess = true;
 
-        public bool enableStereo = false;
-        public XRGraphicsConfig xrGraphicsConfig;
-
         public bool enableAsyncCompute = true;
 
         public bool enableOpaqueObjects = true;
         public bool enableTransparentObjects = true;
+        public bool enableRealtimePlanarReflection = true;
 
         public bool enableMSAA = false;
 
@@ -55,6 +128,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // FrameSettings..ctor() 
         public LightLoopSettings lightLoopSettings = new LightLoopSettings();
 
+        public FrameSettings() {
+        }
+        public FrameSettings(FrameSettings toCopy)
+        {
+            toCopy.CopyTo(this);
+        }
+        
         public void CopyTo(FrameSettings frameSettings)
         {
             frameSettings.enableShadow = this.enableShadow;
@@ -72,7 +152,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             frameSettings.diffuseGlobalDimmer = this.diffuseGlobalDimmer;
             frameSettings.specularGlobalDimmer = this.specularGlobalDimmer;
 
-            frameSettings.enableForwardRenderingOnly = this.enableForwardRenderingOnly;
+            frameSettings.shaderLitMode = this.shaderLitMode;
             frameSettings.enableDepthPrepassWithDeferredRendering = this.enableDepthPrepassWithDeferredRendering;
 
             frameSettings.enableTransparentPrepass = this.enableTransparentPrepass;
@@ -83,18 +163,43 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             frameSettings.enableTransparentPostpass = this.enableTransparentPostpass;
             frameSettings.enableDistortion = this.enableDistortion;
             frameSettings.enablePostprocess = this.enablePostprocess;
-
-            frameSettings.enableStereo = this.enableStereo;
-            frameSettings.xrGraphicsConfig = this.xrGraphicsConfig;
-
+            
             frameSettings.enableOpaqueObjects = this.enableOpaqueObjects;
             frameSettings.enableTransparentObjects = this.enableTransparentObjects;
+            frameSettings.enableRealtimePlanarReflection = this.enableRealtimePlanarReflection;            
 
             frameSettings.enableAsyncCompute = this.enableAsyncCompute;
 
             frameSettings.enableMSAA = this.enableMSAA;
 
+            frameSettings.overrides = this.overrides;
+
             this.lightLoopSettings.CopyTo(frameSettings.lightLoopSettings);
+        }
+
+        public FrameSettings Override(FrameSettings overridedFrameSettings)
+        {
+            if(overrides == 0)
+            {
+                //nothing to override
+                return overridedFrameSettings;
+            }
+
+            FrameSettings result = new FrameSettings(overridedFrameSettings);
+            Array values = Enum.GetValues(typeof(FrameSettingsOverrides));
+            foreach(FrameSettingsOverrides val in values)
+            {
+                if((val & overrides) > 0)
+                {
+                    s_Overrides[val](result, this);
+                }
+            }
+
+            result.lightLoopSettings = lightLoopSettings.Override(overridedFrameSettings.lightLoopSettings);
+
+            //propagate override to be chained
+            result.overrides = overrides | overridedFrameSettings.overrides;
+            return result;
         }
 
         // Init a FrameSettings from renderpipeline settings, frame settings and debug settings (if any)
@@ -139,7 +244,26 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // We have to fall back to forward-only rendering when scene view is using wireframe rendering mode
             // as rendering everything in wireframe + deferred do not play well together
-            aggregate.enableForwardRenderingOnly = srcFrameSettings.enableForwardRenderingOnly || GL.wireframe || renderPipelineSettings.supportOnlyForward;
+            if (GL.wireframe) //force forward mode for wireframe
+            {
+                aggregate.shaderLitMode = LitShaderMode.Forward;
+            }
+            else
+            {
+                switch (renderPipelineSettings.supportedLitShaderMode)
+                {
+                    case RenderPipelineSettings.SupportedLitShaderMode.ForwardOnly:
+                        aggregate.shaderLitMode = LitShaderMode.Forward;
+                        break;
+                    case RenderPipelineSettings.SupportedLitShaderMode.DeferredOnly:
+                        aggregate.shaderLitMode = LitShaderMode.Deferred;
+                        break;
+                    case RenderPipelineSettings.SupportedLitShaderMode.Both:
+                        aggregate.shaderLitMode = srcFrameSettings.shaderLitMode;
+                        break;
+                }
+            }
+
             aggregate.enableDepthPrepassWithDeferredRendering = srcFrameSettings.enableDepthPrepassWithDeferredRendering;
 
             aggregate.enableTransparentPrepass = srcFrameSettings.enableTransparentPrepass;
@@ -153,20 +277,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // Planar and real time cubemap doesn't need post process and render in FP16
             aggregate.enablePostprocess = camera.cameraType != CameraType.Reflection && srcFrameSettings.enablePostprocess;
-
-            aggregate.enableStereo = ((camera.cameraType == CameraType.Game) || (camera.cameraType == CameraType.VR)) && srcFrameSettings.enableStereo && XRGraphicsConfig.enabled && (camera.stereoTargetEye == StereoTargetEyeMask.Both);
-
-            aggregate.xrGraphicsConfig = renderPipelineSettings.xrConfig;
-
+                        
             aggregate.enableAsyncCompute = srcFrameSettings.enableAsyncCompute && SystemInfo.supportsAsyncCompute;
 
             aggregate.enableOpaqueObjects = srcFrameSettings.enableOpaqueObjects;
             aggregate.enableTransparentObjects = srcFrameSettings.enableTransparentObjects;
+            aggregate.enableRealtimePlanarReflection = srcFrameSettings.enableRealtimePlanarReflection;       
 
-            aggregate.enableMSAA = srcFrameSettings.enableMSAA && renderPipelineSettings.supportMSAA;
+            //MSAA only supported in forward
+            aggregate.enableMSAA = srcFrameSettings.enableMSAA && renderPipelineSettings.supportMSAA && aggregate.shaderLitMode == LitShaderMode.Forward;
 
             aggregate.ConfigureMSAADependentSettings();
-            aggregate.ConfigureStereoDependentSettings();
+            aggregate.ConfigureStereoDependentSettings(camera);
 
             // Disable various option for the preview except if we are a Camera Editor preview
             if (HDUtils.IsRegularPreviewCamera(camera))
@@ -187,7 +309,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 aggregate.enableTransparentPostpass = false;
                 aggregate.enableDistortion = false;
                 aggregate.enablePostprocess = false;
-                aggregate.enableStereo = false;
             }
 
             LightLoopSettings.InitializeLightLoopSettings(camera, aggregate, renderPipelineSettings, srcFrameSettings, ref aggregate.lightLoopSettings);
@@ -198,7 +319,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (enableMSAA)
             {
                 // Initially, MSAA will only support forward
-                enableForwardRenderingOnly = true;
+                shaderLitMode = LitShaderMode.Forward;
 
                 // TODO: The work will be implemented piecemeal to support all passes
                 enableDistortion = false; // no gaussian final color
@@ -206,26 +327,23 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        public void ConfigureStereoDependentSettings()
+        public void ConfigureStereoDependentSettings(Camera cam)
         {
-            if (enableStereo)
+            if (cam.stereoEnabled)
             {
                 // Stereo deferred rendering still has the following problems:
                 // VR TODO: Dispatch tile light-list compute per-eye
                 // VR TODO: Update compute lighting shaders for stereo
-                enableForwardRenderingOnly = true;
+                shaderLitMode = LitShaderMode.Forward;
 
                 // TODO: The work will be implemented piecemeal to support all passes
-                //enableMotionVectors = !enableMSAA;
                 enableMotionVectors = enablePostprocess && !enableMSAA;
                 enableDecals = false;
                 enableDistortion = false;
-                //enablePostprocess = false;
                 enableRoughRefraction = false;
                 enableSSAO = false;
                 enableSSR = false;
                 enableSubsurfaceScattering = false;
-                enableTransparentObjects = false;
             }
         }
 
@@ -255,11 +373,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     displayName = "Rendering Settings",
                     children =
                     {
-                        new DebugUI.BoolField { displayName = "Forward Only", getter = () => frameSettings.enableForwardRenderingOnly, setter = value => frameSettings.enableForwardRenderingOnly = value },
+                        new DebugUI.EnumField { displayName = "Lit Shader Mode", getter = () => (int)frameSettings.shaderLitMode, setter = value => frameSettings.shaderLitMode = (LitShaderMode)value, autoEnum = typeof(LitShaderMode)},
                         new DebugUI.BoolField { displayName = "Deferred Depth Prepass", getter = () => frameSettings.enableDepthPrepassWithDeferredRendering, setter = value => frameSettings.enableDepthPrepassWithDeferredRendering = value },
                         new DebugUI.BoolField { displayName = "Enable Async Compute", getter = () => frameSettings.enableAsyncCompute, setter = value => frameSettings.enableAsyncCompute = value },
                         new DebugUI.BoolField { displayName = "Enable Opaque Objects", getter = () => frameSettings.enableOpaqueObjects, setter = value => frameSettings.enableOpaqueObjects = value },
                         new DebugUI.BoolField { displayName = "Enable Transparent Objects", getter = () => frameSettings.enableTransparentObjects, setter = value => frameSettings.enableTransparentObjects = value },
+                        new DebugUI.BoolField { displayName = "Enable Realtime Planar Reflection", getter = () => frameSettings.enableRealtimePlanarReflection, setter = value => frameSettings.enableRealtimePlanarReflection = value },                        
                         new DebugUI.BoolField { displayName = "Enable MSAA", getter = () => frameSettings.enableMSAA, setter = value => frameSettings.enableMSAA = value },
                     }
                 },

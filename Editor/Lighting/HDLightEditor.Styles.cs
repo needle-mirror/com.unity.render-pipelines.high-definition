@@ -27,6 +27,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public readonly GUIContent lightIntensity = new GUIContent("Intensity", "");
 
             public readonly GUIContent maxSmoothness = new GUIContent("Max Smoothness", "Very low cost way of faking spherical area lighting. This will modify the roughness of the material lit. This is useful when the specular highlight is too small or too sharp.");
+            public readonly GUIContent lightRadius = new GUIContent("Light Radius", "Can be used to soften the core of the punctual light to create fill lighting.");
             public readonly GUIContent affectDiffuse = new GUIContent("Affect Diffuse", "This will disable diffuse lighting for this light. Doesn't save performance, diffuse lighting is still computed.");
             public readonly GUIContent affectSpecular = new GUIContent("Affect Specular", "This will disable specular lighting for this light. Doesn't save performance, specular lighting is still computed.");
             public readonly GUIContent nonLightmappedOnly = new GUIContent("Non Lightmapped Only", "This will disable the rendering of lightmapped object for shadow map. Only effective with shadow mask feature");
@@ -35,7 +36,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public readonly GUIContent fadeDistance = new GUIContent("Fade Distance", "The distance at which the light will smoothly fade before being culled to minimize popping.");
             public readonly GUIContent spotInnerPercent = new GUIContent("Inner Percent", "Controls size of the angular attenuation in percent of the base angle of the Spot light's cone.");
             public readonly GUIContent spotLightShape = new GUIContent("Shape", "The shape use for the spotlight. Has an impact on the cookie transformation and light angular attenuation.");
-            public readonly GUIContent shapeWidthLine = new GUIContent("Length", "Length of the line light");
+            public readonly GUIContent shapeWidthTube = new GUIContent("Length", "Length of the tube light");
             public readonly GUIContent shapeWidthRect = new GUIContent("Size X", "SizeX of the rectangle light");
             public readonly GUIContent shapeHeightRect = new GUIContent("Size Y", "SizeY of the rectangle light");
             public readonly GUIContent aspectRatioPyramid = new GUIContent("Aspect ratio", "");
@@ -48,7 +49,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public readonly GUIContent sunDiskSize = new GUIContent("Sun Highlight Disk Size", "Controls the size of the highlight of the sun disk. It's the angle of the sun cone in degrees.");
             public readonly GUIContent sunHaloSize = new GUIContent("Sun Highlight Halo Size", "Controls the size of the halo around the highlight of the sun disk.");
 
-            public readonly GUIContent shape = new GUIContent("Type", "Specifies the current type of light. Possible types are Directional, Spot, Point, Rectangle and Line lights.");
+            public readonly GUIContent shape = new GUIContent("Type", "Specifies the current type of light. Possible types are Directional, Spot, Point, Rectangle and Tube lights.");
             public readonly GUIContent[] shapeNames;
             public readonly GUIContent enableSpotReflector = new GUIContent("Angle affect intensity", "When true it simulate a spot light with reflector (mean the intensity of the light will be more focus with narrower angle), otherwise light outside of the cone is simply absorbed (mean intensity is constent whatever the size of the cone).");
 
@@ -56,6 +57,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public readonly GUIContent shadowResolution = new GUIContent("Resolution", "Controls the rendered resolution of the shadow maps. A higher resolution will increase the fidelity of shadows at the cost of GPU performance and memory usage.");
             public readonly GUIContent shadowFadeDistance = new GUIContent("Fade Distance", "The shadow will fade at distance ShadowFadeDistance before being culled to minimize popping.");
             public readonly GUIContent shadowDimmer = new GUIContent("Dimmer", "Aim to be use with script, timeline or animation. It allows dimming one or multiple shadows. This can also be used as an optimization to fit in shadow budget manually and minimize popping.");
+            public readonly GUIContent volumetricShadowDimmer = new GUIContent("Volumetric Dimmer", "Aim to be use with script, timeline or animation. It allows dimming one or multiple shadows. This can also be used as an optimization to fit in shadow budget manually and minimize popping.");
             public readonly GUIContent contactShadows = new GUIContent("Enable Contact Shadows", "Enable support for contact shadows on this light. Better for lights with a lot of visible shadows.");
 
             // Bias control

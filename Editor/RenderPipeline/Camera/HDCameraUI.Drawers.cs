@@ -11,7 +11,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
     partial class HDCameraUI
     {
-        enum ProjectionType { Perspective, Orthographic };
 
         static HDCameraUI()
         {
@@ -19,11 +18,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 CED.space,
                 SectionGeneralSettings,
+                SectionFrameSettings,
                 // Not used for now
                 //SectionPhysicalSettings,
                 SectionOutputSettings,
-                SectionXRSettings,
-                SectionRenderLoopSettings
+                SectionXRSettings
             };
         }
 
@@ -43,8 +42,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 CED.Action(Drawer_FieldClippingPlanes),
                 CED.space,
                 CED.Action(Drawer_CameraWarnings),
-                CED.Action(Drawer_FieldRenderingPath),
-                CED.space
+                CED.Action(Drawer_FieldRenderingPath)
+                //no space as FrameSettings is drawn just under
                 );
 
         public static readonly CED.IDrawer SectionPhysicalSettings = CED.FoldoutGroup(
@@ -77,21 +76,23 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     FoldoutOption.Indent,
                     CED.Action(Drawer_FieldVR),
                     CED.Action(Drawer_FieldTargetEye)));
-
-        public static readonly CED.IDrawer SectionRenderLoopSettings = CED.FadeGroup(
-                (s, d, o, i) => s.isSectionAvailableRenderLoopSettings,
-                FadeOption.None,
-                CED.Select(
-                    (s, d, o) => s.frameSettingsUI,
-                    (s, d, o) => d.frameSettings,
-                    FrameSettingsUI.SectionRenderingPasses,
-                    FrameSettingsUI.SectionRenderingSettings,
-                    FrameSettingsUI.SectionLightingSettings),
-                CED.Select(
-                    (s, d, o) => s.frameSettingsUI.lightLoopSettings,
-                    (s, d, o) => d.frameSettings.lightLoopSettings,
-                    LightLoopSettingsUI.SectionLightLoopSettings));
         
+        public static readonly CED.IDrawer SectionFrameSettings = CED.Action((s, d, o) =>
+        {
+            if (s.isSectionExpandedGeneralSettings.target)
+            {
+                if (s.isSectionAvailableRenderLoopSettings.target)
+                    FrameSettingsUI.Inspector().Draw(s.frameSettingsUI, d.frameSettings, o);
+                else
+                    EditorGUILayout.Space();
+            }
+        });
+
+        static void Drawer_FieldBackgroundColorHDR(HDCameraUI s, SerializedHDCamera p, Editor owner)
+        {
+            EditorGUILayout.PropertyField(p.backgroundColorHDR, backgroundColorContent);
+        }
+
         static void Drawer_FieldVolumeLayerMask(HDCameraUI s, SerializedHDCamera p, Editor owner)
         {
             EditorGUILayout.PropertyField(p.volumeLayerMask, volumeLayerMaskContent);
@@ -108,17 +109,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         static void Drawer_Projection(HDCameraUI s, SerializedHDCamera p, Editor owner)
         {
-            ProjectionType projectionType = p.orthographic.boolValue ? ProjectionType.Orthographic : ProjectionType.Perspective;
+            CameraProjection projection = p.orthographic.boolValue ? CameraProjection.Orthographic : CameraProjection.Perspective;
             EditorGUI.BeginChangeCheck();
             EditorGUI.showMixedValue = p.orthographic.hasMultipleDifferentValues;
-            projectionType = (ProjectionType)EditorGUILayout.EnumPopup(projectionContent, projectionType);
+            projection = (CameraProjection)EditorGUILayout.EnumPopup(projectionContent, projection);
             EditorGUI.showMixedValue = false;
             if (EditorGUI.EndChangeCheck())
-                p.orthographic.boolValue = (projectionType == ProjectionType.Orthographic);
+                p.orthographic.boolValue = (projection == CameraProjection.Orthographic);
 
             if (!p.orthographic.hasMultipleDifferentValues)
             {
-                if (projectionType == ProjectionType.Orthographic)
+                if (projection == CameraProjection.Orthographic)
                     EditorGUILayout.PropertyField(p.orthographicSize, sizeContent);
                 else
                     EditorGUILayout.Slider(p.fieldOfView, 1f, 179f, fieldOfViewContent);
@@ -189,7 +190,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 var targetTexture = p.targetTexture.objectReferenceValue as RenderTexture;
                 if (targetTexture
                     && targetTexture.antiAliasing > 1
-                    && !p.frameSettings.enableForwardRenderingOnly.boolValue)
+                    && p.frameSettings.litShaderMode.enumValueIndex == (int)LitShaderMode.Deferred)
                 {
                     EditorGUILayout.HelpBox(msaaWarningMessage, MessageType.Warning, true);
                 }
@@ -213,17 +214,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         static void Drawer_FieldVR(HDCameraUI s, SerializedHDCamera p, Editor owner)
         {
-            if (s.canOverrideRenderLoopSettings)
-                EditorGUILayout.PropertyField(p.frameSettings.enableStereo, enableStereoContent);
-            else
-            {
-                var hdrp = GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset;
-                Assert.IsNotNull(hdrp, "This Editor is valid only for HDRP");
-                var enableStereo = hdrp.GetFrameSettings().enableStereo;
-                GUI.enabled = false;
-                EditorGUILayout.Toggle(hdrpEnableStereoContent, enableStereo);
-                GUI.enabled = true;
-            }
             EditorGUILayout.PropertyField(p.stereoSeparation, stereoSeparationContent);
             EditorGUILayout.PropertyField(p.stereoConvergence, stereoConvergenceContent);
         }

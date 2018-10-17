@@ -1,38 +1,6 @@
 #ifndef UNITY_VBUFFER_INCLUDED
 #define UNITY_VBUFFER_INCLUDED
 
-// Interpolation in the log space is non-linear.
-// Therefore, given 'logEncodedDepth', we compute a new depth value
-// which allows us to perform HW interpolation which is linear in the view space.
-float ComputeLerpPositionForLogEncoding(float  linearDepth,
-                                        float  logEncodedDepth,
-                                        float2 VBufferSliceCount,
-                                        float4 VBufferDepthDecodingParams)
-{
-    float z = linearDepth;
-    float d = logEncodedDepth;
-
-    float numSlices    = VBufferSliceCount.x;
-    float rcpNumSlices = VBufferSliceCount.y;
-
-    float s  = d * numSlices - 0.5;
-    float s0 = floor(s);
-    float s1 = ceil(s);
-    float d0 = saturate(s0 * rcpNumSlices + (0.5 * rcpNumSlices));
-    float d1 = saturate(s1 * rcpNumSlices + (0.5 * rcpNumSlices));
-    float z0 = DecodeLogarithmicDepthGeneralized(d0, VBufferDepthDecodingParams);
-    float z1 = DecodeLogarithmicDepthGeneralized(d1, VBufferDepthDecodingParams);
-
-    // Compute the linear interpolation weight.
-    float t = saturate((z - z0) / (z1 - z0));
-
-    // Do not saturate here, we want to know whether we are outside of the near/far plane bounds.
-    return d0 + t * rcpNumSlices;
-}
-
-// if (correctLinearInterpolation), we use ComputeLerpPositionForLogEncoding() to correct weighting
-// of both slices at the cost of extra ALUs.
-//
 // if (quadraticFilterXY), we perform biquadratic (3x3) reconstruction for each slice to reduce
 // aliasing at the cost of extra ALUs and bandwidth.
 // Warning: you MUST pass a linear sampler in order for the quadratic filter to work.
@@ -53,45 +21,26 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
                      float2 VBufferUvLimit,
                      float4 VBufferDepthEncodingParams,
                      float4 VBufferDepthDecodingParams,
-                     bool   correctLinearInterpolation,
                      bool   quadraticFilterXY,
                      bool   clampToBorder)
 {
+    // These are the viewport coordinates.
     float2 uv = positionNDC;
-    float  w;
+    float  w  = EncodeLogarithmicDepthGeneralized(linearDepth, VBufferDepthEncodingParams);
 
-    // The distance between slices is log-encoded.
-    float z = linearDepth;
-    float d = EncodeLogarithmicDepthGeneralized(z, VBufferDepthEncodingParams);
-
-    if (correctLinearInterpolation)
-    {
-        // Adjust the texture coordinate for HW linear filtering.
-        w = ComputeLerpPositionForLogEncoding(z, d, VBufferSliceCount, VBufferDepthDecodingParams);
-    }
-    else
-    {
-        // Ignore non-linearity (for performance reasons) at the cost of accuracy.
-        // The results are exact for a stationary camera, but can potentially cause some judder in motion.
-        w = d;
-    }
-
-    float fadeWeight = 1;
+    bool coordIsInsideFrustum = true;
 
     if (clampToBorder)
     {
-        // Compute the distance to the edge, and remap it to the [0, 1] range.
-        // Smoothly fade from the center of the edge texel to the black border color.
-        float weightU = saturate((1 - 2 * abs(uv.x - 0.5)) * VBufferResolution.x);
-        float weightV = saturate((1 - 2 * abs(uv.y - 0.5)) * VBufferResolution.y);
-        float weightW = saturate((1 - 2 * abs(w    - 0.5)) * VBufferSliceCount.x);
+        // Coordinates are always clamped to edge. We just introduce a clipping operation.
+        float3 positionCS = float3(uv, w) * 2 - 1;
 
-        fadeWeight = weightU * weightV * weightW;
+        coordIsInsideFrustum = Max3(abs(positionCS.x), abs(positionCS.y), abs(positionCS.z)) < 1;
     }
 
     float4 result = 0;
 
-    if (fadeWeight > 0)
+    if (coordIsInsideFrustum)
     {
         if (quadraticFilterXY)
         {
@@ -102,21 +51,22 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
             float2 weights[2], offsets[2];
             BiquadraticFilter(1 - fc, weights, offsets); // Inverse-translate the filter centered around 0.5
 
-            // Apply the viewport scale right at the end.
+            const float2 ssToUv = VBufferResolution.zw * VBufferUvScale;
+
+            // The sampler clamps to edge. This takes care of 4 frustum faces out of 6.
+            // Due to the RTHandle scaling system, we must take care of the other 2 manually.
             // TODO: perform per-sample (4, in this case) bilateral filtering, rather than per-pixel. This should reduce leaking.
-            // TODO: precompute (VBufferResolution.zw * VBufferUvScale).
-            result = (weights[0].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[0].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0)  // Top left
-                   + (weights[1].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[0].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0)  // Top right
-                   + (weights[0].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[1].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0)  // Bottom left
-                   + (weights[1].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[1].y)) * (VBufferResolution.zw * VBufferUvScale), VBufferUvLimit), w), 0); // Bottom right
+            result = (weights[0].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[0].y)) * ssToUv, VBufferUvLimit), w), 0)  // Top left
+                   + (weights[1].x * weights[0].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[0].y)) * ssToUv, VBufferUvLimit), w), 0)  // Top right
+                   + (weights[0].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[0].x, offsets[1].y)) * ssToUv, VBufferUvLimit), w), 0)  // Bottom left
+                   + (weights[1].x * weights[1].y) * SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min((ic + float2(offsets[1].x, offsets[1].y)) * ssToUv, VBufferUvLimit), w), 0); // Bottom right
         }
         else
         {
-            // Apply the viewport scale right at the end.
+            // The sampler clamps to edge. This takes care of 4 frustum faces out of 6.
+            // Due to the RTHandle scaling system, we must take care of the other 2 manually.
             result = SAMPLE_TEXTURE3D_LOD(VBuffer, clampSampler, float3(min(uv * VBufferUvScale, VBufferUvLimit), w), 0);
         }
-
-        result *= fadeWeight;
     }
 
     return result;
@@ -131,7 +81,6 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
                      float2   VBufferUvLimit,
                      float4   VBufferDepthEncodingParams,
                      float4   VBufferDepthDecodingParams,
-                     bool     correctLinearInterpolation,
                      bool     quadraticFilterXY,
                      bool     clampToBorder)
 {
@@ -147,38 +96,8 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBuffer, clampSampler),
                          VBufferUvLimit,
                          VBufferDepthEncodingParams,
                          VBufferDepthDecodingParams,
-                         correctLinearInterpolation,
                          quadraticFilterXY,
                          clampToBorder);
-}
-
-// Returns interpolated {volumetric radiance, transmittance}.
-float4 SampleVolumetricLighting(TEXTURE3D_ARGS(VBufferLighting, clampSampler),
-                                float2 positionNDC,
-                                float  linearDepth,
-                                float4 VBufferResolution,
-                                float2 VBufferSliceCount,
-                                float2 VBufferUvScale,
-                                float2 VBufferUvLimit,
-                                float4 VBufferDepthEncodingParams,
-                                float4 VBufferDepthDecodingParams,
-                                bool   correctLinearInterpolation,
-                                bool   quadraticFilterXY)
-{
-    // TODO: add some slowly animated noise to the reconstructed value.
-    // TODO: re-enable tone mapping after implementing pre-exposure.
-    return /*FastTonemapInvert*/(SampleVBuffer(TEXTURE3D_PARAM(VBufferLighting, clampSampler),
-                                           positionNDC,
-                                           linearDepth,
-                                           VBufferResolution,
-                                           VBufferSliceCount,
-                                           VBufferUvScale,
-                                           VBufferUvLimit,
-                                           VBufferDepthEncodingParams,
-                                           VBufferDepthDecodingParams,
-                                           correctLinearInterpolation,
-                                           quadraticFilterXY,
-                                           false));
 }
 
 #endif // UNITY_VBUFFER_INCLUDED

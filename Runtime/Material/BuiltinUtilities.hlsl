@@ -79,7 +79,7 @@ float4 SampleShadowMask(float3 positionRWS, float2 uvStaticLightmap) // normalWS
 {
 #if defined(LIGHTMAP_ON)
     float2 uv = uvStaticLightmap * unity_LightmapST.xy + unity_LightmapST.zw;
-    float4 rawOcclusionMask = SAMPLE_TEXTURE2D(unity_ShadowMask, samplerunity_Lightmap, uv); // Reuse sampler from Lightmap
+    float4 rawOcclusionMask = SAMPLE_TEXTURE2D(unity_ShadowMask, samplerunity_ShadowMask, uv); // Can't reuse sampler from Lightmap because with shader graph, the compile could optimize out the lightmaps if metal is 1
 #else
     float4 rawOcclusionMask;
     if (unity_ProbeVolumeParams.x == 1.0)
@@ -125,7 +125,7 @@ float2 CalculateVelocity(float4 positionCS, float4 previousPositionCS)
 // 3. PostInitBuiltinData - Handle debug mode + allow the current lighting model to update the data with ModifyBakedDiffuseLighting
 
 // This method initialize BuiltinData usual values and after update of builtinData by the caller must be follow by PostInitBuiltinData
-void InitBuiltinData(   float alpha, float3 normalWS, float3 backNormalWS, float3 positionRWS, float2 texCoord1, float2 texCoord2,
+void InitBuiltinData(   float alpha, float3 normalWS, float3 backNormalWS, float3 positionRWS, float4 texCoord1, float4 texCoord2,
                         out BuiltinData builtinData)
 {
     ZERO_INITIALIZE(BuiltinData, builtinData);
@@ -133,15 +133,15 @@ void InitBuiltinData(   float alpha, float3 normalWS, float3 backNormalWS, float
     builtinData.opacity = alpha;
 
     // Sample lightmap/lightprobe/volume proxy
-    builtinData.bakeDiffuseLighting = SampleBakedGI(positionRWS, normalWS, texCoord1, texCoord2);
+    builtinData.bakeDiffuseLighting = SampleBakedGI(positionRWS, normalWS, texCoord1.xy, texCoord2.xy);
     // We also sample the back lighting in case we have transmission. If not use this will be optimize out by the compiler
     // For now simply recall the function with inverted normal, the compiler should be able to optimize the lightmap case to not resample the directional lightmap
     // however it may not optimize the lightprobe case due to the proxy volume relying on dynamic if (to verify), not a problem for SH9, but a problem for proxy volume.
     // TODO: optimize more this code.    
-    builtinData.backBakeDiffuseLighting = SampleBakedGI(positionRWS, backNormalWS, texCoord1, texCoord2);
+    builtinData.backBakeDiffuseLighting = SampleBakedGI(positionRWS, backNormalWS, texCoord1.xy, texCoord2.xy);
 
 #ifdef SHADOWS_SHADOWMASK
-    float4 shadowMask = SampleShadowMask(positionRWS, texCoord1);
+    float4 shadowMask = SampleShadowMask(positionRWS, texCoord1.xy);
     builtinData.shadowMask0 = shadowMask.x;
     builtinData.shadowMask1 = shadowMask.y;
     builtinData.shadowMask2 = shadowMask.z;
@@ -152,26 +152,40 @@ void InitBuiltinData(   float alpha, float3 normalWS, float3 backNormalWS, float
     builtinData.renderingLayers = _EnableLightLayers ? asuint(unity_RenderingLayer.x) : DEFAULT_LIGHT_LAYERS;
 }
 
-// InitBuiltinData must be call before calling PostInitBuiltinData
-void PostInitBuiltinData(   float3 V, PositionInputs posInput, SurfaceData surfaceData,
-                            inout BuiltinData builtinData)
+// This function is similar to ApplyDebugToSurfaceData but for BuiltinData
+void ApplyDebugToBuiltinData(inout BuiltinData builtinData)
 {
 #ifdef DEBUG_DISPLAY
+    bool overrideEmissiveColor = _DebugLightingEmissiveColor.x != 0.0f &&
+        any(builtinData.emissiveColor != 0.0f);
+
+    if (overrideEmissiveColor)
+    {
+        float3 overrideEmissiveColor = _DebugLightingEmissiveColor.yzw;
+        builtinData.emissiveColor = overrideEmissiveColor;
+
+    }
+
     if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
     {
         // The lighting in SH or lightmap is assume to contain bounced light only (i.e no direct lighting),
         // and is divide by PI (i.e Lambert is apply), so multiply by PI here to get back the illuminance
         builtinData.bakeDiffuseLighting *= PI; // don't take into account backBakeDiffuseLighting
     }
-    else
+
 #endif
-    {
-        // Apply control from the indirect lighting volume settings - This is apply here so we don't affect emissive 
-        // color in case of lit deferred for example and avoid material to have to deal with it
-        builtinData.bakeDiffuseLighting *= _IndirectLightingMultiplier.x;
-        builtinData.backBakeDiffuseLighting *= _IndirectLightingMultiplier.x;
+}
+
+// InitBuiltinData must be call before calling PostInitBuiltinData
+void PostInitBuiltinData(   float3 V, PositionInputs posInput, SurfaceData surfaceData,
+                            inout BuiltinData builtinData)
+{
+    // Apply control from the indirect lighting volume settings - This is apply here so we don't affect emissive 
+    // color in case of lit deferred for example and avoid material to have to deal with it
+    builtinData.bakeDiffuseLighting *= _IndirectLightingMultiplier.x;
+    builtinData.backBakeDiffuseLighting *= _IndirectLightingMultiplier.x;
 #ifdef MODIFY_BAKED_DIFFUSE_LIGHTING
-        ModifyBakedDiffuseLighting(V, posInput, surfaceData, builtinData);
+    ModifyBakedDiffuseLighting(V, posInput, surfaceData, builtinData);
 #endif
-    }
+    ApplyDebugToBuiltinData(builtinData);
 }

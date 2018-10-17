@@ -7,11 +7,13 @@ using System.Linq;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    public class LayeredLitGUI : LitGUI
+    class LayeredLitGUI : LitGUI
     {
         //Be sure to start after last BaseUnlitGUI.Expendable
+        [Flags]
         protected enum LayerExpendable : uint
         {
+            LayeringOptionMain = 1 << 15,
             ShowLayer1 = 1 << 16,
             ShowLayer2 = 1 << 17,
             ShowLayer3 = 1 << 18,
@@ -29,6 +31,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LayeringOption3 = 1 << 30
         }
 
+        protected override uint defaultExpendedState { get { return (uint)(Expendable.Base | Expendable.Input | Expendable.VertexAnimation | Expendable.Detail | Expendable.Emissive | Expendable.Transparency | Expendable.Other | Expendable.Tesselation) + (uint)(LayerExpendable.MaterialReferences | LayerExpendable.MainInput | LayerExpendable.MainDetail); } }
+        
         public enum VertexColorMode
         {
             None,
@@ -61,9 +65,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 new GUIStyle(EditorStyles.foldout),
                 new GUIStyle(EditorStyles.foldout)
             };
-
-            public readonly GUIContent syncAllButtonText = new GUIContent("Re-Synchronize", "Re-synchronize all layers material properties with the referenced Materials");
-            public readonly GUIContent syncAllButUVButtonText = new GUIContent("Re-Synchronize Without UV Mapping", "Re-synchronize all but UV Mapping properties with the referenced Materials");
+            
+            public readonly GUIContent layerNameHeader = CoreEditorUtils.GetContent("Layer name");
+            public readonly GUIContent materialToCopyHeader = CoreEditorUtils.GetContent("Material to copy");
+            public readonly GUIContent uvHeader = CoreEditorUtils.GetContent("UV|Also copy UV when doing the copy.");
+            public readonly GUIContent copyButtonIcon = EditorGUIUtility.IconContent("d_UnityEditor.ConsoleWindow", "|Copy parameters of material to layer. If UV is disabled, UV will not be copied.");
             public readonly GUIContent layersText = new GUIContent("Inputs");
             public readonly GUIContent emissiveText = new GUIContent("Emissive");
             public readonly GUIContent layerMapMaskText = new GUIContent("Layer Mask", "Layer mask");
@@ -89,7 +95,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             public readonly GUIContent perPixelDisplacementLayersWarning = new GUIContent("For pixel displacement to work correctly, all layers with a heightmap must use the same UV mapping");
 
-            public readonly GUIContent materialReferencesText = new GUIContent("Material References");
+            public readonly GUIContent materialReferencesText = new GUIContent("Material To Copy");
 
             public StylesLayer()
             {
@@ -112,6 +118,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         const int kSyncButtonWidth = 58;
 
+        bool[] m_WithUV;
+
         public LayeredLitGUI()
         {
             m_LayerCount = 4;
@@ -119,6 +127,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_PropertySuffixes[1] = "1";
             m_PropertySuffixes[2] = "2";
             m_PropertySuffixes[3] = "3";
+
+            m_WithUV = new bool[]{ true, true, true, true };
         }
 
         Material[] m_MaterialLayers = new Material[kMaxLayerCount];
@@ -194,11 +204,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     inheritBaseColor[i - 1] = FindProperty(string.Format("{0}{1}", kInheritBaseColor, i), props);
                 }
             }
-        }
-
-        protected override void FindEditorProperties(MaterialProperty[] props)
-        {
-            base.FindEditorProperties(props);
+            
             UpdateEditorExpended((int)layerCount.floatValue);
         }
 
@@ -388,7 +394,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             else if (!useMainLayerInfluence.hasMixedValue && useMainLayerInfluence.floatValue != 0.0f)
             {
-                using (var header = new HeaderScope(s_Styles.layerLabels[layerIndex].text + " " + styles.layeringOptionText.text, (uint)LayerExpendable.MainInput, this, colorDot: s_Styles.layerColors[layerIndex]))
+                using (var header = new HeaderScope(s_Styles.layerLabels[layerIndex].text + " " + styles.layeringOptionText.text, (uint)LayerExpendable.LayeringOptionMain, this, colorDot: s_Styles.layerColors[layerIndex]))
                 {
                     if (header.expended)
                         m_MaterialEditor.TexturePropertySingleLine(styles.layerInfluenceMapMaskText, layerInfluenceMaskMap);
@@ -478,41 +484,74 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 if (header.expended)
                 {
+                    var width = EditorGUIUtility.labelWidth;
+                    EditorGUIUtility.labelWidth = 90;
+
                     Material material = m_MaterialEditor.target as Material;
 
                     Color originalContentColor = GUI.contentColor;
 
+                    float indentOffset = EditorGUI.indentLevel * 15f;
+                    float colorWidth = 14;
+                    float UVWidth = 30;
+                    float copyButtonWidth = EditorGUIUtility.singleLineHeight;
+                    float endOffset = 5f;
+
+                    Rect headerLineRect = GUILayoutUtility.GetRect(1, EditorGUIUtility.singleLineHeight);
+                    Rect headerLabelRect = new Rect(headerLineRect.x, headerLineRect.y, EditorGUIUtility.labelWidth - indentOffset, headerLineRect.height);
+                    Rect headerUVRect = new Rect(headerLineRect.x + headerLineRect.width - 48 - endOffset, headerLineRect.y, UVWidth + 5, headerLineRect.height);
+                    Rect headerMaterialDropRect = new Rect(headerLineRect.x + headerLabelRect.width, headerLineRect.y, headerLineRect.width - headerLabelRect.width - headerUVRect.width, headerLineRect.height);
+
+                    EditorGUI.LabelField(headerLabelRect, styles.layerNameHeader, EditorStyles.centeredGreyMiniLabel);
+                    EditorGUI.LabelField(headerMaterialDropRect, styles.materialToCopyHeader, EditorStyles.centeredGreyMiniLabel);
+                    EditorGUI.LabelField(headerUVRect, styles.uvHeader, EditorStyles.centeredGreyMiniLabel);
+
                     for (int layerIndex = 0; layerIndex < numLayer; ++layerIndex)
                     {
-                        EditorGUI.BeginChangeCheck();
-                        GUI.contentColor = styles.layerColors[layerIndex];
-
-                        m_MaterialLayers[layerIndex] = EditorGUILayout.ObjectField(styles.layerLabels[layerIndex], m_MaterialLayers[layerIndex], typeof(Material), true) as Material;
-                        if (EditorGUI.EndChangeCheck())
+                        using (new EditorGUILayout.HorizontalScope())
                         {
-                            Undo.RecordObject(materialImporter, "Change layer material");
-                            SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, true);
-                            layersChanged = true;
-                        }
+                            EditorGUI.BeginChangeCheck();
 
-                        GUI.contentColor = originalContentColor;
+                            Rect lineRect = GUILayoutUtility.GetRect(1, EditorGUIUtility.singleLineHeight);
+                            Rect colorRect = new Rect(lineRect.x, lineRect.y, colorWidth, lineRect.height);
+                            Rect materialRect = new Rect(lineRect.x + colorRect.width, lineRect.y, lineRect.width - UVWidth - colorWidth - copyButtonWidth + endOffset, lineRect.height);
+                            Rect uvRect = new Rect(lineRect.x + lineRect.width - copyButtonWidth - UVWidth - endOffset, lineRect.y, UVWidth, lineRect.height);
+                            Rect copyRect = new Rect(lineRect.x + lineRect.width - copyButtonWidth - endOffset, lineRect.y, copyButtonWidth, lineRect.height);
 
-                        GUILayout.BeginHorizontal();
-                        {
-                            GUILayout.FlexibleSpace();
-                            if (GUILayout.Button(styles.syncAllButUVButtonText))
+                            m_MaterialLayers[layerIndex] = EditorGUI.ObjectField(materialRect, styles.layerLabels[layerIndex], m_MaterialLayers[layerIndex], typeof(Material), true) as Material;
+                            if (EditorGUI.EndChangeCheck())
                             {
+                                Undo.RecordObject(materialImporter, "Change layer material");
                                 SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, true);
                                 layersChanged = true;
                             }
-                            if (GUILayout.Button(styles.syncAllButtonText))
+
+                            
+                            colorRect.width = 30f;
+                            GUI.contentColor = styles.layerColors[layerIndex];
+                            EditorGUI.LabelField(colorRect, "■");
+                            GUI.contentColor = originalContentColor;
+                            
+                            m_WithUV[layerIndex] = EditorGUI.Toggle(uvRect, m_WithUV[layerIndex]);
+                            
+                            if (GUI.Button(copyRect, GUIContent.none))
                             {
-                                SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, false);
+                                SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, !m_WithUV[layerIndex]);
                                 layersChanged = true;
                             }
+
+                            //fake the icon with two Console icon
+                            //Rect copyRect = GUILayoutUtility.GetLastRect();
+                            copyRect.x -= 16;
+                            copyRect.width = 40;
+                            EditorGUI.LabelField(copyRect, styles.copyButtonIcon);
+                            copyRect.x -= 3;
+                            copyRect.y += 3;
+                            EditorGUI.LabelField(copyRect, styles.copyButtonIcon);
                         }
-                        GUILayout.EndHorizontal();
                     }
+
+                    EditorGUIUtility.labelWidth = width;
                 }
             }
             
@@ -706,9 +745,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             FindBaseMaterialProperties(props);
             FindMaterialProperties(props);
-            FindEditorProperties(props);    //require MaterialPropertie to sync
 
             m_MaterialEditor = materialEditor;
+
+            // We should always register the key used to keep collapsable state
+            InitExpendableState(materialEditor);
+
             // We should always do this call at the beginning
             m_MaterialEditor.serializedObject.Update();
 

@@ -16,16 +16,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty supportVolumetrics;
         public SerializedProperty increaseResolutionOfVolumetrics;
         public SerializedProperty supportLightLayers;
-        public SerializedProperty supportOnlyForward;
-
-        public SerializedProperty xrConfig;
-
+        public SerializedProperty supportedLitShaderMode;
+        
         public SerializedProperty supportDecals;
         public SerializedProperty supportMSAA;
         public SerializedProperty MSAASampleCount;
         public SerializedProperty supportMotionVectors;
         public SerializedProperty supportRuntimeDebugDisplay;
         public SerializedProperty supportDitheringCrossFade;
+        public SerializedProperty supportRayTracing;
+
         public SerializedGlobalLightLoopSettings lightLoopSettings;
         public SerializedHDShadowInitParameters hdShadowInitParams;
         public SerializedGlobalDecalSettings decalSettings;
@@ -42,10 +42,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             supportVolumetrics              = root.Find((RenderPipelineSettings s) => s.supportVolumetrics);
             increaseResolutionOfVolumetrics = root.Find((RenderPipelineSettings s) => s.increaseResolutionOfVolumetrics);
             supportLightLayers              = root.Find((RenderPipelineSettings s) => s.supportLightLayers);
-            supportOnlyForward              = root.Find((RenderPipelineSettings s) => s.supportOnlyForward);
-
-            xrConfig                        = root.Find((RenderPipelineSettings s) => s.xrConfig);
-
+            supportedLitShaderMode          = root.Find((RenderPipelineSettings s) => s.supportedLitShaderMode);
+            
             supportDecals                   = root.Find((RenderPipelineSettings s) => s.supportDecals);
             supportMSAA                     = root.Find((RenderPipelineSettings s) => s.supportMSAA);
             MSAASampleCount                 = root.Find((RenderPipelineSettings s) => s.msaaSampleCount);                        
@@ -53,6 +51,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             supportRuntimeDebugDisplay      = root.Find((RenderPipelineSettings s) => s.supportRuntimeDebugDisplay);
             supportDitheringCrossFade       = root.Find((RenderPipelineSettings s) => s.supportDitheringCrossFade);
             
+            supportRayTracing               = root.Find((RenderPipelineSettings s) => s.supportRayTracing);
+
             lightLoopSettings = new SerializedGlobalLightLoopSettings(root.Find((RenderPipelineSettings s) => s.lightLoopSettings));
             hdShadowInitParams = new SerializedHDShadowInitParameters(root.Find((RenderPipelineSettings s) => s.hdShadowInitParams));
             decalSettings     = new SerializedGlobalDecalSettings(root.Find((RenderPipelineSettings s) => s.decalSettings));

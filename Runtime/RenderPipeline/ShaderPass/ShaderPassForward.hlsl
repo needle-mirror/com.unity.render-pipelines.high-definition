@@ -53,10 +53,6 @@ void Frag(PackedVaryingsToPS packedInput,
     BuiltinData builtinData;
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
 
-#ifdef DEBUG_DISPLAY
-    ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);
-#endif
-
     BSDFData bsdfData = ConvertSurfaceDataToBSDFData(input.positionSS.xy, surfaceData);
 
     PreLightData preLightData = GetPreLightData(V, posInput, bsdfData);
@@ -119,7 +115,7 @@ void Frag(PackedVaryingsToPS packedInput,
         ENCODE_INTO_SSSBUFFER(surfaceData, posInput.positionSS, outSSSBuffer);
 #else
         outColor = ApplyBlendMode(diffuseLighting, specularLighting, builtinData.opacity);
-        outColor = EvaluateAtmosphericScattering(posInput, outColor);
+        outColor = EvaluateAtmosphericScattering(posInput, V, outColor);
 #endif
     }
 

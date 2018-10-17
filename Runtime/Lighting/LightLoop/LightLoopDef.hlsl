@@ -82,7 +82,7 @@ bool IsEnvIndexTexture2D(int index) { return (index & 1) == ENVCACHETYPE_TEXTURE
 // EnvIndex can also be use to fetch in another array of struct (to  atlas information etc...).
 // Cubemap      : texCoord = direction vector
 // Texture2D    : texCoord = projectedPositionWS - lightData.capturePosition
-float4 SampleEnv(LightLoopContext lightLoopContext, int index, float3 texCoord, float lod)
+float4 SampleEnv(LightLoopContext lightLoopContext, int index, float3 texCoord, float lod, int sliceIdx = 0)
 {
     // 31 bit index, 1 bit cache type
     uint cacheType = index & 1;
@@ -103,12 +103,12 @@ float4 SampleEnv(LightLoopContext lightLoopContext, int index, float3 texCoord, 
         }
         else if (cacheType == ENVCACHETYPE_CUBEMAP)
         {
-            color.rgb = SAMPLE_TEXTURECUBE_ARRAY_LOD_ABSTRACT(_EnvCubemapTextures, s_trilinear_clamp_sampler, texCoord, index, lod).rgb;
+            color.rgb = SAMPLE_TEXTURECUBE_ARRAY_LOD_ABSTRACT(_EnvCubemapTextures, s_trilinear_clamp_sampler, texCoord, _EnvSliceSize * index + sliceIdx, lod).rgb;
         }
     }
     else // SINGLE_PASS_SAMPLE_SKY
     {
-        color.rgb = SampleSkyTexture(texCoord, lod).rgb;
+        color.rgb = SampleSkyTexture(texCoord, lod, sliceIdx).rgb;
     }
 
     return color;
@@ -268,11 +268,11 @@ EnvLightData FetchEnvLight(uint start, uint i)
 float InitContactShadow(PositionInputs posInput)
 {
     // For now we only support one contact shadow
-    // Contactshadow is store in Green Channel of _DeferredShadowTexture
+    // Contactshadow is store in Red Channel of _DeferredShadowTexture
     // Note: When we ImageLoad outside of texture size, the value returned by Load is 0 (Note: On Metal maybe it clamp to value of texture which is also fine)
     // We use this property to have a neutral value for contact shadows that doesn't consume a sampler and work also with compute shader (i.e use ImageLoad)
     // We store inverse contact shadow so neutral is white. So either we sample inside or outside the texture it return 1 in case of neutral
-    return 1.0 - LOAD_TEXTURE2D(_DeferredShadowTexture, posInput.positionSS).y;
+    return 1.0 - LOAD_TEXTURE2D(_DeferredShadowTexture, posInput.positionSS).x;
 }
 
 float GetContactShadow(LightLoopContext lightLoopContext, int contactShadowIndex)
