@@ -4,6 +4,41 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [4.2.0-preview] - 2018-11-16
+
+### Added
+- Added a y-axis offset for the PlanarReflectionProbe and offset tool.
+- Exposed the option to run SSR and SSAO on async compute.
+- Added support for the _GlossMapScale parameter in the Legacy to HDRP Material converter.
+- Added wave intrinsic instructions for use in Shaders (for AMD GCN).
+
+### Fixed
+- Fixed cubemap assignation on custom ReflectionProbe
+- Fixed Reflection Probes’ capture settings' shadow distance.
+- Fixed an issue with the SRP batcher and Shader variables declaration.
+- Fixed thickness and subsurface slots for fabric Shader master node that wasn't appearing with the right combination of flags.
+- Fixed d3d debug layer warning.
+- Fixed PCSS sampling quality.
+- Fixed the Subsurface and transmission Material feature enabling for fabric Shader.
+- Fixed the Shader Graph UV node’s dimensions when using it in a vertex Shader.
+- Fixed the planar reflection mirror gizmo's rotation.
+- Fixed HDRenderPipelineAsset's FrameSettings not showing the selected enum in the Inspector drop-down.
+- Fixed an error with async compute.
+- MSAA now supports transparency.
+- The HDRP Material upgrader tool now converts metallic values correctly.
+- Volumetrics now render in Reflection Probes.
+- Fixed a crash that occurred whenever you set a viewport size to 0.
+- Fixed the Camera physic parameter that the UI previously did not display.
+
+### Changed
+- Updated default FrameSettings used for realtime Reflection Probes when you create a new HDRenderPipelineAsset.
+- Remove multi-camera support. LWRP and HDRP will not support multi-camera layered rendering.
+- Updated Shader Graph subshaders to use the new instancing define.
+- Changed fog distance calculation from distance to plane to distance to sphere.
+- Optimized forward rendering using AMD GCN by scalarizing the light loop.
+- Changed the UI of the Light Editor.
+- Change ordering of includes in HDRP Materials in order to reduce iteration time for faster compilation.
+
 ## [4.1.0-preview] - 2018-10-18
 
 ### Added
@@ -437,7 +472,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Renamed RTHandle to RTHandleSystem.RTHandle
 - Move code for PreIntegratedFDG (Lit.shader) into its dedicated folder to be share with other material
 - Move code for LTCArea (Lit.shader) into its dedicated folder to be share with other material
- 
+
 ### Removed
 - Removed Planar Probe mirror plane position and normal fields in inspector, always display mirror plane and normal gizmos
 
