@@ -61,9 +61,8 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
     {
         float cosZenithAngle = L.y;
         float fragmentHeight = posInput.positionWS.y;
-        attenuation *= Transmittance(OpticalDepthHeightFog(_HeightFogBaseExtinction, _HeightFogBaseHeight,
-                                                           _HeightFogExponents, cosZenithAngle,
-                                                           fragmentHeight));
+        attenuation *= TransmittanceHeightFog(_HeightFogBaseExtinction, _HeightFogBaseHeight,
+                                              _HeightFogExponents, cosZenithAngle, fragmentHeight);
     }
 
     if (light.cookieIndex >= 0)
@@ -83,11 +82,6 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
     if ((light.shadowIndex >= 0) && (light.shadowDimmer > 0))
     {
         shadow = lightLoopContext.shadowValue;
-
-        // Transparents have no contact shadow information
-    #ifndef _SURFACE_TYPE_TRANSPARENT
-        shadow = min(shadow, GetContactShadow(lightLoopContext, light.contactShadowIndex));
-    #endif
 
     #ifdef SHADOWS_SHADOWMASK
         // TODO: Optimize this code! Currently it is a bit like brute force to get the last transistion and fade to shadow mask, but there is
@@ -115,6 +109,11 @@ void EvaluateLight_Directional(LightLoopContext lightLoopContext, PositionInputs
 
         shadow = lerp(shadowMask, shadow, light.shadowDimmer);
     }
+
+    // Transparents have no contact shadow information
+#ifndef _SURFACE_TYPE_TRANSPARENT
+    shadow = min(shadow, GetContactShadow(lightLoopContext, light.contactShadowIndex));
+#endif
 
 #ifdef DEBUG_DISPLAY
     if (_DebugShadowMapMode == SHADOWMAPDEBUGMODE_SINGLE_SHADOW && light.shadowIndex == _DebugSingleShadowIndex)
@@ -226,9 +225,9 @@ void EvaluateLight_Punctual(LightLoopContext lightLoopContext, PositionInputs po
         float cosZenithAngle = L.y;
         float distToLight    = (light.lightType == GPULIGHTTYPE_PROJECTOR_BOX) ? distances.w : distances.x;
         float fragmentHeight = posInput.positionWS.y;
-        attenuation *= Transmittance(OpticalDepthHeightFog(_HeightFogBaseExtinction, _HeightFogBaseHeight,
-                                                           _HeightFogExponents, cosZenithAngle,
-                                                           fragmentHeight, distToLight));
+        attenuation *= TransmittanceHeightFog(_HeightFogBaseExtinction, _HeightFogBaseHeight,
+                                              _HeightFogExponents, cosZenithAngle,
+                                              fragmentHeight, distToLight);
     }
 
     // Projector lights always have cookies, so we can perform clipping inside the if().
@@ -248,12 +247,7 @@ void EvaluateLight_Punctual(LightLoopContext lightLoopContext, PositionInputs po
 
     if ((light.shadowIndex >= 0) && (light.shadowDimmer > 0))
     {
-        shadow = GetPunctualShadowAttenuation(lightLoopContext.shadowContext, positionWS, N, light.shadowIndex, L, distances.x, light.lightType == GPULIGHTTYPE_POINT, light.lightType != GPULIGHTTYPE_PROJECTOR_BOX);
-
-        // Transparents have no contact shadow information
-    #ifndef _SURFACE_TYPE_TRANSPARENT
-        shadow = min(shadow, GetContactShadow(lightLoopContext, light.contactShadowIndex));
-    #endif
+        shadow = GetPunctualShadowAttenuation(lightLoopContext.shadowContext, posInput.positionSS, positionWS, N, light.shadowIndex, L, distances.x, light.lightType == GPULIGHTTYPE_POINT, light.lightType != GPULIGHTTYPE_PROJECTOR_BOX);
 
 #ifdef SHADOWS_SHADOWMASK
         // Note: Legacy Unity have two shadow mask mode. ShadowMask (ShadowMask contain static objects shadow and ShadowMap contain only dynamic objects shadow, final result is the minimun of both value)
@@ -268,6 +262,11 @@ void EvaluateLight_Punctual(LightLoopContext lightLoopContext, PositionInputs po
 
         shadow = lerp(shadowMask, shadow, light.shadowDimmer);
     }
+
+    // Transparents have no contact shadow information
+#ifndef _SURFACE_TYPE_TRANSPARENT
+    shadow = min(shadow, GetContactShadow(lightLoopContext, light.contactShadowIndex));
+#endif
 
 #ifdef DEBUG_DISPLAY
     if (_DebugShadowMapMode == SHADOWMAPDEBUGMODE_SINGLE_SHADOW && light.shadowIndex == _DebugSingleShadowIndex)

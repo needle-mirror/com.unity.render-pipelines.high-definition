@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using UnityEditor.Graphing;
 using UnityEditor.ShaderGraph;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    public class HDLitSubShader : IHDLitSubShader
+    class HDLitSubShader : IHDLitSubShader
     {
         Pass m_PassGBuffer = new Pass()
         {
@@ -55,6 +54,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 HDLitMasterNode.EmissionSlotId,
                 HDLitMasterNode.SmoothnessSlotId,
                 HDLitMasterNode.AmbientOcclusionSlotId,
+                HDLitMasterNode.SpecularOcclusionSlotId,
                 HDLitMasterNode.AlphaSlotId,
                 HDLitMasterNode.AlphaThresholdSlotId,
                 HDLitMasterNode.AnisotropySlotId,
@@ -78,8 +78,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     "// Stencil setup",
                     "Stencil",
                     "{",
-                    "   WriteMask 7",
-                        masterNode.RequiresSplitLighting() ? "   Ref  1" : "   Ref  2",
+                    "   WriteMask " + masterNode.GetStencilWriteMask().ToString(),
+                    "   Ref  " + masterNode.GetStencilRef().ToString(),
                     "   Comp Always",
                     "   Pass Replace",
                     "}"
@@ -136,6 +136,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 HDLitMasterNode.EmissionSlotId,
                 HDLitMasterNode.SmoothnessSlotId,
                 HDLitMasterNode.AmbientOcclusionSlotId,
+                HDLitMasterNode.SpecularOcclusionSlotId,
                 HDLitMasterNode.AlphaSlotId,
                 HDLitMasterNode.AlphaThresholdSlotId,
                 HDLitMasterNode.AnisotropySlotId,
@@ -216,21 +217,45 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LightMode = "DepthOnly",
             TemplateName = "HDLitPass.template",
             MaterialName = "Lit",
-            ShaderPassName = "SHADERPASS_DEPTH_ONLY",
+
+            ZWriteOverride = "ZWrite On",
+
             ExtraDefines = new List<string>()
             {
                 "#pragma multi_compile _ WRITE_NORMAL_BUFFER",
                 "#pragma multi_compile _ WRITE_MSAA_DEPTH"
             },
-            ColorMaskOverride = "ColorMask 0",
+
+            ShaderPassName = "SHADERPASS_DEPTH_ONLY",
+
             Includes = new List<string>()
             {
                 "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl\"",
             },
             PixelShaderSlots = new List<int>()
             {
+                HDLitMasterNode.SmoothnessSlotId,
                 HDLitMasterNode.AlphaSlotId,
                 HDLitMasterNode.AlphaThresholdSlotId
+            },
+
+            RequiredFields = new List<string>()
+            {
+                "AttributesMesh.normalOS",
+                "AttributesMesh.tangentOS",     // Always present as we require it also in case of Variants lighting
+                "AttributesMesh.uv0",
+                "AttributesMesh.uv1",
+                "AttributesMesh.color",
+                "AttributesMesh.uv2",           // SHADERPASS_LIGHT_TRANSPORT always uses uv2
+                "AttributesMesh.uv3",           // DEBUG_DISPLAY
+
+                "FragInputs.worldToTangent",
+                "FragInputs.positionRWS",
+                "FragInputs.texCoord0",
+                "FragInputs.texCoord1",
+                "FragInputs.texCoord2",
+                "FragInputs.texCoord3",
+                "FragInputs.color",
             },
             VertexShaderSlots = new List<int>()
             {
@@ -272,6 +297,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             },
             PixelShaderSlots = new List<int>()
             {
+                HDLitMasterNode.SmoothnessSlotId,
                 HDLitMasterNode.AlphaSlotId,
                 HDLitMasterNode.AlphaThresholdSlotId
             },
@@ -382,8 +408,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 "#pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT",
                 "#define LIGHTLOOP_TILE_PASS",
                 "#pragma multi_compile USE_FPTL_LIGHTLIST USE_CLUSTERED_LIGHTLIST",
-                "#pragma multi_compile PUNCTUAL_SHADOW_LOW PUNCTUAL_SHADOW_MEDIUM PUNCTUAL_SHADOW_HIGH",
-                "#pragma multi_compile DIRECTIONAL_SHADOW_LOW DIRECTIONAL_SHADOW_MEDIUM DIRECTIONAL_SHADOW_HIGH"
+                "#pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH"
             },
             Includes = new List<string>()
             {
@@ -413,6 +438,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 HDLitMasterNode.EmissionSlotId,
                 HDLitMasterNode.SmoothnessSlotId,
                 HDLitMasterNode.AmbientOcclusionSlotId,
+                HDLitMasterNode.SpecularOcclusionSlotId,
                 HDLitMasterNode.AlphaSlotId,
                 HDLitMasterNode.AlphaThresholdSlotId,
                 HDLitMasterNode.AnisotropySlotId,
@@ -446,8 +472,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 "#pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT",
                 "#define LIGHTLOOP_TILE_PASS",
                 "#pragma multi_compile USE_FPTL_LIGHTLIST USE_CLUSTERED_LIGHTLIST",
-                "#pragma multi_compile PUNCTUAL_SHADOW_LOW PUNCTUAL_SHADOW_MEDIUM PUNCTUAL_SHADOW_HIGH",
-                "#pragma multi_compile DIRECTIONAL_SHADOW_LOW DIRECTIONAL_SHADOW_MEDIUM DIRECTIONAL_SHADOW_HIGH"
+                "#pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH"
             },
             Includes = new List<string>()
             {
@@ -477,6 +502,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 HDLitMasterNode.EmissionSlotId,
                 HDLitMasterNode.SmoothnessSlotId,
                 HDLitMasterNode.AmbientOcclusionSlotId,
+                HDLitMasterNode.SpecularOcclusionSlotId,
                 HDLitMasterNode.AlphaSlotId,
                 HDLitMasterNode.AlphaThresholdSlotId,
                 HDLitMasterNode.AnisotropySlotId,
@@ -500,8 +526,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     "// Stencil setup",
                     "Stencil",
                     "{",
-                    "   WriteMask 7",
-                        masterNode.RequiresSplitLighting() ? "   Ref  1" : "   Ref  2",
+                    "   WriteMask " + masterNode.GetStencilWriteMask().ToString(),
+                    "   Ref  " + masterNode.GetStencilRef().ToString(),
                     "   Comp Always",
                     "   Pass Replace",
                     "}"
@@ -583,7 +609,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     {
                         activeFields.Add("DoubleSided.Mirror");
                     }
-                        
+
                     activeFields.Add("FragInputs.isFrontFace");     // will need this for determining normal flip mode
                 }
             }
@@ -626,7 +652,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 int count = 0;
                 if (pass.PixelShaderUsesSlot(HDLitMasterNode.AlphaThresholdSlotId))
-                { 
+                {
                     activeFields.Add("AlphaTest");
                     ++count;
                 }
@@ -676,6 +702,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 activeFields.Add("Decals");
             }
 
+            if (!masterNode.receiveSSR.isOn)
+            {
+                activeFields.Add("DisableSSR");
+            }
+
+
             if (masterNode.specularAA.isOn && pass.PixelShaderUsesSlot(HDLitMasterNode.SpecularAAThresholdSlotId) && pass.PixelShaderUsesSlot(HDLitMasterNode.SpecularAAScreenSpaceVarianceSlotId))
             {
                 activeFields.Add("Specular.AA");
@@ -691,11 +723,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 activeFields.Add("Refraction");
                 switch (masterNode.refractionModel)
                 {
-                    case ScreenSpaceLighting.RefractionModel.Plane:
-                        activeFields.Add("RefractionPlane");
+                    case ScreenSpaceRefraction.RefractionModel.Box:
+                        activeFields.Add("RefractionBox");
                         break;
 
-                    case ScreenSpaceLighting.RefractionModel.Sphere:
+                    case ScreenSpaceRefraction.RefractionModel.Sphere:
                         activeFields.Add("RefractionSphere");
                         break;
 
@@ -719,12 +751,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 case SpecularOcclusionMode.Off:
                     break;
-                case SpecularOcclusionMode.On:
-                    activeFields.Add("SpecularOcclusion");
+                case SpecularOcclusionMode.FromAO:
+                    activeFields.Add("SpecularOcclusionFromAO");
                     break;
-                case SpecularOcclusionMode.OnUseBentNormal:
-                    activeFields.Add("BentNormalSpecularOcclusion");
+                case SpecularOcclusionMode.FromAOAndBentNormal:
+                    activeFields.Add("SpecularOcclusionFromAOBentNormal");
                     break;
+                case SpecularOcclusionMode.Custom:
+                    activeFields.Add("SpecularOcclusionCustom");
+                    break;
+
                 default:
                     break;
             }
@@ -732,9 +768,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (pass.PixelShaderUsesSlot(HDLitMasterNode.AmbientOcclusionSlotId))
             {
                 var occlusionSlot = masterNode.FindSlot<Vector1MaterialSlot>(HDLitMasterNode.AmbientOcclusionSlotId);
-                if (occlusionSlot.value != occlusionSlot.defaultValue)
+
+                bool connected = masterNode.IsSlotConnected(HDLitMasterNode.AmbientOcclusionSlotId);
+                if (connected || occlusionSlot.value != occlusionSlot.defaultValue)
                 {
-                    activeFields.Add("Occlusion");
+                    activeFields.Add("AmbientOcclusion");
                 }
             }
 
@@ -844,7 +882,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
             subShader.Deindent();
             subShader.AddShaderChunk("}", true);
-            subShader.AddShaderChunk(@"CustomEditor ""UnityEditor.ShaderGraph.HDLitGUI""");
+            subShader.AddShaderChunk(@"CustomEditor ""UnityEditor.Experimental.Rendering.HDPipeline.HDLitGUI""");
 
             return subShader.GetShaderString(0);
         }

@@ -14,7 +14,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     {
         Punctual, // Fallback on LightShape type
         Rectangle,
-        Line,
+        Tube,
         // Sphere,
         // Disc,
     };
@@ -110,8 +110,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Range(0.0f, 1.0f)]
         public float lightDimmer = 1.0f;
 
-        [Range(0.0f, 1.0f)]
-        public float volumetricDimmer = 1.0f;
+        [Range(0.0f, 1.0f), SerializeField, FormerlySerializedAs("volumetricDimmer")]
+        private float m_VolumetricDimmer = 1.0f;
+        
+        public float volumetricDimmer
+        {
+            get { return useVolumetric ? m_VolumetricDimmer : 0f; }
+            set {  m_VolumetricDimmer = value; }
+        }
 
         // Used internally to convert any light unit input into light intensity
         public LightUnit lightUnit = LightUnit.Lumen;
@@ -156,8 +162,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // This is specific for the LightEditor GUI and not use at runtime
         public bool useOldInspector = false;
+        public bool useVolumetric = true;
         public bool featuresFoldout = true;
-        public bool showAdditionalSettings = false;
+        public byte showAdditionalSettings = 0;
         public float displayLightIntensity;
 
         // When true, a mesh will be display to represent the area light (Can only be change in editor, component is added in Editor)
@@ -184,7 +191,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Range(1, 64)]
         public int      blockerSampleCount = 24;
         [Range(1, 64)]
-        public int      filterSampleCount = 32;
+        public int      filterSampleCount = 16;
 
         HDShadowRequest[]   shadowRequests;
         bool                m_WillRenderShadows;
@@ -220,11 +227,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public void ReserveShadows(Camera camera, HDShadowManager shadowManager, HDShadowInitParameters initParameters, CullingResults cullResults, FrameSettings frameSettings, int lightIndex)
         {
             Bounds bounds;
+            float cameraDistance = Vector3.Distance(camera.transform.position, transform.position);
 
             m_WillRenderShadows = m_Light.shadows != LightShadows.None && frameSettings.enableShadow;
             m_WillRenderShadows &= cullResults.GetShadowCasterBounds(lightIndex, out bounds);
             // When creating a new light, at the first frame, there is no AdditionalShadowData so we can't really render shadows
             m_WillRenderShadows &= m_ShadowData != null && m_ShadowData.shadowDimmer > 0;
+            // If the shadow is too far away, we don't render it
+            if (m_ShadowData != null)
+                m_WillRenderShadows &= m_Light.type == LightType.Directional || cameraDistance < (m_ShadowData.shadowFadeDistance);
 
             if (!m_WillRenderShadows)
                 return;
@@ -280,10 +291,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             int                 firstShadowRequestIndex = -1;
             Vector3             cameraPos = hdCamera.camera.transform.position;
             shadowRequestCount = 0;
-
-            // If the shadow is too far away, we don't render it
-            if (m_Light.type != LightType.Directional && Vector3.Distance(cameraPos, transform.position) >= m_ShadowData.shadowFadeDistance)
-                return -1;
 
             int count = GetShadowRequestCount();
             for (int index = 0; index < count; index++)
@@ -587,7 +594,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             MeshRenderer emissiveMeshRenderer = GetComponent<MeshRenderer>();
             MeshFilter emissiveMeshFilter = GetComponent<MeshFilter>();
 
-            bool displayEmissiveMesh = IsAreaLight(lightTypeExtent) && lightTypeExtent != LightTypeExtent.Line && displayAreaLightEmissiveMesh;
+            bool displayEmissiveMesh = IsAreaLight(lightTypeExtent) && lightTypeExtent != LightTypeExtent.Tube && displayAreaLightEmissiveMesh;
 
             // Ensure that the emissive mesh components are here
             if (displayEmissiveMesh)
@@ -615,7 +622,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (timelineWorkaround.oldLocalScale != transform.localScale)
                 lightSize = transform.localScale;
             else
-                lightSize = new Vector3(shapeWidth, shapeHeight, 0);
+                lightSize = new Vector3(shapeWidth, shapeHeight, transform.localScale.z);
 
             lightSize = Vector3.Max(Vector3.one * k_MinAreaWidth, lightSize);
             m_Light.transform.localScale = lightSize;
@@ -773,7 +780,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 break;
                         }
                         break;
-                    case LightTypeExtent.Line:
+                    case LightTypeExtent.Tube:
                     case LightTypeExtent.Rectangle:
                         lightUnit = LightUnit.Lumen;
                         intensity = areaIntensity;

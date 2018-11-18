@@ -40,9 +40,6 @@ Shader "HDRenderPipeline/TerrainLit"
 
         [ToggleUI] _SupportDecals("Support Decals", Float) = 1.0
         [ToggleUI] _ReceivesSSR("Receives SSR", Float) = 1.0
-
-        // TEMP: See comment later for motion vector pass
-        [HideInInspector] _EnableMotionVectorForVertexAnimation("EnableMotionVectorForVertexAnimation", Float) = 0.0
     }
 
     HLSLINCLUDE
@@ -72,7 +69,6 @@ Shader "HDRenderPipeline/TerrainLit"
     // Define
     //-------------------------------------------------------------------------------------
 
-    #define UNITY_MATERIAL_LIT // Need to be define before including Material.hlsl
     #define SURFACE_GRADIENT
     #define HAVE_MESH_MODIFICATION
 
@@ -144,6 +140,7 @@ Shader "HDRenderPipeline/TerrainLit"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
             #endif
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
             #include "TerrainLitSharePass.hlsl"
             #include "TerrainLitData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassGBuffer.hlsl"
@@ -169,6 +166,7 @@ Shader "HDRenderPipeline/TerrainLit"
             #define SHADERPASS SHADERPASS_LIGHT_TRANSPORT
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
             #include "TerrainLitSharePass.hlsl"
             #include "TerrainLitData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassLightTransport.hlsl"
@@ -195,6 +193,7 @@ Shader "HDRenderPipeline/TerrainLit"
             #define USE_LEGACY_UNITY_MATRIX_VARIABLES
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/ShaderPass/LitDepthPass.hlsl"
             #include "TerrainLitData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
@@ -221,6 +220,7 @@ Shader "HDRenderPipeline/TerrainLit"
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
 
             #ifdef WRITE_NORMAL_BUFFER // If enabled we need all regular interpolator
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/ShaderPass/LitSharePass.hlsl"
@@ -230,41 +230,6 @@ Shader "HDRenderPipeline/TerrainLit"
 
             #include "TerrainLitData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
-
-            ENDHLSL
-        }
-
-        // TEMP: Until this PR is in trunk: https://ono.unity3d.com/unity/unity/pull-request/74509/_/graphics/fix-motion-vectors-exclusion
-        // We need to add a motion vector pass that is disabled, otherwise the terrain is not send in the prepass
-        // So add a motion vector pass that do nothing. Don't forget to remove _EnableMotionVectorForVertexAnimation property as well in this shader
-        Pass
-        {
-            Name "Motion Vectors"
-            Tags{ "LightMode" = "MotionVectors" } // Caution, this need to be call like this to setup the correct parameters by C++ (legacy Unity)
-
-            HLSLPROGRAM
-
-            struct Attributes
-            {
-                float4 positionCS : POSITION;
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-            };
-
-            Varyings Vert(Attributes input)
-            {
-                Varyings output;
-                output.positionCS = input.positionCS;
-                return output;
-            }
-
-            float4 Frag(Varyings input) : SV_Target
-            {
-                return float4(0.0, 0.0, 0.0, 0.0);
-            }
 
             ENDHLSL
         }
@@ -298,8 +263,7 @@ Shader "HDRenderPipeline/TerrainLit"
             #pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT
             
             // Supported shadow modes per light type
-            #pragma multi_compile PUNCTUAL_SHADOW_LOW PUNCTUAL_SHADOW_MEDIUM PUNCTUAL_SHADOW_HIGH
-            #pragma multi_compile DIRECTIONAL_SHADOW_LOW DIRECTIONAL_SHADOW_MEDIUM DIRECTIONAL_SHADOW_HIGH
+            #pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH
 
             // #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Lighting/Forward.hlsl"
             //#pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
@@ -312,10 +276,26 @@ Shader "HDRenderPipeline/TerrainLit"
                 #define SHADERPASS_FORWARD_BYPASS_ALPHA_TEST
             #endif
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #ifdef DEBUG_DISPLAY
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
-            #endif
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+
+        #ifdef DEBUG_DISPLAY
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
+        #endif
+
+            // The light loop (or lighting architecture) is in charge to:
+            // - Define light list
+            // - Define the light loop
+            // - Setup the constant/data
+            // - Do the reflection hierarchy
+            // - Provide sampling function for shadowmap, ies, cookie and reflection (depends on the specific use with the light loops like index array or atlas or single and texture format (cubemap/latlong))
+
+            #define HAS_LIGHTLOOP
+
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoopDef.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoop.hlsl"
+
             #include "TerrainLitSharePass.hlsl"
             #include "TerrainLitData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassForward.hlsl"

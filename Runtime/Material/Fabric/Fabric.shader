@@ -1,4 +1,4 @@
-Shader "HDRenderPipeline/Fabric"
+Shader "Hidden/HDRenderPipeline/Fabric"
 {
     Properties
     {
@@ -75,7 +75,6 @@ Shader "HDRenderPipeline/Fabric"
         [ToggleUI]  _EnableTransmission("_EnableTransmission", Float) = 0.0
 
         // Subsurface Data
-        [ToggleUI]  _EnableSubsurfaceScattering("_EnableSubsurfaceScattering", Float) = 0.0
         _SubsurfaceMask("Subsurface Radius", Range(0.0, 1.0)) = 1.0
         _SubsurfaceMaskMap("Subsurface Radius Map", 2D) = "white" {}
 
@@ -178,8 +177,6 @@ Shader "HDRenderPipeline/Fabric"
     // Define
     //-------------------------------------------------------------------------------------
 
-    #define UNITY_MATERIAL_FABRIC // Need to be define before including Material.hlsl
-
     //-------------------------------------------------------------------------------------
     // Include
     //-------------------------------------------------------------------------------------
@@ -230,6 +227,7 @@ Shader "HDRenderPipeline/Fabric"
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Fabric/Fabric.hlsl"
             #include "ShaderPass/FabricDepthPass.hlsl"
             #include "FabricData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
@@ -255,6 +253,7 @@ Shader "HDRenderPipeline/Fabric"
             #define SHADERPASS SHADERPASS_LIGHT_TRANSPORT
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Fabric/Fabric.hlsl"
             #include "ShaderPass/FabricSharePass.hlsl"
             #include "FabricData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassLightTransport.hlsl"
@@ -281,7 +280,7 @@ Shader "HDRenderPipeline/Fabric"
             #define USE_LEGACY_UNITY_MATRIX_VARIABLES
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
-
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Fabric/Fabric.hlsl"
             #include "ShaderPass/FabricDepthPass.hlsl"
             #include "FabricData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
@@ -314,6 +313,7 @@ Shader "HDRenderPipeline/Fabric"
             #define SHADERPASS SHADERPASS_VELOCITY
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Fabric/Fabric.hlsl"
             #include "ShaderPass/FabricSharePass.hlsl"
             #include "FabricData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassVelocity.hlsl"
@@ -356,15 +356,30 @@ Shader "HDRenderPipeline/Fabric"
             #pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT
 
             // Supported shadow modes per light type
-            #pragma multi_compile PUNCTUAL_SHADOW_LOW PUNCTUAL_SHADOW_MEDIUM PUNCTUAL_SHADOW_HIGH
-            #pragma multi_compile DIRECTIONAL_SHADOW_LOW DIRECTIONAL_SHADOW_MEDIUM DIRECTIONAL_SHADOW_HIGH
+            #pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH
 
             #define SHADERPASS SHADERPASS_FORWARD
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #ifdef DEBUG_DISPLAY
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
-            #endif
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
+
+        #ifdef DEBUG_DISPLAY
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/DebugDisplay.hlsl"
+        #endif
+
+            // The light loop (or lighting architecture) is in charge to:
+            // - Define light list
+            // - Define the light loop
+            // - Setup the constant/data
+            // - Do the reflection hierarchy
+            // - Provide sampling function for shadowmap, ies, cookie and reflection (depends on the specific use with the light loops like index array or atlas or single and texture format (cubemap/latlong))
+
+            #define HAS_LIGHTLOOP
+
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoopDef.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Fabric/Fabric.hlsl"
+            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoop.hlsl"
+
             //...this will include #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl" but also LightLoop which the forward pass directly uses.
 
             #include "ShaderPass/FabricSharePass.hlsl"
@@ -373,8 +388,5 @@ Shader "HDRenderPipeline/Fabric"
 
             ENDHLSL
         }
-
     }
-
-    CustomEditor "Experimental.Rendering.HDPipeline.FabricGUI"
 }

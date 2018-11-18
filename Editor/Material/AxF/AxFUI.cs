@@ -1,12 +1,12 @@
 using System;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     class AxFGUI : BaseUnlitGUI
     {
-        protected override uint defaultExpendedState { get { return (uint)(Expendable.Base | Expendable.Detail | Expendable.Emissive | Expendable.Input | Expendable.Other | Expendable.Tesselation | Expendable.Transparency | Expendable.VertexAnimation); } }
+        protected override uint defaultExpandedState { get { return (uint)(Expandable.Base | Expandable.Detail | Expandable.Emissive | Expandable.Input | Expandable.Other | Expandable.Tesselation | Expandable.Transparency | Expandable.VertexAnimation); } }
 
         protected static class Styles
         {

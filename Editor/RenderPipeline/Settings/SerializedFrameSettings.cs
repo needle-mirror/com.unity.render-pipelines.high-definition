@@ -1,3 +1,4 @@
+using UnityEditor.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
@@ -20,7 +21,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty diffuseGlobalDimmer;
         public SerializedProperty specularGlobalDimmer;
 
-        public SerializedProperty enableForwardRenderingOnly;
+        public SerializedProperty litShaderMode;
         public SerializedProperty enableDepthPrepassWithDeferredRendering;
 
         public SerializedProperty enableTransparentPrepass;
@@ -33,6 +34,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty enablePostprocess;
 
         public SerializedProperty enableAsyncCompute;
+        public SerializedProperty runBuildLightListAsync;
+        public SerializedProperty runSSRAsync;
+        public SerializedProperty runSSAOAsync;
 
         public SerializedProperty enableOpaqueObjects;
         public SerializedProperty enableTransparentObjects;
@@ -254,15 +258,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     overrides.intValue &= ~(int)FrameSettingsOverrides.Postprocess;
             }
         }
-        public bool overridesForwardRenderingOnly
+        public bool overridesShaderLitMode
         {
-            get { return (overrides.intValue & (int)FrameSettingsOverrides.ForwardRenderingOnly) > 0; }
+            get { return (overrides.intValue & (int)FrameSettingsOverrides.ShaderLitMode) > 0; }
             set
             {
                 if (value)
-                    overrides.intValue |= (int)FrameSettingsOverrides.ForwardRenderingOnly;
+                    overrides.intValue |= (int)FrameSettingsOverrides.ShaderLitMode;
                 else
-                    overrides.intValue &= ~(int)FrameSettingsOverrides.ForwardRenderingOnly;
+                    overrides.intValue &= ~(int)FrameSettingsOverrides.ShaderLitMode;
             }
         }
         public bool overridesDepthPrepassWithDeferredRendering
@@ -287,6 +291,44 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     overrides.intValue &= ~(int)FrameSettingsOverrides.AsyncCompute;
             }
         }
+
+        public bool overrideLightListInAsync
+        {
+            get { return (overrides.intValue & (int)FrameSettingsOverrides.LightListAsync) > 0; }
+            set
+            {
+                if (value)
+                    overrides.intValue |= (int)FrameSettingsOverrides.LightListAsync;
+                else
+                    overrides.intValue &= ~(int)FrameSettingsOverrides.LightListAsync;
+            }
+        }
+
+        public bool overrideSSRInAsync
+        {
+            get { return (overrides.intValue & (int)FrameSettingsOverrides.SSRAsync) > 0; }
+            set
+            {
+                if (value)
+                    overrides.intValue |= (int)FrameSettingsOverrides.SSRAsync;
+                else
+                    overrides.intValue &= ~(int)FrameSettingsOverrides.SSRAsync;
+            }
+        }
+
+        public bool overrideSSAOInAsync
+        {
+            get { return (overrides.intValue & (int)FrameSettingsOverrides.SSAOAsync) > 0; }
+            set
+            {
+                if (value)
+                    overrides.intValue |= (int)FrameSettingsOverrides.SSAOAsync;
+                else
+                    overrides.intValue &= ~(int)FrameSettingsOverrides.SSAOAsync;
+            }
+        }
+
+
         public bool overridesOpaqueObjects
         {
             get { return (overrides.intValue & (int)FrameSettingsOverrides.OpaqueObjects) > 0; }
@@ -350,7 +392,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             enableLightLayers = root.Find((FrameSettings d) => d.enableLightLayers);
             diffuseGlobalDimmer = root.Find((FrameSettings d) => d.diffuseGlobalDimmer);
             specularGlobalDimmer = root.Find((FrameSettings d) => d.specularGlobalDimmer);
-            enableForwardRenderingOnly = root.Find((FrameSettings d) => d.enableForwardRenderingOnly);
+            litShaderMode = root.Find((FrameSettings d) => d.shaderLitMode);
             enableDepthPrepassWithDeferredRendering = root.Find((FrameSettings d) => d.enableDepthPrepassWithDeferredRendering);
             enableTransparentPrepass = root.Find((FrameSettings d) => d.enableTransparentPrepass);
             enableMotionVectors = root.Find((FrameSettings d) => d.enableMotionVectors);
@@ -361,6 +403,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             enableDistortion = root.Find((FrameSettings d) => d.enableDistortion);
             enablePostprocess = root.Find((FrameSettings d) => d.enablePostprocess);
             enableAsyncCompute = root.Find((FrameSettings d) => d.enableAsyncCompute);
+            runBuildLightListAsync = root.Find((FrameSettings d) => d.runLightListAsync);
+            runSSRAsync = root.Find((FrameSettings d) => d.runSSRAsync);
+            runSSAOAsync = root.Find((FrameSettings d) => d.runSSAOAsync);
             enableOpaqueObjects = root.Find((FrameSettings d) => d.enableOpaqueObjects);
             enableTransparentObjects = root.Find((FrameSettings d) => d.enableTransparentObjects);
             enableRealtimePlanarReflection = root.Find((FrameSettings d) => d.enableRealtimePlanarReflection);

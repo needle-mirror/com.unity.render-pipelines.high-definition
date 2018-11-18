@@ -1,4 +1,4 @@
-using UnityEngine.Experimental.Rendering.HDPipeline;
+using UnityEditor.Rendering;
 using UnityEngine;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
@@ -13,9 +13,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             Inspector = CED.Group(SectionDecalSettings);
         }
 
+#pragma warning disable 618 //CED
         public static readonly CED.IDrawer Inspector;
 
         public static readonly CED.IDrawer SectionDecalSettings = CED.FoldoutGroup(
+#pragma warning disable 618
             "Decals",
             (s, d, o) => s.isSectionExpendedDecalSettings,
             FoldoutOption.None,
@@ -33,8 +35,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         static void Drawer_SectionDecalSettings(GlobalDecalSettingsUI s, SerializedGlobalDecalSettings d, Editor o)
         {
             EditorGUILayout.PropertyField(d.drawDistance, _.GetContent("Draw Distance"));
-            EditorGUILayout.PropertyField(d.atlasWidth, _.GetContent("Atlas Width"));
-            EditorGUILayout.PropertyField(d.atlasHeight, _.GetContent("Atlas Height"));
+            EditorGUILayout.DelayedIntField(d.atlasWidth, _.GetContent("Atlas Width"));
+            EditorGUILayout.DelayedIntField(d.atlasHeight, _.GetContent("Atlas Height"));
             EditorGUILayout.PropertyField(d.perChannelMask, _.GetContent("Enable Metal and AO properties"));
 
             // Clamp input values

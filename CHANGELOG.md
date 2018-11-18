@@ -4,6 +4,72 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [5.1.0-preview] - 2018-11-19
+
+### Added
+
+- Added a separate Editor resources file for resources Unity does not take when it builds a Player.
+- You can now disable SSR on Materials in Shader Graph.
+- Added support for MSAA when the Supported Lit Shader Mode is set to Both. Previously HDRP only supported MSAA for Forward mode.
+- You can now override the emissive color of a Material when in debug mode.
+- Exposed max light for Light Loop Settings in HDRP asset UI.
+- HDRP no longer performs a NormalDBuffer pass update if there are no decals in the Scene.
+- Added distant (fall-back) volumetric fog and improved the fog evaluation precision.
+- Added an option to reflect sky in SSR.
+- Added a y-axis offset for the PlanarReflectionProbe and offset tool.
+- Exposed the option to run SSR and SSAO on async compute.
+- Added support for the _GlossMapScale parameter in the Legacy to HDRP Material converter.
+- Added wave intrinsic instructions for use in Shaders (for AMD GCN).
+
+### Fixed
+- Fixed sphere shaped influence handles clamping in Reflection Probes.
+- Fixed Reflection Probe data migration for projects created before using HDRP.
+- Fixed UI of Layered Material where Unity previously rendered the scrollbar above the Copy button.
+- Fixed Material tessellations parameters Start fade distance and End fade distance. Originally, Unity clamped these values when you modified them.
+- Fixed various distortion and refraction issues - handle a better fall-back.
+- Fixed SSR for multiple views.
+- Fixed SSR issues related to self-intersections.
+- Fixed shape density volume handle speed.
+- Fixed density volume shape handle moving too fast.
+- Fixed the Camera velocity pass that we removed by mistake.
+- Fixed some null pointer exceptions when disabling motion vectors support.
+- Fixed viewports for both the Subsurface Scattering combine pass and the transparent depth prepass.
+- Fixed the blend mode pop-up in the UI. It previously did not appear when you enabled pre-refraction.
+- Fixed some null pointer exceptions that previously occurred when you disabled motion vectors support.
+- Fixed Layered Lit UI issue with scrollbar.
+- Fixed cubemap assignation on custom ReflectionProbe.
+- Fixed Reflection Probes’ capture settings' shadow distance.
+- Fixed an issue with the SRP batcher and Shader variables declaration.
+- Fixed thickness and subsurface slots for fabric Shader master node that wasn't appearing with the right combination of flags.
+- Fixed d3d debug layer warning.
+- Fixed PCSS sampling quality.
+- Fixed the Subsurface and transmission Material feature enabling for fabric Shader.
+- Fixed the Shader Graph UV node’s dimensions when using it in a vertex Shader.
+- Fixed the planar reflection mirror gizmo's rotation.
+- Fixed HDRenderPipelineAsset's FrameSettings not showing the selected enum in the Inspector drop-down.
+- Fixed an error with async compute.
+- MSAA now supports transparency.
+- The HDRP Material upgrader tool now converts metallic values correctly.
+- Volumetrics now render in Reflection Probes.
+- Fixed a crash that occurred whenever you set a viewport size to 0.
+- Fixed the Camera physic parameter that the UI previously did not display.
+- Fixed issue in pyramid shaped spotlight handles manipulation
+
+### Changed
+
+- Renamed Line shaped Lights to Tube Lights.
+- HDRP now uses mean height fog parametrization.
+- Shadow quality settings are set to All when you use HDRP (This setting is not visible in the UI when using SRP). This avoids Legacy Graphics Quality Settings disabling the shadows and give SRP full control over the Shadows instead.
+- HDRP now internally uses premultiplied alpha for all fog.
+- Updated default FrameSettings used for realtime Reflection Probes when you create a new HDRenderPipelineAsset.
+- Remove multi-camera support. LWRP and HDRP will not support multi-camera layered rendering.
+- Updated Shader Graph subshaders to use the new instancing define.
+- Changed fog distance calculation from distance to plane to distance to sphere.
+- Optimized forward rendering using AMD GCN by scalarizing the light loop.
+- Changed the UI of the Light Editor.
+- Change ordering of includes in HDRP Materials in order to reduce iteration time for faster compilation.
+- Added a StackLit master node replacing the InspectorUI version. IMPORTANT: All previously authored StackLit Materials will be lost. You need to recreate them with the master node.
+
 ## [5.0.0-preview] - 2018-09-28
 
 ### Added
@@ -24,6 +90,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added intrinsic for XBone
 - Added new light volume debugging tool
 - Added a new SSR debug view mode
+- Added translaction's scale invariance on DensityVolume
+- Added multiple supported LitShadermode and per renderer choice in case of both Forward and Deferred supported
+- Added custom specular occlusion mode to Lit Shader Graph Master node
 
 ### Fixed
 - Fixed a normal bias issue with Stacklit (Was causing light leaking)
@@ -43,11 +112,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed shadow filter width in deferred rendering not matching shader config
 - Fixed stereo sampling of depth texture in MSAA DepthValues.shader
 - Fixed box light UI which allowed negative and zero sizes, thus causing NaNs
-- Fixed stereo rendering in HDRISky.shader 
+- Fixed stereo rendering in HDRISky.shader (VR)
 - Fixed normal blend and blend sphere influence for reflection probe
 - Fixed distortion filtering (was point filtering, now trilinear)
 - Fixed contact shadow for large distance
 - Fixed depth pyramid debug view mode
+- Fixed sphere shaped influence handles clamping in reflection probes
+- Fixed reflection probes data migration for project created before using hdrp
+- Fixed ambient occlusion for Lit Master Node when slot is connected
 
 ### Changed
 - Use samplerunity_ShadowMask instead of samplerunity_samplerLightmap for shadow mask
@@ -61,6 +133,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Changed  planar mapping to match terrain convention (XZ instead of ZX)
 - XRGraphicsConfig is no longer Read/Write. Instead, it's read-only. This improves consistency of XR behavior between the legacy render pipeline and SRP
 - Change reflection probe data migration code (to update old reflection probe to new one)
+- Updated gizmo for ReflectionProbes
+- Updated UI and Gizmo of DensityVolume
 
 ## [4.0.0-preview] - 2018-09-28
 
@@ -402,7 +476,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Renamed RTHandle to RTHandleSystem.RTHandle
 - Move code for PreIntegratedFDG (Lit.shader) into its dedicated folder to be share with other material
 - Move code for LTCArea (Lit.shader) into its dedicated folder to be share with other material
- 
+
 ### Removed
 - Removed Planar Probe mirror plane position and normal fields in inspector, always display mirror plane and normal gizmos
 
