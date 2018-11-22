@@ -1,12 +1,12 @@
 {
     "dependencies": {
         "com.unity.postprocessing": "2.0.15-preview", 
-        "com.unity.render-pipelines.core": "4.2.0-preview", 
-        "com.unity.shadergraph": "4.2.0-preview"
+        "com.unity.render-pipelines.core": "4.3.0-preview", 
+        "com.unity.shadergraph": "4.3.0-preview"
     }, 
     "description": "The High Definition Render Pipeline (HDRP) is a high-fidelity Scriptable Render Pipeline built by Unity to target modern (Compute Shader compatible) platforms. The HDRP utilizes Physically-Based Lighting techniques, linear lighting, HDR lighting and a configurable hybrid Tile/Cluster deferred/Forward lighting architecture and gives you the tools you need to create games, technical demos, animations and more to a high graphical standard.", 
     "displayName": "High Definition RP", 
-    "gitHead": "fc353aa8874574ebf9de4d6d458a44c1c58e40eb", 
+    "gitHead": "677b6ae9908f648fdee27573fb05a78c7a6cc7b4", 
     "name": "com.unity.render-pipelines.high-definition", 
     "repoPackagePath": "com.unity.render-pipelines.high-definition", 
     "repository": {
@@ -14,5 +14,5 @@
         "url": "ssh://git@github.com/Unity-Technologies/ScriptableRenderLoop.git"
     }, 
     "unity": "2018.3", 
-    "version": "4.2.0-preview"
+    "version": "4.3.0-preview"
 }
