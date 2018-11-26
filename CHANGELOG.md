@@ -4,6 +4,29 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [5.2.0-preview] - 2018-11-27
+
+### Added
+- Added option to run Contact Shadows and Volumetrics Voxelization stage in Async Compute
+- Added camera freeze debug mode - Allow to visually see culling result for a camera
+- Added support of Gizmo rendering before and after postprocess in Editor
+- Added support of LuxAtDistance for punctual lights
+
+### Fixed
+- Fixed Debug.DrawLine and Debug.Ray call to work in game view
+- Fixed DebugMenu's enum resetted on change
+- Fixed divide by 0 in refraction causing NaN
+- Fixed disable rough refraction support
+- Fixed refraction, SSS and atmospheric scattering for VR
+- Fixed forward clustered lighting for VR (double-wide)
+- Fixed Light's UX to not allow negative intensity
+- Fixed HDRenderPipelineAsset inspector broken when displaying its FrameSettings from project windows.
+
+### Changed
+- Rename "Regular" in Diffusion profile UI "Thick Object"
+- Changed VBuffer depth parametrization for volumetric from distanceRange to depthExtent - Require update of volumetric settings - Fog start at near plan
+- SpotLight with box shape use Lux unit only
+
 ## [5.1.0-preview] - 2018-11-19
 
 ### Added
@@ -20,6 +43,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Exposed the option to run SSR and SSAO on async compute.
 - Added support for the _GlossMapScale parameter in the Legacy to HDRP Material converter.
 - Added wave intrinsic instructions for use in Shaders (for AMD GCN).
+
 
 ### Fixed
 - Fixed sphere shaped influence handles clamping in Reflection Probes.
