@@ -77,6 +77,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Renderer Bake configuration can vary depends on if shadow mask is enabled or no
         RendererConfiguration m_currentRendererConfigurationBakedLighting = HDUtils.k_RendererConfigurationBakedLighting;
         Material m_CopyStencil;
+        MaterialPropertyBlock m_CopyDepthPropertyBlock = new MaterialPropertyBlock();
         Material m_CopyDepth;
         GPUCopy m_GPUCopy;
         MipGenerator m_MipGenerator;
@@ -1166,8 +1167,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             // For material classification we use compute shader and so can't read into the stencil, so prepare it.
                             using (new ProfilingSample(cmd, "Clear and copy stencil texture", CustomSamplerId.ClearAndCopyStencilTexture.GetSampler()))
                             {
-                                HDUtils.SetRenderTarget(cmd, hdCamera, m_SharedRTManager.GetStencilBufferCopy(), ClearFlag.Color, CoreUtils.clearColorAllBlack);
+#if UNITY_SWITCH
+                                // Faster on Switch.
+                                HDUtils.SetRenderTarget(cmd, hdCamera, m_SharedRTManager.GetStencilBufferCopy(), m_SharedRTManager.GetDepthStencilBuffer(), ClearFlag.Color, CoreUtils.clearColorAllBlack);
 
+                                m_CopyStencil.SetInt(HDShaderIDs._StencilRef, (int)StencilLightingUsage.NoLighting);
+                                m_CopyStencil.SetInt(HDShaderIDs._StencilMask, (int)StencilBitMask.LightingMask);
+
+                                // Use ShaderPassID 1 => "Pass 1 - Write 1 if value different from stencilRef to output"
+                                CoreUtils.DrawFullScreen(cmd, m_CopyStencil, null, 1);
+#else
+                                HDUtils.SetRenderTarget(cmd, hdCamera, m_SharedRTManager.GetStencilBufferCopy(), ClearFlag.Color, CoreUtils.clearColorAllBlack);
                                 HDUtils.SetRenderTarget(cmd, hdCamera, m_SharedRTManager.GetDepthStencilBuffer());
                                 cmd.SetRandomWriteTarget(1, m_SharedRTManager.GetStencilBufferCopy());
 
@@ -1177,6 +1187,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                                 // Use ShaderPassID 3 => "Pass 3 - Initialize Stencil UAV copy with 1 if value different from stencilRef to output"
                                 CoreUtils.DrawFullScreen(cmd, m_CopyStencil, null, 3);
                                 cmd.ClearRandomWriteTargets();
+#endif
                             }
 
                             if(hdCamera.frameSettings.enableSSR)
@@ -1467,10 +1478,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     {
                         using (new ProfilingSample(cmd, "Copy Depth in Target Texture", CustomSamplerId.CopyDepth.GetSampler()))
                         {
-                            m_CopyDepth.SetTexture(HDShaderIDs._InputDepth, m_SharedRTManager.GetDepthStencilBuffer());
+                            cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+                            m_CopyDepthPropertyBlock.SetTexture(HDShaderIDs._InputDepth, m_SharedRTManager.GetDepthStencilBuffer());
                             // When we are Main Game View we need to flip the depth buffer ourselves as we are after postprocess / blit that have already flip the screen
-                            m_CopyDepth.SetInt("_FlipY", isMainGameView ? 1 : 0);
-                            cmd.Blit(null, BuiltinRenderTextureType.CameraTarget, m_CopyDepth);
+                            m_CopyDepthPropertyBlock.SetInt("_FlipY", isMainGameView ? 1 : 0);
+                            CoreUtils.DrawFullScreen(cmd, m_CopyDepth, m_CopyDepthPropertyBlock);
                         }
                     }
 
@@ -2178,7 +2190,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 cmd.SetComputeIntParam(  cs, HDShaderIDs._SsrDepthPyramidMaxMip,             info.mipLevelCount);
                 cmd.SetComputeFloatParam(cs, HDShaderIDs._SsrEdgeFadeRcpLength,              edgeFadeRcpLength);
                 cmd.SetComputeIntParam(  cs, HDShaderIDs._SsrReflectsSky,                    volumeSettings.reflectSky ? 1 : 0);
-                cmd.SetComputeIntParam(  cs, HDShaderIDs._SsrStencilExclusionValue,          hdCamera.frameSettings.shaderLitMode == LitShaderMode.Forward ? -1 : (int)StencilBitMask.DoesntReceiveSSR);
+                cmd.SetComputeIntParam(  cs, HDShaderIDs._SsrStencilExclusionValue,          (int)StencilBitMask.DoesntReceiveSSR);
                 cmd.SetComputeVectorParam(cs, HDShaderIDs._ColorPyramidUvScaleAndLimitPrevFrame, HDUtils.ComputeUvScaleAndLimit(hdCamera.viewportSizePrevFrame, previousColorPyramidSize));
 
                 // cmd.SetComputeTextureParam(cs, kernel, "_SsrDebugTexture",    m_SsrDebugTexture);
@@ -2300,8 +2312,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     cmd.ReleaseTemporaryRT(HDShaderIDs._CameraColorTexture);
 
                     cmd.GetTemporaryRT(HDShaderIDs._CameraDepthTexture, hdcamera.actualWidth, hdcamera.actualHeight, m_SharedRTManager.GetDepthStencilBuffer().rt.depth, FilterMode.Point, m_SharedRTManager.GetDepthStencilBuffer().rt.format);
-                    m_CopyDepth.SetTexture(HDShaderIDs._InputDepth, m_SharedRTManager.GetDepthStencilBuffer());
-                    cmd.Blit(null, HDShaderIDs._CameraDepthTexture, m_CopyDepth);
+                    cmd.SetRenderTarget(HDShaderIDs._CameraDepthTexture);
+                    m_CopyDepthPropertyBlock.SetTexture(HDShaderIDs._InputDepth, m_SharedRTManager.GetDepthStencilBuffer());
+                    m_CopyDepthPropertyBlock.SetInt("_FlipY", 0);
+                    CoreUtils.DrawFullScreen(cmd, m_CopyDepth, m_CopyDepthPropertyBlock);
                     if (hdcamera.frameSettings.enableMotionVectors)
                     {
                         cmd.GetTemporaryRT(HDShaderIDs._CameraMotionVectorsTexture, hdcamera.actualWidth, hdcamera.actualHeight, 0, FilterMode.Point, m_SharedRTManager.GetVelocityBuffer().rt.format);
@@ -2327,7 +2341,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 context.command = cmd;
                 context.camera = hdcamera.camera;
                 context.sourceFormat = RenderTextureFormat.ARGBHalf;
-                context.flip = (hdcamera.camera.targetTexture == null) && (!hdcamera.camera.stereoEnabled);
+                context.flip = (hdcamera.camera.targetTexture == null);
 #if !UNITY_2019_1_OR_NEWER // Y-flip correction available in 2019.1
                 context.flip = context.flip && (!hdcamera.camera.stereoEnabled);
 #endif
