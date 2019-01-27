@@ -101,6 +101,8 @@ CBUFFER_START(UnityPerMaterial)
 
 // shared constant between lit and layered lit
 float _AlphaCutoff;
+float _UseShadowThreshold;
+float _AlphaCutoffShadow;
 float _AlphaCutoffPrepass;
 float _AlphaCutoffPostpass;
 float4 _DoubleSidedConstants;
@@ -117,6 +119,7 @@ float _PPDLodThreshold;
 
 float3 _EmissiveColor;
 float _AlbedoAffectEmissive;
+float _EmissiveExposureWeight;
 
 float _EnableSpecularOcclusion;
 

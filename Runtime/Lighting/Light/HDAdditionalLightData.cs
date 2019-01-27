@@ -195,10 +195,26 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public int      blockerSampleCount = 24;
         [Range(1, 64)]
         public int      filterSampleCount = 16;
+        [Range(0, 0.001f)]
+        public float minFilterSize = 0.00001f;
+
+        // Improved Moment Shadows settings
+        [Range(1, 32)]
+        public int kernelSize = 5;
+        [Range(0.0f, 9.0f)]
+        public float lightAngle = 1.0f;
+        [Range(0.0001f, 0.01f)]
+        public float maxDepthBias = 0.001f;
 
         HDShadowRequest[]   shadowRequests;
         bool                m_WillRenderShadows;
         int[]               m_ShadowRequestIndices;
+
+
+        #if ENABLE_RAYTRACING
+        // Temporary index that stores the current shadow index for the light
+        [System.NonSerialized] public int shadowIndex;
+        #endif
 
         [System.NonSerialized] HDShadowSettings    _ShadowSettings = null;
         HDShadowSettings    m_ShadowSettings
@@ -231,8 +247,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             Bounds bounds;
             float cameraDistance = Vector3.Distance(camera.transform.position, transform.position);
+            
+            #if ENABLE_RAYTRACING
+            m_WillRenderShadows = m_Light.shadows != LightShadows.None && frameSettings.IsEnabled(FrameSettingsField.Shadow) && lightTypeExtent == LightTypeExtent.Punctual;
+            #else
+            m_WillRenderShadows = m_Light.shadows != LightShadows.None && frameSettings.IsEnabled(FrameSettingsField.Shadow);
+            #endif
 
-            m_WillRenderShadows = m_Light.shadows != LightShadows.None && frameSettings.enableShadow;
             m_WillRenderShadows &= cullResults.GetShadowCasterBounds(lightIndex, out bounds);
             // When creating a new light, at the first frame, there is no AdditionalShadowData so we can't really render shadows
             m_WillRenderShadows &= m_ShadowData != null && m_ShadowData.shadowDimmer > 0;
@@ -403,11 +424,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             shadowRequest.lightIndex = lightIndex;
             // We don't allow shadow resize for directional cascade shadow
             shadowRequest.allowResize = m_Light.type != LightType.Directional;
+            shadowRequest.lightType = (int) m_Light.type;
 
             // Shadow algorithm parameters
             shadowRequest.shadowSoftness = shadowSoftness / 100f;
             shadowRequest.blockerSampleCount = blockerSampleCount;
             shadowRequest.filterSampleCount = filterSampleCount;
+            shadowRequest.minFilterSize = minFilterSize;
+
+            shadowRequest.kernelSize = (uint)kernelSize;
+            shadowRequest.lightAngle = (lightAngle * Mathf.PI / 180.0f);
+            shadowRequest.maxDepthBias = maxDepthBias;
         }
 
 #if UNITY_EDITOR
@@ -652,7 +679,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
 
             if (emissiveMeshRenderer.sharedMaterial == null)
-                emissiveMeshRenderer.material = new Material(Shader.Find("HDRenderPipeline/Unlit"));
+                emissiveMeshRenderer.material = new Material(Shader.Find("HDRP/Unlit"));
 
             // Update Mesh emissive properties
             emissiveMeshRenderer.sharedMaterial.SetColor("_UnlitColor", Color.black);
@@ -660,7 +687,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // m_Light.intensity is in luminance which is the value we need for emissive color
             Color value = m_Light.color.linear * m_Light.intensity;
             if (useColorTemperature)
-                value *= LightUtils.CorrelatedColorTemperatureToRGB(m_Light.colorTemperature);
+                value *= Mathf.CorrelatedColorTemperatureToRGB(m_Light.colorTemperature);
             value.r = Mathf.Clamp01(value.r);
             value.g = Mathf.Clamp01(value.g);
             value.b = Mathf.Clamp01(value.b);

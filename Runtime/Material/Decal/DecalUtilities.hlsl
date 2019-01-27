@@ -1,25 +1,10 @@
-#include "Decal.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/Decal.hlsl"
 
 #ifndef SCALARIZE_LIGHT_LOOP
-#define SCALARIZE_LIGHT_LOOP (defined(SUPPORTS_WAVE_INTRINSICS) && defined(LIGHTLOOP_TILE_PASS) && SHADERPASS == SHADERPASS_FORWARD)
+#define SCALARIZE_LIGHT_LOOP (defined(SUPPORTS_WAVE_INTRINSICS) && !defined(LIGHTLOOP_DISABLE_TILE_AND_CLUSTER) && SHADERPASS == SHADERPASS_FORWARD)
 #endif
 
 DECLARE_DBUFFER_TEXTURE(_DBufferTexture);
-
-DecalData FetchDecal(uint start, uint i)
-{
-#ifdef LIGHTLOOP_TILE_PASS
-    int j = FetchIndex(start, i);
-#else
-    int j = start + i;
-#endif
-    return _DecalDatas[j];
-}
-
-DecalData FetchDecal(uint index)
-{
-    return _DecalDatas[index];
-}
 
 // Caution: We can't compute LOD inside a dynamic loop. The gradient are not accessible.
 // we need to find a way to calculate mips. For now just fetch first mip of the decals
@@ -52,14 +37,18 @@ void ApplyBlendDiffuse(inout float4 dst, inout int matMask, float2 texCoords, fl
 // decalBlend is decal blend with distance fade to be able to construct normal and mask blend if they come from mask map blue channel
 // normalBlend is calculated in this function and used later to blend the normal
 // blendParams are material settings to determing blend source and mode for normal and mask map
-void ApplyBlendMask(inout float4 dbuffer2, inout float2 dbuffer3, inout int matMask, float2 texCoords, int mapMask, float albedoBlend, float lod, float decalBlend, inout float normalBlend, float3 blendParams) // too many blends!!!
+void ApplyBlendMask(inout float4 dbuffer2, inout float2 dbuffer3, inout int matMask, float2 texCoords, int mapMask, float albedoBlend, float lod, float decalBlend, inout float normalBlend, float3 blendParams, float4 scalingMAB, float4 remappingAOS) // too many blends!!!
 {
     float4 src = SAMPLE_TEXTURE2D_LOD(_DecalAtlas2D, _trilinear_clamp_sampler_DecalAtlas2D, texCoords, lod);
+    src.x = scalingMAB.x * src.x;
+    src.y = lerp(remappingAOS.x, remappingAOS.y, src.y);
+    src.z = scalingMAB.z * src.z;
+    src.w = lerp(remappingAOS.z, remappingAOS.w, src.w);
     float maskBlend;
     if (blendParams.x == 1.0f)	// normal blend source is mask blue channel
         normalBlend = src.z * decalBlend;
     else
-        normalBlend = albedoBlend; // normal blend source is albedo alpha
+        normalBlend = albedoBlend; // normal blend source is albedo alpha     
 
     if (blendParams.y == 1.0f)	// mask blend source is mask blue channel
         maskBlend = src.z * decalBlend;
@@ -184,7 +173,7 @@ void EvalDecalMask(PositionInputs posInput, float3 positionRWSDdx, float3 positi
         float normalBlend = albedoBlend;
         if ((decalData.maskScaleBias.x > 0) && (decalData.maskScaleBias.y > 0))
         {
-            ApplyBlendMask(DBuffer2, DBuffer3, mask, sampleMask, DBUFFERHTILEBIT_MASK, albedoBlend, lodMask, decalData.normalToWorld[0][3], normalBlend, decalData.blendParams);
+            ApplyBlendMask(DBuffer2, DBuffer3, mask, sampleMask, DBUFFERHTILEBIT_MASK, albedoBlend, lodMask, decalData.normalToWorld[0][3], normalBlend, decalData.blendParams, decalData.scalingMAB, decalData.remappingAOS);
         }
 
         if ((decalData.normalScaleBias.x > 0) && (decalData.normalScaleBias.y > 0))
@@ -194,13 +183,30 @@ void EvalDecalMask(PositionInputs posInput, float3 positionRWSDdx, float3 positi
     }
 }
 
+#if defined(_SURFACE_TYPE_TRANSPARENT) && defined(HAS_LIGHTLOOP) // forward transparent using clustered decals
+DecalData FetchDecal(uint start, uint i)
+{
+#ifndef LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
+    int j = FetchIndex(start, i);
+#else
+    int j = start + i;
+#endif
+    return _DecalDatas[j];
+}
+
+DecalData FetchDecal(uint index)
+{
+    return _DecalDatas[index];
+}
+#endif
+
 DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, inout float alpha)
 {
     int mask = 0;
     // the code in the macros, gets moved inside the conditionals by the compiler
     FETCH_DBUFFER(DBuffer, _DBufferTexture, posInput.positionSS);
 
-#ifdef _SURFACE_TYPE_TRANSPARENT    // forward transparent using clustered decals
+#if defined(_SURFACE_TYPE_TRANSPARENT) && defined(HAS_LIGHTLOOP)  // forward transparent using clustered decals
     uint decalCount, decalStart;
     DBuffer0 = float4(0.0f, 0.0f, 0.0f, 1.0f);
     DBuffer1 = float4(0.5f, 0.5f, 0.5f, 1.0f);
@@ -211,7 +217,7 @@ DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, inout float alpha)
     float2 DBuffer3 = float2(1.0f, 1.0f);
 #endif
 
-#ifdef LIGHTLOOP_TILE_PASS
+#ifndef LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
     GetCountAndStart(posInput, LIGHTCATEGORY_DECAL, decalStart, decalCount);
 
     #if SCALARIZE_LIGHT_LOOP
@@ -220,7 +226,7 @@ DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, inout float alpha)
     bool fastPath = WaveActiveAllTrue(decalStart == decalStartLane0);
     #endif
 
-#else // LIGHTLOOP_TILE_PASS
+#else // LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
     decalCount = _DecalCount;
     decalStart = 0;
 #endif
@@ -240,11 +246,11 @@ DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, inout float alpha)
     uint v_decalIdx = decalStart;
     while (v_decalListOffset < decalCount)
     {
-#ifdef LIGHTLOOP_TILE_PASS
+#ifndef LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
         v_decalIdx = FetchIndex(decalStart, v_decalListOffset);
 #else
         v_decalIdx = decalStart + v_decalListOffset;
-#endif // LIGHTLOOP_TILE_PASS
+#endif // LIGHTLOOP_DISABLE_TILE_AND_CLUSTER
 
         uint s_decalIdx = v_decalIdx;
 

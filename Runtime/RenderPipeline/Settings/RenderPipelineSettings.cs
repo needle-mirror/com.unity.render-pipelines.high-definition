@@ -33,7 +33,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool supportSSAO = true;
         public bool supportSubsurfaceScattering = true;
         public bool increaseSssSampleCount = false;
-        [FormerlySerializedAs("supportForwardOnly")]
         public bool supportVolumetrics = true;
         public bool increaseResolutionOfVolumetrics = false;
         public bool supportLightLayers = false;
@@ -41,21 +40,31 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool supportTransparentBackface = true;
         public bool supportTransparentDepthPrepass = true;
         public bool supportTransparentDepthPostpass = true;
-        public SupportedLitShaderMode supportedLitShaderMode = SupportedLitShaderMode.Both;
+        public SupportedLitShaderMode supportedLitShaderMode = SupportedLitShaderMode.DeferredOnly;
 
         // Engine
-        [FormerlySerializedAs("supportDBuffer")]
         public bool supportDecals = true;
-        [SerializeField, FormerlySerializedAs("m_SupportMSAA")]
-        public bool supportMSAA = false;
+
         public MSAASamples msaaSampleCount = MSAASamples.None;
+        public bool supportMSAA
+        {
+            get
+            {
+                return this.msaaSampleCount != MSAASamples.None;
+            }
+
+        }
+
         public bool supportMotionVectors = true;
         public bool supportRuntimeDebugDisplay = true;
         public bool supportDitheringCrossFade = true;
         public bool supportRayTracing =  false;
+        public LayerMask editorRaytracingFilterLayerMask = -1;
 
         public GlobalLightLoopSettings  lightLoopSettings = new GlobalLightLoopSettings();
         public HDShadowInitParameters   hdShadowInitParams = new HDShadowInitParameters();
         public GlobalDecalSettings      decalSettings = new GlobalDecalSettings();
+        public GlobalPostProcessSettings postProcessSettings = new GlobalPostProcessSettings();
+        public GlobalDynamicResolutionSettings dynamicResolutionSettings = new GlobalDynamicResolutionSettings();
     }
 }

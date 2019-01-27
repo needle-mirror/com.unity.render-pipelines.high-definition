@@ -7,10 +7,17 @@ namespace UnityEngine.Experimental.Rendering
 {
     using UnityObject = UnityEngine.Object;
 
+    public interface IDebugData
+    {
+        Action GetReset();
+        //Action GetLoad();
+        //Action GetSave();
+    }
+
     public sealed partial class DebugManager
     {
         static readonly DebugManager s_Instance = new DebugManager();
-        public static DebugManager instance { get { return s_Instance; } }
+        public static DebugManager instance => s_Instance;
 
         // Explicit static constructor to tell the C# compiler not to mark type as beforefieldinit
         static DebugManager() {}
@@ -32,6 +39,8 @@ namespace UnityEngine.Experimental.Rendering
         public event Action<bool> onDisplayRuntimeUIChanged = delegate {};
         public event Action onSetDirty = delegate {};
 
+        event Action resetData;
+
         public bool refreshEditorRequested;
 
         GameObject m_Root;
@@ -40,18 +49,26 @@ namespace UnityEngine.Experimental.Rendering
         GameObject m_PersistentRoot;
         DebugUIHandlerPersistentCanvas m_RootUIPersistentCanvas;
 
+        // Knowing if the DebugWindows is open, is done by event as it is in another assembly.
+        // The DebugWindows is responsible to link its event to ToggleEditorUI.
+        bool m_EditorOpen = false;
+        public bool displayEditorUI => m_EditorOpen;
+        public void ToggleEditorUI(bool open) => m_EditorOpen = open;
+
         public bool displayRuntimeUI
         {
             get
             {
-                var uiManager = UnityObject.FindObjectOfType<DebugUIHandlerCanvas>();
-
-                // Might be needed to update the reference after domain reload
-                if (uiManager != null)
+                if (m_Root == null)
                 {
-                    m_Root = uiManager.gameObject;
-                }
+                    var uiManager = UnityObject.FindObjectOfType<DebugUIHandlerCanvas>();
 
+                    // Might be needed to update the reference after domain reload
+                    if (uiManager != null)
+                    {
+                        m_Root = uiManager.gameObject;
+                    }
+                }
                 return m_Root != null && m_Root.activeInHierarchy;
             }
             set
@@ -79,6 +96,7 @@ namespace UnityEngine.Experimental.Rendering
             }
         }
 
+
         public bool displayPersistentRuntimeUI
         {
             get { return m_RootUIPersistentCanvas != null && m_PersistentRoot.activeInHierarchy; }
@@ -102,9 +120,19 @@ namespace UnityEngine.Experimental.Rendering
 
         public void Reset()
         {
-            if (m_Panels != null)
-                m_Panels.Clear();
+            resetData?.Invoke();
+            ReDrawOnScreenDebug();
         }
+
+        public void ReDrawOnScreenDebug()
+        {
+            if (displayRuntimeUI)
+                m_RootUICanvas?.ResetAllHierarchy();
+        }
+        
+        public void RegisterData(IDebugData data) => resetData += data.GetReset();
+
+        public void UnregisterData(IDebugData data) => resetData -= data.GetReset();
 
         public int GetState()
         {

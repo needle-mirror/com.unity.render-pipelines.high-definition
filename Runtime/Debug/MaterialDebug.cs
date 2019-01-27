@@ -95,7 +95,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // Note: One field can have multiple name. This is to allow to have different debug view mode for the same field
                 // like for example display normal in world space or in view space. Same field but two different modes.
                 List<String> displayNames = new List<string>();
-                displayNames.Add(field.Name);
+
+                if (Attribute.IsDefined(field, typeof(PackingAttribute)))
+                {
+                    var packingAttributes = (PackingAttribute[])field.GetCustomAttributes(typeof(PackingAttribute), false);
+                    foreach(PackingAttribute packAttr in packingAttributes)
+                    {
+                        displayNames.AddRange(packAttr.displayNames);
+                    }
+                }
+                else
+                {
+                    displayNames.Add(field.Name);
+                }
 
                 // Check if the display name have been override by the users
                 if (Attribute.IsDefined(field, typeof(SurfaceDataAttributes)))
@@ -252,6 +264,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 isDebugViewMaterialInit = true;
             }
         }
+
+        //Validator Settings
+        public Color materialValidateLowColor = new Color(1.0f, 0.0f, 0.0f);
+        public Color materialValidateHighColor = new Color(0.0f, 0.0f, 1.0f);
+        public Color materialValidateTrueMetalColor = new Color(1.0f, 1.0f, 0.0f);
+        public bool  materialValidateTrueMetal = false;
 
         public int debugViewMaterial { get { return m_DebugViewMaterial; } }
         public int debugViewEngine { get { return m_DebugViewEngine; } }

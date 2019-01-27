@@ -636,7 +636,7 @@ float3 ComputeMainBaseColorInfluence(float influenceMask, float3 baseColor0, flo
     return influenceFactor * factor + baseColor;
 }
 
-#include "LayeredLitDataDisplacement.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/LayeredLit/LayeredLitDataDisplacement.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitBuiltinData.hlsl"
 
 void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData)
@@ -646,7 +646,13 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     LODDitheringTransition(fadeMaskSeed, unity_LODFade.x);
 #endif
 
-    ApplyDoubleSidedFlipOrMirror(input); // Apply double sided flip on the vertex normal
+#ifdef _DOUBLESIDED_ON
+    float3 doubleSidedConstants = _DoubleSidedConstants.xyz;
+#else
+    float3 doubleSidedConstants = float3(1.0, 1.0, 1.0);
+#endif
+
+    ApplyDoubleSidedFlipOrMirror(input, doubleSidedConstants); // Apply double sided flip on the vertex normal
 
     LayerTexCoord layerTexCoord;
     ZERO_INITIALIZE(LayerTexCoord, layerTexCoord);
@@ -735,15 +741,17 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.atDistance = 1000000.0;
     surfaceData.transmittanceMask = 0.0;
 
-    GetNormalWS(input, normalTS, surfaceData.normalWS);
+    GetNormalWS(input, normalTS, surfaceData.normalWS, doubleSidedConstants);
     // Use bent normal to sample GI if available
     // If any layer use a bent normal map, then bentNormalTS contain the interpolated result of bentnormal and normalmap (in case no bent normal are available)
     // Note: the code in LitDataInternal ensure that we fallback on normal map for layer that have no bentnormal
 #if defined(_BENTNORMALMAP0) || defined(_BENTNORMALMAP1) || defined(_BENTNORMALMAP2) || defined(_BENTNORMALMAP3)
-    GetNormalWS(input, bentNormalTS, bentNormalWS);
+    GetNormalWS(input, bentNormalTS, bentNormalWS, doubleSidedConstants);
 #else // if no bent normal are available at all just keep the calculation fully
     bentNormalWS = surfaceData.normalWS;
 #endif
+
+    surfaceData.geomNormalWS = input.worldToTangent[2];
 
     // By default we use the ambient occlusion with Tri-ace trick (apply outside) for specular occlusion.
     // If user provide bent normal then we process a better term

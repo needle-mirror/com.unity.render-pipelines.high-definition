@@ -42,9 +42,54 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 });
             });
 
+            ++indentLevel;
+            switch (m_Node.surfaceType)
+            {
+                case SurfaceType.Opaque:
+                    ps.Add(new PropertyRow(CreateLabel("Rendering Pass", indentLevel)), (row) =>
+                    {
+                        var valueList = HDSubShaderUtilities.GetRenderingPassList(true);
+
+                        row.Add(new PopupField<HDRenderQueue.RenderQueueType>(valueList, HDRenderQueue.RenderQueueType.Opaque, HDSubShaderUtilities.RenderQueueName, HDSubShaderUtilities.RenderQueueName), (field) =>
+                        {
+                            field.value = HDRenderQueue.GetOpaqueEquivalent(m_Node.renderingPass);
+                            field.RegisterValueChangedCallback(ChangeRenderingPass);
+                        });
+                    });
+                    break;
+                case SurfaceType.Transparent:
+                    ps.Add(new PropertyRow(CreateLabel("Rendering Pass", indentLevel)), (row) =>
+                    {
+                        Enum defaultValue;
+                        switch (m_Node.renderingPass) // Migration
+                        {
+                            default: //when deserializing without issue, we still need to init the default to something even if not used.
+                            case HDRenderQueue.RenderQueueType.Transparent:
+                                defaultValue = HDRenderQueue.TransparentRenderQueue.Default;
+                                break;
+                            case HDRenderQueue.RenderQueueType.PreRefraction:
+                                defaultValue = HDRenderQueue.TransparentRenderQueue.BeforeRefraction;
+                                break;
+                        }
+
+                        var valueList = HDSubShaderUtilities.GetRenderingPassList(false);
+
+                        row.Add(new PopupField<HDRenderQueue.RenderQueueType>(valueList, HDRenderQueue.RenderQueueType.Transparent, HDSubShaderUtilities.RenderQueueName, HDSubShaderUtilities.RenderQueueName), (field) =>
+                        {
+                            field.value = HDRenderQueue.GetTransparentEquivalent(m_Node.renderingPass);
+                            field.RegisterValueChangedCallback(ChangeRenderingPass);
+                        });
+                    });
+                    break;
+                default:
+                    throw new ArgumentException("Unknown SurfaceType");
+            }
+            --indentLevel;
+
             if (m_Node.surfaceType == SurfaceType.Transparent)
             {
                 ++indentLevel;
+
                 if (!m_Node.HasRefraction())
                 {
                     ps.Add(new PropertyRow(CreateLabel("Blending Mode", indentLevel)), (row) =>
@@ -55,18 +100,30 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                             field.RegisterValueChangedCallback(ChangeBlendMode);
                         });
                     });
+
+                    ++indentLevel;
+                    ps.Add(new PropertyRow(CreateLabel("Preserve Specular Lighting", indentLevel)), (row) =>
+                    {
+                        row.Add(new Toggle(), (toggle) =>
+                        {
+                            toggle.value = m_Node.blendPreserveSpecular.isOn;
+                            toggle.OnToggleChanged(ChangeBlendPreserveSpecular);
+                        });
+                    });
+                    --indentLevel;
                 }
 
-                ps.Add(new PropertyRow(CreateLabel("Blend Preserves Specular", indentLevel)), (row) =>
+                m_SortPiorityField = new IntegerField();
+                ps.Add(new PropertyRow(CreateLabel("Sorting Priority", indentLevel)), (row) =>
                 {
-                    row.Add(new Toggle(), (toggle) =>
+                    row.Add(m_SortPiorityField, (field) =>
                     {
-                        toggle.value = m_Node.blendPreserveSpecular.isOn;
-                        toggle.OnToggleChanged(ChangeBlendPreserveSpecular);
+                        field.value = m_Node.sortPriority;
+                        field.RegisterValueChangedCallback(ChangeSortPriority);
                     });
                 });
 
-                ps.Add(new PropertyRow(CreateLabel("Fog", indentLevel)), (row) =>
+                ps.Add(new PropertyRow(CreateLabel("Receive Fog", indentLevel)), (row) =>
                 {
                     row.Add(new Toggle(), (toggle) =>
                     {
@@ -75,16 +132,34 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     });
                 });
 
-                ps.Add(new PropertyRow(CreateLabel("Draw Before Refraction", indentLevel)), (row) =>
+                ps.Add(new PropertyRow(CreateLabel("Back Then Front Rendering", indentLevel)), (row) =>
                 {
                     row.Add(new Toggle(), (toggle) =>
                     {
-                        toggle.value = m_Node.drawBeforeRefraction.isOn;
-                        toggle.OnToggleChanged(ChangeDrawBeforeRefraction);
+                        toggle.value = m_Node.backThenFrontRendering.isOn;
+                        toggle.OnToggleChanged(ChangeBackThenFrontRendering);
                     });
                 });
 
-                if (!m_Node.drawBeforeRefraction.isOn)
+                ps.Add(new PropertyRow(CreateLabel("Transparent Depth Prepass", indentLevel)), (row) =>
+                {
+                    row.Add(new Toggle(), (toggle) =>
+                    {
+                        toggle.value = m_Node.alphaTestDepthPrepass.isOn;
+                        toggle.OnToggleChanged(ChangeAlphaTestPrepass);
+                    });
+                });
+
+                ps.Add(new PropertyRow(CreateLabel("Transparent Depth Postpass", indentLevel)), (row) =>
+                {
+                    row.Add(new Toggle(), (toggle) =>
+                    {
+                        toggle.value = m_Node.alphaTestDepthPostpass.isOn;
+                        toggle.OnToggleChanged(ChangeAlphaTestPostpass);
+                    });
+                });
+
+                if (m_Node.renderingPass != HDRenderQueue.RenderQueueType.PreRefraction)
                 {
                     ps.Add(new PropertyRow(CreateLabel("Refraction Model", indentLevel)), (row) =>
                     {
@@ -127,28 +202,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     --indentLevel;
                 }
 
-                ps.Add(new PropertyRow(CreateLabel("Back Then Front Rendering", indentLevel)), (row) =>
-                {
-                    row.Add(new Toggle(), (toggle) =>
-                    {
-                        toggle.value = m_Node.backThenFrontRendering.isOn;
-                        toggle.OnToggleChanged(ChangeBackThenFrontRendering);
-                    });
-                });
-
-                m_SortPiorityField = new IntegerField();
-                ps.Add(new PropertyRow(CreateLabel("Sort Priority", indentLevel)), (row) =>
-                {
-                    row.Add(m_SortPiorityField, (field) =>
-                    {
-                        field.value = m_Node.sortPriority;
-                        field.RegisterValueChangedCallback(ChangeSortPriority);
-                    });
-                });
                 --indentLevel;
             }
 
-            ps.Add(new PropertyRow(CreateLabel("Alpha Cutoff", indentLevel)), (row) =>
+            ps.Add(new PropertyRow(CreateLabel("Double-Sided", indentLevel)), (row) =>
+            {
+                row.Add(new EnumField(DoubleSidedMode.Disabled), (field) =>
+                {
+                    field.value = m_Node.doubleSidedMode;
+                    field.RegisterValueChangedCallback(ChangeDoubleSidedMode);
+                });
+            });
+
+            ps.Add(new PropertyRow(CreateLabel("Alpha Clipping", indentLevel)), (row) =>
             {
                 row.Add(new Toggle(), (toggle) =>
                 {
@@ -157,37 +223,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 });
             });
 
-            if (m_Node.surfaceType == SurfaceType.Transparent && m_Node.alphaTest.isOn)
+            if (m_Node.alphaTest.isOn)
             {
                 ++indentLevel;
-                ps.Add(new PropertyRow(CreateLabel("Alpha Cutoff Depth Prepass", indentLevel)), (row) =>
+                ps.Add(new PropertyRow(CreateLabel("Use Shadow Threshold", indentLevel)), (row) =>
                 {
                     row.Add(new Toggle(), (toggle) =>
                     {
-                        toggle.value = m_Node.alphaTestDepthPrepass.isOn;
-                        toggle.OnToggleChanged(ChangeAlphaTestPrepass);
-                    });
-                });
-
-                ps.Add(new PropertyRow(CreateLabel("Alpha Cutoff Depth Postpass", indentLevel)), (row) =>
-                {
-                    row.Add(new Toggle(), (toggle) =>
-                    {
-                        toggle.value = m_Node.alphaTestDepthPostpass.isOn;
-                        toggle.OnToggleChanged(ChangeAlphaTestPostpass);
+                        toggle.value = m_Node.alphaTestShadow.isOn;
+                        toggle.OnToggleChanged(ChangeAlphaTestShadow);
                     });
                 });
                 --indentLevel;
             }
-
-            ps.Add(new PropertyRow(CreateLabel("Double Sided", indentLevel)), (row) =>
-            {
-                row.Add(new EnumField(DoubleSidedMode.Disabled), (field) =>
-                {
-                    field.value = m_Node.doubleSidedMode;
-                    field.RegisterValueChangedCallback(ChangeDoubleSidedMode);
-                });
-            });
 
             ps.Add(new PropertyRow(CreateLabel("Material Type", indentLevel)), (row) =>
             {
@@ -233,7 +281,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 });
             });
 
-            ps.Add(new PropertyRow(CreateLabel("Receives SSR", indentLevel)), (row) =>
+            ps.Add(new PropertyRow(CreateLabel("Receive SSR", indentLevel)), (row) =>
             {
                 row.Add(new Toggle(), (toggle) =>
                 {
@@ -242,7 +290,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 });
             });
 
-            ps.Add(new PropertyRow(CreateLabel("Specular AA", indentLevel)), (row) =>
+            ps.Add(new PropertyRow(CreateLabel("Geometric Specular AA", indentLevel)), (row) =>
             {
                 row.Add(new Toggle(), (toggle) =>
                 {
@@ -259,6 +307,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                     field.RegisterValueChangedCallback(ChangeSpecularOcclusionMode);
                 });
             });
+            
+            ps.Add(new PropertyRow(CreateLabel("Override Baked GI", indentLevel)), (row) =>
+            {
+                row.Add(new Toggle(), (toggle) =>
+                {
+                    toggle.value = m_Node.overrideBakedGI.isOn;
+                    toggle.OnToggleChanged(ChangeoverrideBakedGI);
+                });
+            });
 
             Add(ps);
         }
@@ -270,6 +327,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
 
             m_Node.owner.owner.RegisterCompleteObjectUndo("Surface Type Change");
             m_Node.surfaceType = (SurfaceType)evt.newValue;
+
+            UpdateRenderingPassValue(m_Node.renderingPass);
         }
 
         void ChangeDoubleSidedMode(ChangeEvent<Enum> evt)
@@ -277,7 +336,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             if (Equals(m_Node.doubleSidedMode, evt.newValue))
                 return;
 
-            m_Node.owner.owner.RegisterCompleteObjectUndo("Double Sided Mode Change");
+            m_Node.owner.owner.RegisterCompleteObjectUndo("Double-Sided Mode Change");
             m_Node.doubleSidedMode = (DoubleSidedMode)evt.newValue;
         }
 
@@ -301,6 +360,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
         void ChangeBlendMode(ChangeEvent<Enum> evt)
         {
             // Make sure the mapping is correct by handling each case.
+
             AlphaMode alphaMode = GetAlphaMode((HDLitMasterNode.AlphaModeLit)evt.newValue);
 
             if (Equals(m_Node.alphaMode, alphaMode))
@@ -308,6 +368,42 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
 
             m_Node.owner.owner.RegisterCompleteObjectUndo("Alpha Mode Change");
             m_Node.alphaMode = alphaMode;
+        }
+        
+        void ChangeRenderingPass(ChangeEvent<HDRenderQueue.RenderQueueType> evt)
+        {
+            switch (evt.newValue)
+            {
+                case HDRenderQueue.RenderQueueType.Overlay:
+                case HDRenderQueue.RenderQueueType.Unknown:
+                case HDRenderQueue.RenderQueueType.Background:
+                    throw new ArgumentException("Unexpected kind of RenderQueue, was " + evt.newValue);
+                default:
+                    break;
+            };
+            UpdateRenderingPassValue(evt.newValue);
+        }
+
+        void UpdateRenderingPassValue(HDRenderQueue.RenderQueueType newValue)
+        {
+            HDRenderQueue.RenderQueueType renderingPass;
+            switch (m_Node.surfaceType)
+            {
+                case SurfaceType.Opaque:
+                    renderingPass = HDRenderQueue.GetOpaqueEquivalent(newValue);
+                    break;
+                case SurfaceType.Transparent:
+                    renderingPass = HDRenderQueue.GetTransparentEquivalent(newValue);
+                    break;
+                default:
+                    throw new ArgumentException("Unknown SurfaceType");
+            }
+
+            if (Equals(m_Node.renderingPass, renderingPass))
+                return;
+
+            m_Node.owner.owner.RegisterCompleteObjectUndo("Rendering Pass Change");
+            m_Node.renderingPass = renderingPass;
         }
 
         void ChangeBlendPreserveSpecular(ChangeEvent<bool> evt)
@@ -324,14 +420,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             ToggleData td = m_Node.transparencyFog;
             td.isOn = evt.newValue;
             m_Node.transparencyFog = td;
-        }
-
-        void ChangeDrawBeforeRefraction(ChangeEvent<bool> evt)
-        {
-            m_Node.owner.owner.RegisterCompleteObjectUndo("Draw Before Refraction Change");
-            ToggleData td = m_Node.drawBeforeRefraction;
-            td.isOn = evt.newValue;
-            m_Node.drawBeforeRefraction = td;
         }
 
         void ChangeRefractionModel(ChangeEvent<Enum> evt)
@@ -378,7 +466,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
 
         void ChangeSortPriority(ChangeEvent<int> evt)
         {
-            m_Node.sortPriority = Math.Max(-HDRenderQueue.k_TransparentPriorityQueueRange, Math.Min(evt.newValue, HDRenderQueue.k_TransparentPriorityQueueRange));
+            m_Node.sortPriority = HDRenderQueue.ClampsTransparentRangePriority(evt.newValue);
             // Force the text to match.
             m_SortPiorityField.value = m_Node.sortPriority;
             if (Equals(m_Node.sortPriority, evt.newValue))
@@ -409,6 +497,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             ToggleData td = m_Node.alphaTestDepthPostpass;
             td.isOn = evt.newValue;
             m_Node.alphaTestDepthPostpass = td;
+        }
+        void ChangeAlphaTestShadow(ChangeEvent<bool> evt)
+        {
+            m_Node.owner.owner.RegisterCompleteObjectUndo("Alpha Test Shadow Change");
+            ToggleData td = m_Node.alphaTestShadow;
+            td.isOn = evt.newValue;
+            m_Node.alphaTestShadow = td;
         }
 
         void ChangeDecal(ChangeEvent<bool> evt)
@@ -452,13 +547,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
             m_Node.specularOcclusionMode = (SpecularOcclusionMode)evt.newValue;
         }
 
+        void ChangeoverrideBakedGI(ChangeEvent<bool> evt)
+        {
+            m_Node.owner.owner.RegisterCompleteObjectUndo("overrideBakedGI Change");
+            ToggleData td = m_Node.overrideBakedGI;
+            td.isOn = evt.newValue;
+            m_Node.overrideBakedGI = td;
+        }
+
         public AlphaMode GetAlphaMode(HDLitMasterNode.AlphaModeLit alphaModeLit)
         {
             switch (alphaModeLit)
             {
                 case HDLitMasterNode.AlphaModeLit.Alpha:
                     return AlphaMode.Alpha;
-                case HDLitMasterNode.AlphaModeLit.PremultipliedAlpha:
+                case HDLitMasterNode.AlphaModeLit.Premultiply:
                     return AlphaMode.Premultiply;
                 case HDLitMasterNode.AlphaModeLit.Additive:
                     return AlphaMode.Additive;
@@ -478,7 +581,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline.Drawing
                 case AlphaMode.Alpha:
                     return HDLitMasterNode.AlphaModeLit.Alpha;
                 case AlphaMode.Premultiply:
-                    return HDLitMasterNode.AlphaModeLit.PremultipliedAlpha;
+                    return HDLitMasterNode.AlphaModeLit.Premultiply;
                 case AlphaMode.Additive:
                     return HDLitMasterNode.AlphaModeLit.Additive;
                 default:

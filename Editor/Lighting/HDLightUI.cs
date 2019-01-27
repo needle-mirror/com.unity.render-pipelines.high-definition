@@ -129,7 +129,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     DrawEmissionAdvancedContent
                     ),
                 CED.FoldoutGroup(s_Styles.volumetricHeader, Expandable.Volumetric, k_ExpandedState, DrawVolumetric),
+#if ENABLE_RAYTRACING
+                CED.Conditional((serialized, owner) => serialized.editorLightShape != LightShape.Tube,
+#else
                 CED.Conditional((serialized, owner) => serialized.editorLightShape != LightShape.Rectangle && serialized.editorLightShape != LightShape.Tube,
+#endif
                     CED.AdvancedFoldoutGroup(s_Styles.shadowHeader, Expandable.Shadows, k_ExpandedState,
                         (serialized, owner) => GetAdvanced(Advanceable.Shadow, serialized, owner),
                         (serialized, owner) => SwitchAdvanced(Advanceable.Shadow, serialized, owner),
@@ -138,13 +142,27 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                             CED.Conditional((serialized, owner) => GetAdvanced(Advanceable.Shadow, serialized, owner) && k_ExpandedState[Expandable.ShadowMap],
                                 CED.Group(GroupOption.Indent, DrawShadowMapAdvancedContent)),
                             CED.space,
+                            // Very High setting
+                            CED.Conditional((serialized, owner) => HasShadowQualitySettingsUI(HDShadowQuality.VeryHigh, serialized, owner),
+                                CED.FoldoutGroup(s_Styles.veryHighShadowQualitySubHeader, Expandable.ShadowQuality, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent, DrawVeryHighShadowSettingsContent)),
+                            // High setting
                             CED.Conditional((serialized, owner) => HasShadowQualitySettingsUI(HDShadowQuality.High, serialized, owner),
                                 CED.FoldoutGroup(s_Styles.highShadowQualitySubHeader, Expandable.ShadowQuality, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent, DrawHighShadowSettingsContent)),
                             CED.Conditional((serialized, owner) => HasShadowQualitySettingsUI(HDShadowQuality.Medium, serialized, owner),
                                 CED.FoldoutGroup(s_Styles.mediumShadowQualitySubHeader, Expandable.ShadowQuality, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent, DrawMediumShadowSettingsContent)),
                             CED.Conditional((serialized, owner) => HasShadowQualitySettingsUI(HDShadowQuality.Low, serialized, owner),
                                 CED.FoldoutGroup(s_Styles.lowShadowQualitySubHeader, Expandable.ShadowQuality, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent, DrawLowShadowSettingsContent)),
-                            CED.FoldoutGroup(s_Styles.contactShadowsSubHeader, Expandable.ContactShadow, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent | FoldoutOption.NoSpaceAtEnd, DrawContactShadowsContent),
+
+#if ENABLE_RAYTRACING
+                            CED.Conditional((serialized, owner) => serialized.editorLightShape != LightShape.Rectangle && serialized.editorLightShape != LightShape.Tube,
+#endif
+                            CED.FoldoutGroup(s_Styles.contactShadowsSubHeader, Expandable.ContactShadow, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent | FoldoutOption.NoSpaceAtEnd, DrawContactShadowsContent)
+
+#if ENABLE_RAYTRACING
+                            ),
+#else
+                            ,
+#endif
                             CED.Conditional((serialized, owner) => serialized.settings.isBakedOrMixed || serialized.settings.isCompletelyBaked,
                                 CED.space,
                                 CED.FoldoutGroup(s_Styles.bakedShadowsSubHeader, Expandable.BakedShadow, k_ExpandedState, FoldoutOption.SubFoldout | FoldoutOption.Indent | FoldoutOption.NoSpaceAtEnd, DrawBakedShadowsContent))
@@ -572,7 +590,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 serialized.settings.shadowsType.enumValueIndex = newShadowsEnabled ? (int)LightShadows.Hard : (int)LightShadows.None;
             }
 
+            #if ENABLE_RAYTRACING
+            using (new EditorGUI.DisabledScope(!newShadowsEnabled || LightShape.Rectangle == serialized.editorLightShape))
+            #else
             using (new EditorGUI.DisabledScope(!newShadowsEnabled))
+            #endif
             {
                 EditorGUILayout.DelayedIntField(serialized.serializedShadowData.resolution, s_Styles.shadowResolution);
                 EditorGUILayout.Slider(serialized.serializedLightData.shadowNearPlane, HDShadowUtils.k_MinShadowNearPlane, 10f, s_Styles.shadowNearPlane);
@@ -655,7 +677,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             // Handle quality where there is nothing to draw directly here
             // No PCSS for now with directional light
-            if (quality == HDShadowQuality.Medium || quality == HDShadowQuality.Low || serialized.editorLightShape == LightShape.Directional)
+            if (quality == HDShadowQuality.Medium || quality == HDShadowQuality.Low)
                 return false;
 
             // Draw shadow settings using the current shadow algorithm
@@ -722,6 +744,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorGUILayout.PropertyField(serialized.serializedLightData.shadowSoftness, s_Styles.shadowSoftness);
             EditorGUILayout.PropertyField(serialized.serializedLightData.blockerSampleCount, s_Styles.blockerSampleCount);
             EditorGUILayout.PropertyField(serialized.serializedLightData.filterSampleCount, s_Styles.filterSampleCount);
+            EditorGUILayout.PropertyField(serialized.serializedLightData.minFilterSize, s_Styles.minFilterSize);
+        }
+
+        static void DrawVeryHighShadowSettingsContent(SerializedHDLight serialized, Editor owner)
+        {
+            EditorGUILayout.PropertyField(serialized.serializedLightData.kernelSize, s_Styles.kernelSize);
+            EditorGUILayout.PropertyField(serialized.serializedLightData.lightAngle, s_Styles.lightAngle);
+            EditorGUILayout.PropertyField(serialized.serializedLightData.maxDepthBias, s_Styles.maxDepthBias);
         }
     }
 }

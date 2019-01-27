@@ -1,4 +1,4 @@
-Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
+Shader "Hidden/HDRP/TerrainLit_Basemap"
 {
     Properties
     {
@@ -48,7 +48,6 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
     // Define
     //-------------------------------------------------------------------------------------
 
-    #define SURFACE_GRADIENT
     #define HAVE_MESH_MODIFICATION
 
     //-------------------------------------------------------------------------------------
@@ -83,7 +82,7 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
         // Caution: The outline selection in the editor use the vertex shader/hull/domain shader of the first pass declare. So it should not bethe  meta pass.
         Pass
         {
-            Name "GBuffer"  // Name is not used
+            Name "GBuffer"
             Tags { "LightMode" = "GBuffer" } // This will be only for opaque object based on the RenderQueue index
 
             Cull [_CullMode]
@@ -115,8 +114,8 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             #endif
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
-            #include "TerrainLitSharePass.hlsl"
-            #include "TerrainLitData_Basemap.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitSharePass.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData_Basemap.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassGBuffer.hlsl"
 
             ENDHLSL
@@ -127,7 +126,7 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
         Pass
         {
             Name "META"
-            Tags{ "LightMode" = "Meta" }
+            Tags{ "LightMode" = "META" }
 
             Cull Off
 
@@ -141,9 +140,9 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
-            #include "TerrainLitSharePass.hlsl"
-            #include "TerrainLitData_Basemap.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassLightTransport.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitSharePass.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData_Basemap.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassLightTransport.hlsl"
 
             ENDHLSL
         }
@@ -169,8 +168,8 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/ShaderPass/LitDepthPass.hlsl"
-            #include "TerrainLitData_Basemap.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData_Basemap.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
         }
@@ -181,6 +180,15 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             Tags{ "LightMode" = "DepthOnly" }
 
             Cull[_CullMode]
+
+            // To be able to tag stencil with disableSSR information for forward
+            Stencil
+            {
+                WriteMask [_StencilWriteMask]
+                Ref [_StencilRef]
+                Comp Always
+                Pass Replace
+            }
 
             ZWrite On
 
@@ -202,15 +210,15 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/ShaderPass/LitDepthPass.hlsl"
             #endif
 
-            #include "TerrainLitData_Basemap.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData_Basemap.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl"
 
             ENDHLSL
         }
 
         Pass
         {
-            Name "Forward" // Name is not used
+            Name "Forward"
             Tags{ "LightMode" = "Forward" } // This will be only for transparent object based on the RenderQueue index
 
             Stencil
@@ -237,11 +245,8 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             #pragma multi_compile DECALS_OFF DECALS_3RT DECALS_4RT
             
             // Supported shadow modes per light type
-            #pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH
+            #pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH SHADOW_VERY_HIGH
 
-            // #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Lighting/Forward.hlsl"
-            //#pragma multi_compile LIGHTLOOP_SINGLE_PASS LIGHTLOOP_TILE_PASS
-            #define LIGHTLOOP_TILE_PASS
             #pragma multi_compile USE_FPTL_LIGHTLIST USE_CLUSTERED_LIGHTLIST
 
             #define SHADERPASS SHADERPASS_FORWARD
@@ -270,9 +275,9 @@ Shader "Hidden/HDRenderPipeline/TerrainLit_Basemap"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoop.hlsl"
 
-            #include "TerrainLitSharePass.hlsl"
-            #include "TerrainLitData_Basemap.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassForward.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitSharePass.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitData_Basemap.hlsl"
+			#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassForward.hlsl"
 
             ENDHLSL
         }

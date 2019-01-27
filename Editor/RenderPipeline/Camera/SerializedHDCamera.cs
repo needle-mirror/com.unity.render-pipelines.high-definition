@@ -11,23 +11,37 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         //public SerializedProperty backgroundColor;
         
-        public SerializedProperty aperture;
-        public SerializedProperty shutterSpeed;
         public SerializedProperty iso;
+        public SerializedProperty shutterSpeed;
+        public SerializedProperty aperture;
+        public SerializedProperty bladeCount;
+        public SerializedProperty curvature;
+        public SerializedProperty barrelClipping;
+        public SerializedProperty anamorphism;
 
+        public SerializedProperty antialiasing;
+        public SerializedProperty dithering;
         public SerializedProperty clearColorMode;
         public SerializedProperty backgroundColorHDR;
-        public SerializedProperty renderingPath;
+        public SerializedProperty passThrough;
+        public SerializedProperty customRenderingSettings;
         public SerializedProperty clearDepth;
         public SerializedProperty volumeLayerMask;
         public SerializedProperty volumeAnchorOverride;
         public SerializedFrameSettings frameSettings;
         public CameraEditor.Settings baseCameraSettings { get; private set; }
 
+        // This one is internal in UnityEditor for whatever reason...
+        public SerializedProperty projectionMatrixMode;
+
+        public SerializedProperty probeLayerMask;
 
         public SerializedHDCamera(SerializedObject serializedObject)
         {
             this.serializedObject = serializedObject;
+
+            projectionMatrixMode = serializedObject.FindProperty("m_projectionMatrixMode");
+
             var additionals = CoreEditorUtils.GetAdditionalData<HDAdditionalCameraData>(serializedObject.targetObjects, HDAdditionalCameraData.InitDefaultHDAdditionalCameraData);
             serializedAdditionalDataObject = new SerializedObject(additionals);
 
@@ -39,17 +53,29 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             //backgroundColor = serializedObject.FindProperty("m_BackGroundColor");
            
-            aperture = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.aperture);
-            shutterSpeed = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.shutterSpeed);
-            iso = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.iso);
+            iso = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Iso");
+            shutterSpeed = serializedAdditionalDataObject.FindProperty("physicalParameters.m_ShutterSpeed");
+            aperture = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Aperture");
+            bladeCount = serializedAdditionalDataObject.FindProperty("physicalParameters.m_BladeCount");
+            curvature = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Curvature");
+            barrelClipping = serializedAdditionalDataObject.FindProperty("physicalParameters.m_BarrelClipping");
+            anamorphism = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Anamorphism");
 
+            antialiasing = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.antialiasing);
+            dithering = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.dithering);
             clearColorMode = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.clearColorMode);
             backgroundColorHDR = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.backgroundColorHDR);
-            renderingPath = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.renderingPath);
+            passThrough = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.fullscreenPassthrough);
+            customRenderingSettings = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.customRenderingSettings);
             clearDepth = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.clearDepth);
             volumeLayerMask = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.volumeLayerMask);
             volumeAnchorOverride = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.volumeAnchorOverride);
-            frameSettings = new SerializedFrameSettings(serializedAdditionalDataObject.FindProperty("m_FrameSettings"));
+            frameSettings = new SerializedFrameSettings(
+                serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.renderingPathCustomFrameSettings),
+                serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.renderingPathCustomFrameSettingsOverrideMask)
+                );
+
+            probeLayerMask = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.probeLayerMask);
 
             baseCameraSettings = new CameraEditor.Settings(serializedObject);
             baseCameraSettings.OnEnable();

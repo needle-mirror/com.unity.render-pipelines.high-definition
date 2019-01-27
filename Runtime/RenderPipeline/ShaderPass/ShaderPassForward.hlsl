@@ -2,7 +2,7 @@
 #error SHADERPASS_is_not_correctly_define
 #endif
 
-#include "VertMesh.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/VertMesh.hlsl"
 
 PackedVaryingsType Vert(AttributesMesh inputMesh)
 {
@@ -20,7 +20,7 @@ PackedVaryingsToPS VertTesselation(VaryingsToDS input)
     return PackVaryingsToPS(output);
 }
 
-#include "TessellationShare.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/TessellationShare.hlsl"
 
 #endif // TESSELLATION_ON
 
@@ -93,6 +93,14 @@ void Frag(PackedVaryingsToPS packedInput,
 
         outColor = float4(result, 1.0);
     }
+    else if (_DebugFullScreenMode == FULLSCREENDEBUGMODE_VALIDATE_DIFFUSE_COLOR || _DebugFullScreenMode == FULLSCREENDEBUGMODE_VALIDATE_SPECULAR_COLOR)
+    {
+        float3 result = float3(0.0, 0.0, 0.0);
+
+        GetPBRValidatorDebug(surfaceData, result);
+
+        outColor = float4(result, 1.0f);
+    }
     else
 #endif
     {
@@ -105,6 +113,9 @@ void Frag(PackedVaryingsToPS packedInput,
         float3 specularLighting;
 
         LightLoop(V, posInput, preLightData, bsdfData, builtinData, featureFlags, diffuseLighting, specularLighting);
+
+        diffuseLighting *= GetCurrentExposureMultiplier();
+        specularLighting *= GetCurrentExposureMultiplier();
 
 #ifdef OUTPUT_SPLIT_LIGHTING
         if (_EnableSubsurfaceScattering != 0 && ShouldOutputSplitLighting(bsdfData))

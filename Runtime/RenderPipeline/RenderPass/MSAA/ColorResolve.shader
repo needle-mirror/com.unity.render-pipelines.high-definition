@@ -1,4 +1,4 @@
-Shader "Hidden/HDRenderPipeline/ColorResolve"
+Shader "Hidden/HDRP/ColorResolve"
 {
     HLSLINCLUDE
         #pragma target 4.5
@@ -6,7 +6,7 @@ Shader "Hidden/HDRenderPipeline/ColorResolve"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-        #pragma enable_d3d11_debug_symbols
+        //#pragma enable_d3d11_debug_symbols
 
         Texture2DMS<float4> _ColorTextureMS;
 

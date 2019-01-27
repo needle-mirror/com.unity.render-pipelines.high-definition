@@ -72,7 +72,7 @@ VaryingsPassToDS InterpolateWithBaryCoordsPassToDS(VaryingsPassToDS input0, Vary
 
 // We will use custom attributes for this pass
 #define VARYINGS_NEED_PASS
-#include "VertMesh.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/VertMesh.hlsl"
 
 // Transforms normal from object to world space
 float3 TransformPreviousObjectToWorldNormal(float3 normalOS)
@@ -169,7 +169,7 @@ PackedVaryingsToPS VertTesselation(VaryingsToDS input)
     return PackVaryingsToPS(output);
 }
 
-#include "TessellationShare.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/TessellationShare.hlsl"
 
 #endif // TESSELLATION_ON
 
@@ -223,8 +223,11 @@ void Frag(  PackedVaryingsToPS packedInput
 
     // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
     bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+    // Setting the velocity to a value more than 2 set as a flag for "force no motion". This is valid because, given that the velocities are in NDC,
+    // a value of >1 can never happen naturally, unless explicitely set. 
     if (forceNoMotion)
-        outVelocity = float4(0.0, 0.0, 0.0, 0.0);
+        outVelocity = float4(2.0, 0.0, 0.0, 0.0);
 
 // Normal Buffer Processing
 #ifdef WRITE_NORMAL_BUFFER

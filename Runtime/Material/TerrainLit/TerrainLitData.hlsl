@@ -1,18 +1,27 @@
 //-------------------------------------------------------------------------------------
+// Defines
+//-------------------------------------------------------------------------------------
+
+// Use surface gradient normal mapping as it handle correctly triplanar normal mapping and multiple UVSet
+#define SURFACE_GRADIENT
+
+//-------------------------------------------------------------------------------------
 // Fill SurfaceData/Builtin data function
 //-------------------------------------------------------------------------------------
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/SampleUVMapping.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialUtilities.hlsl"
 
-#include "TerrainLitSplatCommon.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitSplatCommon.hlsl"
 
 // We don't use emission for terrain
 #define _EmissiveColor float3(0,0,0)
 #define _AlbedoAffectEmissive 0
+#define _EmissiveExposureWeight 0
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitBuiltinData.hlsl"
 #undef _EmissiveColor
 #undef _AlbedoAffectEmissive
+#undef _EmissiveExposureWeight
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl"
@@ -32,17 +41,8 @@ void GetSurfaceAndBuiltinData(inout FragInputs input, float3 V, inout PositionIn
         float4 tangentWS;
         tangentWS.xyz = cross(normalWS, GetObjectToWorldMatrix()._13_23_33);
         tangentWS.w = -1;
-        float renormFactor = 1.0 / length(normalWS);
 
-        // bitangent on the fly option in xnormal to reduce vertex shader outputs.
-        // this is the mikktspace transformation (must use unnormalized attributes)
-        float3x3 worldToTangent = CreateWorldToTangent(normalWS, tangentWS.xyz, tangentWS.w);
-
-        // surface gradient based formulation requires a unit length initial normal. We can maintain compliance with mikkts
-        // by uniformly scaling all 3 vectors since normalization of the perturbed normal will cancel it.
-        input.worldToTangent[0] = worldToTangent[0] * renormFactor;
-        input.worldToTangent[1] = worldToTangent[1] * renormFactor;
-        input.worldToTangent[2] = worldToTangent[2] * renormFactor;		// normalizes the interpolated vertex normal
+        input.worldToTangent = BuildWorldToTangent(tangentWS, normalWS);
 
         input.texCoord0.xy *= _TerrainHeightmapRecipSize.zw;
     }
@@ -76,7 +76,10 @@ void GetSurfaceAndBuiltinData(inout FragInputs input, float3 V, inout PositionIn
     surfaceData.atDistance = 1000000.0;
     surfaceData.transmittanceMask = 0.0;
 
-    GetNormalWS(input, normalTS, surfaceData.normalWS);
+    GetNormalWS(input, normalTS, surfaceData.normalWS, float3(1.0, 1.0, 1.0));
+
+    surfaceData.geomNormalWS = input.worldToTangent[2];
+
     float3 bentNormalWS = surfaceData.normalWS;
 
     // By default we use the ambient occlusion with Tri-ace trick (apply outside) for specular occlusion.

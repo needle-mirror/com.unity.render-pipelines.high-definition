@@ -3,7 +3,7 @@
 //-----------------------------------------------------------------------------
 
 // SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
-#include "Lit.cs.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/Lit.cs.hlsl"
 // Those define allow to include desired SSS/Transmission functions
 #define MATERIAL_INCLUDE_SUBSURFACESCATTERING
 #define MATERIAL_INCLUDE_TRANSMISSION
@@ -283,6 +283,23 @@ void ApplyDebugToSurfaceData(float3x3 worldToTangent, inout SurfaceData surfaceD
     {
         surfaceData.normalWS = worldToTangent[2];
     }
+
+    // There is no metallic with SSS and specular color mode
+    float metallic = HasFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION) ? 0.0 : surfaceData.metallic;
+
+    float3 diffuseColor = ComputeDiffuseColor(surfaceData.baseColor, metallic);
+    bool specularWorkflow = HasFlag(surfaceData.materialFeatures, MATERIALFEATUREFLAGS_LIT_SPECULAR_COLOR);
+    float3 specularColor =  specularWorkflow ? surfaceData.specularColor : ComputeFresnel0(surfaceData.baseColor, surfaceData.metallic, DEFAULT_SPECULAR_VALUE);
+
+    if (_DebugFullScreenMode == FULLSCREENDEBUGMODE_VALIDATE_DIFFUSE_COLOR)
+    {
+        surfaceData.baseColor = pbrDiffuseColorValidate(diffuseColor, specularColor, metallic > 0.0, !specularWorkflow).xyz;
+    }
+    else if (_DebugFullScreenMode == FULLSCREENDEBUGMODE_VALIDATE_SPECULAR_COLOR)
+    {
+        surfaceData.baseColor = pbrSpecularColorValidate(diffuseColor, specularColor, metallic > 0.0, !specularWorkflow).xyz;
+    }
+
 #endif
 }
 
@@ -337,7 +354,12 @@ void UpdateSurfaceDataFromNormalData(uint2 positionSS, inout BSDFData bsdfData)
 
 float3 GetNormalForShadowBias(BSDFData bsdfData)
 {
+    // In forward we can used geometric normal for shadow bias which improve quality
+#if (SHADERPASS == SHADERPASS_FORWARD)
+    return bsdfData.geomNormalWS;
+#else
     return bsdfData.normalWS;
+#endif    
 }
 
 void ClampRoughness(inout BSDFData bsdfData, float minRoughness)
@@ -349,12 +371,18 @@ void ClampRoughness(inout BSDFData bsdfData, float minRoughness)
 
 float ComputeMicroShadowing(BSDFData bsdfData, float NdotL)
 {
-#ifdef LIGHT_LAYERS
-    return ComputeMicroShadowing(bsdfData.ambientOcclusion, NdotL, _MicroShadowOpacity);
+    float sourceAO;
+#if (SHADERPASS == SHADERPASS_DEFERRED_LIGHTING)
+    // Note: In deferred pass we don't have space in GBuffer to store ambientOcclusion unless LIGHT_LAYERS is enabled
+    // so we use specularOcclusion instead
+    // The define LIGHT_LAYERS only exist for the GBuffer and the Forward pass. To avoid to add another
+    // variant to deferred.compute, we use dynamic branching instead with _EnableLightLayers.
+    sourceAO = _EnableLightLayers ? bsdfData.ambientOcclusion : bsdfData.specularOcclusion;
 #else
-    // No extra G-Buffer for AO, so 'bsdfData.ambientOcclusion' does not hold a meaningful value.
-    return ComputeMicroShadowing(bsdfData.specularOcclusion, NdotL, _MicroShadowOpacity);
+    sourceAO = bsdfData.ambientOcclusion;
 #endif
+
+    return ComputeMicroShadowing(sourceAO, NdotL, _MicroShadowOpacity);
 }
 
 bool MaterialSupportsTransmission(BSDFData bsdfData)
@@ -378,6 +406,7 @@ BSDFData ConvertSurfaceDataToBSDFData(uint2 positionSS, SurfaceData surfaceData)
     bsdfData.ambientOcclusion    = surfaceData.ambientOcclusion;
     bsdfData.specularOcclusion   = surfaceData.specularOcclusion;
     bsdfData.normalWS            = surfaceData.normalWS;
+    bsdfData.geomNormalWS        = surfaceData.geomNormalWS;
     bsdfData.perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness);
 
     // Check if we read value of normal and roughness from buffer. This is a tradeoff
@@ -600,13 +629,13 @@ void EncodeIntoGBuffer( SurfaceData surfaceData
     // RT3 - 11f:11f:10f
     // In deferred we encode emissive color with bakeDiffuseLighting. We don't have the room to store emissiveColor.
     // It mean that any futher process that affect bakeDiffuseLighting will also affect emissiveColor, like SSAO for example.
-    // Also if we don't have the room to store AO, then we apply it at this time on bakeDiffuseLighting which will cause a double occlusion with SSAO
-#ifdef LIGHT_LAYERS
-    outGBuffer3 = float4(builtinData.bakeDiffuseLighting + builtinData.emissiveColor, 0.0);
-    // If we have light layers, take the opportunity to save AO and avoid double occlusion with SSAO
-    OUT_GBUFFER_LIGHT_LAYERS = float4(0.0, 0.0, surfaceData.ambientOcclusion, builtinData.renderingLayers / 255.0);
-#else
     outGBuffer3 = float4(builtinData.bakeDiffuseLighting * surfaceData.ambientOcclusion + builtinData.emissiveColor, 0.0);
+
+    // Pre-expose lighting buffer
+    outGBuffer3 *= GetCurrentExposureMultiplier();
+
+#ifdef LIGHT_LAYERS
+    OUT_GBUFFER_LIGHT_LAYERS = float4(0.0, 0.0, 0.0, builtinData.renderingLayers / 255.0);
 #endif
 
 #ifdef SHADOWS_SHADOWMASK
@@ -639,17 +668,21 @@ uint DecodeFromGBuffer(uint2 positionSS, uint tileFeatureFlags, out BSDFData bsd
     // BuiltinData
     builtinData.bakeDiffuseLighting = LOAD_TEXTURE2D(_GBufferTexture3, positionSS).rgb;  // This also contain emissive (and * AO if no lightlayers)
 
+    // Inverse pre-exposure
+    builtinData.bakeDiffuseLighting *= GetInverseCurrentExposureMultiplier(); // zero-div guard
+
+    // In deferred ambient occlusion isn't available and is already apply on bakeDiffuseLighting for the GI part.
+    // Caution: even if we store it in the GBuffer we need to apply it on GI and not on emissive color, so AO must be 1.0 in deferred
+    bsdfData.ambientOcclusion = 1.0;
+
     // Avoid to introduce a new variant for light layer as it is already long to compile
     if (_EnableLightLayers)
     {
-        float4 inGBuffer4 = LOAD_TEXTURE2D(_LightLayersTexture, positionSS);
-        // If we have light layers, take the opportunity to save AO and avoid double occlusion with SSAO
-        bsdfData.ambientOcclusion = inGBuffer4.z;
+        float4 inGBuffer4 = LOAD_TEXTURE2D(_LightLayersTexture, positionSS);        
         builtinData.renderingLayers = uint(inGBuffer4.w * 255.5);
     }
     else
     {
-        bsdfData.ambientOcclusion = 1.0; // No value available, just settings 1.0. This mean double occlusion with SSAO.
         builtinData.renderingLayers = DEFAULT_LIGHT_LAYERS;
     }
 
@@ -720,6 +753,7 @@ uint DecodeFromGBuffer(uint2 positionSS, uint tileFeatureFlags, out BSDFData bsd
     NormalData normalData;
     DecodeFromNormalBuffer(inGBuffer1, positionSS, normalData);
     bsdfData.normalWS = normalData.normalWS;
+    bsdfData.geomNormalWS = bsdfData.normalWS; // No geometric normal in deferred, use normal map
     bsdfData.perceptualRoughness = normalData.perceptualRoughness;
 
     // Decompress feature-specific data from the G-Buffer.
@@ -863,6 +897,9 @@ void GetSurfaceDataDebug(uint paramId, SurfaceData surfaceData, inout float3 res
     case DEBUGVIEW_LIT_SURFACEDATA_MATERIAL_FEATURES:
         result = (surfaceData.materialFeatures.xxx) / 255.0; // Aloow to read with color picker debug mode
         break;
+    case DEBUGVIEW_LIT_SURFACEDATA_GEOMETRIC_NORMAL_VIEW_SPACE:
+        result = TransformWorldToViewDir(surfaceData.geomNormalWS) * 0.5 + 0.5;
+        break;
     case DEBUGVIEW_LIT_SURFACEDATA_INDEX_OF_REFRACTION:
         result = saturate((surfaceData.ior - 1.0) / 1.5).xxx;
         break;
@@ -883,10 +920,18 @@ void GetBSDFDataDebug(uint paramId, BSDFData bsdfData, inout float3 result, inou
     case DEBUGVIEW_LIT_BSDFDATA_MATERIAL_FEATURES:
         result = (bsdfData.materialFeatures.xxx) / 255.0; // Aloow to read with color picker debug mode
         break;
+    case DEBUGVIEW_LIT_BSDFDATA_GEOMETRIC_NORMAL_VIEW_SPACE:
+        result = TransformWorldToViewDir(bsdfData.geomNormalWS) * 0.5 + 0.5;
+        break;
     case DEBUGVIEW_LIT_BSDFDATA_IOR:
         result = saturate((bsdfData.ior - 1.0) / 1.5).xxx;
         break;
     }
+}
+
+void GetPBRValidatorDebug(SurfaceData surfaceData, inout float3 result)
+{
+    result = surfaceData.baseColor;
 }
 
 //-----------------------------------------------------------------------------
@@ -1243,7 +1288,7 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
                                  bsdfData, bsdfData.normalWS, V);
 }
 
-#include "LitReference.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitReference.hlsl"
 
 //-----------------------------------------------------------------------------
 // EvaluateBSDF_Line - Approximation with Linearly Transformed Cosines
@@ -1507,6 +1552,15 @@ DirectLighting EvaluateBSDF_Rect(   LightLoopContext lightLoopContext,
 
     }
 
+#ifdef ENABLE_RAYTRACING
+    if(_RaytracedAreaShadow == 1 && lightData.shadowIndex != -1)
+    {
+        float4 areaShadow = LOAD_TEXTURE2D_ARRAY(_AreaShadowTexture, posInput.positionSS, lightData.shadowIndex);
+        lighting.diffuse *= areaShadow.xyz;
+        lighting.specular *= areaShadow.xyz;
+    }
+#endif
+
 #endif // LIT_DISPLAY_REFERENCE_AREA
 
     return lighting;
@@ -1614,6 +1668,8 @@ IndirectLighting EvaluateBSDF_ScreenspaceRefraction(LightLoopContext lightLoopCo
                                         // Offset by half a texel to properly interpolate between this pixel and its mips
                                         samplingPositionNDC * _ColorPyramidScale.xy, preLightData.transparentSSMipLevel).rgb;
 
+    // Inverse pre-exposure
+    preLD *= GetInverseCurrentExposureMultiplier();
 
     // We use specularFGD as an approximation of the fresnel effect (that also handle smoothness)
     float3 F = preLightData.specularFGD;
