@@ -4,7 +4,19 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [4.8.0-preview] - 2018-01-16
+## [4.9.0-preview] - 2019-01-28
+
+### Fixed
+- Fixed baked probe texture size issue.
+- Fixed an issue with SceneColor node in shader graph not taking correctly resize of screen into account
+- Fixed LOAD_TEXTURE2D_ARRAY_MSAA macro
+- Fixed instancing macro usage for decals
+- Fixed issue with alpha shadow clip (was incorrectly clipping object shadow)
+- Fixed double sided flip mode
+- Fixed issue with incorrect reset of RenderQueue when switching shader in inspector GUI
+- Fixed issue with variant stripper stripping incorrectly some variants
+
+## [4.8.0-preview] - 2019-01-16
 
 ### Fixed
 - Fixed remove sync with render thread when updating decal texture atlas
@@ -14,7 +26,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed issue with MicroShadowing and SpecularOcclusion
 - Fixed issue with vertex animation in shader graph not compatible with SRP Batcher
 
-## [4.7.0-preview] - 2018-01-13
+## [4.7.0-preview] - 2019-01-13
 
 ### Added
 - Added replace blending mode for distortion
@@ -43,7 +55,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed Scene Color and Depth nodes for shader graph
 - Fixed SSR in forward
 - Fixed custom editor of PBR shader graph master node
-- Fixed issue with NewFrame not correctly calcualted in Editor when switching scene
+- Fixed issue with NewFrame not correctly calculated in Editor when switching scene
 
 ### Changed
 - Update several properties naming and caption based on feedback from documentation team
