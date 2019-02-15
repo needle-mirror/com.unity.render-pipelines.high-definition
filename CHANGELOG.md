@@ -4,6 +4,16 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [4.10.0-preview] - 2019-02-16
+
+### Fixed
+- Fixed cascade shadow count in shader
+- Fixed issue on reflection probe baked resolution when using Generate Lighting button
+- Fixed issue with SRP batcher and DebugDisplay variant of lit shader
+- Fixed issue with debug material mode not doing alpha test
+- Fixed "Attempting to draw with missing UAV bindings" errors on Vulkan
+- Fixed Begin/EndSample mismatch when using CustomRender 
+
 ## [4.9.0-preview] - 2019-01-28
 
 ### Fixed
@@ -15,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed double sided flip mode
 - Fixed issue with incorrect reset of RenderQueue when switching shader in inspector GUI
 - Fixed issue with variant stripper stripping incorrectly some variants
+- Fixed an issue with stencil buffer copy causing unnecessary compute dispatches for lighting
 
 ## [4.8.0-preview] - 2019-01-16
 
