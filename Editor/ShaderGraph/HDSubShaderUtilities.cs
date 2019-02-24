@@ -465,6 +465,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public List<string> Includes;
         public string TemplateName;
         public string MaterialName;
+        public List<string> ExtraInstancingOptions;
         public List<string> ExtraDefines;
         public List<int> VertexShaderSlots;         // These control what slots are used by the pass vertex shader
         public List<int> PixelShaderSlots;          // These control what slots are used by the pass pixel shader
@@ -638,6 +639,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             ShaderGenerator vertexGraphInputs = new ShaderGenerator();
             ShaderSpliceUtil.BuildType(typeof(HDRPShaderStructs.VertexDescriptionInputs), activeFields, vertexGraphInputs);
 
+            ShaderGenerator instancingOptions = new ShaderGenerator();
+            {
+                instancingOptions.AddShaderChunk("#pragma multi_compile_instancing", true);
+                if (pass.ExtraInstancingOptions != null)
+                {
+                    foreach (var instancingOption in pass.ExtraInstancingOptions)
+                        instancingOptions.AddShaderChunk(instancingOption);
+                }
+            }
+
             ShaderGenerator defines = new ShaderGenerator();
             {
                 defines.AddShaderChunk(string.Format("#define SHADERPASS {0}", pass.ShaderPassName), true);
@@ -707,6 +718,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // build the hash table of all named fragments      TODO: could make this Dictionary<string, ShaderGenerator / string>  ?
             Dictionary<string, string> namedFragments = new Dictionary<string, string>();
+            namedFragments.Add("InstancingOptions", instancingOptions.GetShaderString(0, false));
             namedFragments.Add("Defines", defines.GetShaderString(2, false));
             namedFragments.Add("Graph", graph.GetShaderString(2, false));
             namedFragments.Add("LightMode", pass.LightMode);
@@ -952,7 +964,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     return "Default";
                 case HDRenderQueue.RenderQueueType.AfterPostProcessOpaque:
                     return "After Post-process";
-
                 case HDRenderQueue.RenderQueueType.PreRefraction:
                     return "Before Refraction";
                 case HDRenderQueue.RenderQueueType.Transparent:
@@ -971,32 +982,111 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        public static System.Collections.Generic.List<HDRenderQueue.RenderQueueType> GetRenderingPassList(bool opaque)
+        public static System.Collections.Generic.List<HDRenderQueue.RenderQueueType> GetRenderingPassList(bool opaque, bool needAfterPostProcess)
         {
+            var result = new System.Collections.Generic.List<HDRenderQueue.RenderQueueType>();
             if (opaque)
             {
-                return new System.Collections.Generic.List<HDRenderQueue.RenderQueueType>()
-                {
-                    HDRenderQueue.RenderQueueType.Opaque
-                  //  , HDRenderQueue.RenderQueueType.AfterPostProcessOpaque
+                result.Add(HDRenderQueue.RenderQueueType.Opaque);
+                if (needAfterPostProcess)
+                    result.Add(HDRenderQueue.RenderQueueType.AfterPostProcessOpaque);
 #if ENABLE_RAYTRACING
-                    , HDRenderQueue.RenderQueueType.RaytracingOpaque
+                result.Add(HDRenderQueue.RenderQueueType.RaytracingOpaque);
 #endif
-                };
             }
             else
             {
-                return new System.Collections.Generic.List<HDRenderQueue.RenderQueueType>()
-                {
-                    HDRenderQueue.RenderQueueType.PreRefraction
-                    , HDRenderQueue.RenderQueueType.Transparent
-                 //   , HDRenderQueue.RenderQueueType.LowTransparent
-                 //   , HDRenderQueue.RenderQueueType.AfterPostprocessTransparent
+                result.Add(HDRenderQueue.RenderQueueType.PreRefraction);
+                result.Add(HDRenderQueue.RenderQueueType.Transparent);
+                //result.AddHDRenderQueue.RenderQueueType.LowTransparent):
+                if (needAfterPostProcess)
+                    result.Add(HDRenderQueue.RenderQueueType.AfterPostprocessTransparent);
 #if ENABLE_RAYTRACING
-                    , HDRenderQueue.RenderQueueType.RaytracingTransparent
+                result.Add(HDRenderQueue.RenderQueueType.RaytracingTransparent);
 #endif
+            }
+
+            return result;
+        }
+
+        public static void GetStencilStateForDepthOrMV(bool receiveDecals, bool receiveSSR, bool useObjectVelocity, ref Pass pass)
+        {
+            int stencilWriteMask = (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+            int stencilRef = receiveDecals ? (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer : 0;
+
+            stencilWriteMask |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+            stencilRef |= !receiveSSR ? (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR : 0;
+
+            stencilWriteMask |= useObjectVelocity ? (int)HDRenderPipeline.StencilBitMask.ObjectVelocity : 0;
+            stencilRef |= useObjectVelocity ? (int)HDRenderPipeline.StencilBitMask.ObjectVelocity : 0;
+
+            if (stencilWriteMask != 0)
+            {
+                pass.StencilOverride = new List<string>()
+                {
+                    "// Stencil setup",
+                    "Stencil",
+                    "{",
+                    string.Format("   WriteMask {0}", stencilWriteMask),
+                    string.Format("   Ref  {0}", stencilRef),
+                    "   Comp Always",
+                    "   Pass Replace",
+                    "}"
                 };
             }
+        }
+
+        public static void GetStencilStateForForward(bool useSplitLighting, ref Pass pass)
+        {
+            pass.StencilOverride = new List<string>()
+            {
+                "// Stencil setup",
+                "Stencil",
+                "{",
+                string.Format("   WriteMask {0}", (int) HDRenderPipeline.StencilBitMask.LightingMask),
+                string.Format("   Ref  {0}", useSplitLighting ? (int)StencilLightingUsage.SplitLighting : (int)StencilLightingUsage.RegularLighting),
+                "   Comp Always",
+                "   Pass Replace",
+                "}"
+            };
+        }
+
+        public static void GetStencilStateForForwardUnlit(ref Pass pass)
+        {
+            pass.StencilOverride = new List<string>()
+            {
+                "// Stencil setup",
+                "Stencil",
+                "{",
+                string.Format("   WriteMask {0}", (int) HDRenderPipeline.StencilBitMask.LightingMask),
+                string.Format("   Ref  {0}", (int)StencilLightingUsage.NoLighting),
+                "   Comp Always",
+                "   Pass Replace",
+                "}"
+            };
+        }        
+
+        public static void GetStencilStateForGBuffer(bool receiveSSR, bool useSplitLighting, ref Pass pass)
+        {
+            int stencilWriteMask = (int)HDRenderPipeline.StencilBitMask.LightingMask;
+            int stencilRef = useSplitLighting ? (int)StencilLightingUsage.SplitLighting : (int)StencilLightingUsage.RegularLighting;
+
+            stencilWriteMask |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
+            stencilRef |= !receiveSSR ? (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR : 0;
+
+            stencilWriteMask |= (int)HDRenderPipeline.StencilBitMask.DecalsForwardOutputNormalBuffer;
+
+            pass.StencilOverride = new List<string>()
+            {
+                "// Stencil setup",
+                "Stencil",
+                "{",
+                string.Format("   WriteMask {0}", stencilWriteMask),
+                string.Format("   Ref  {0}", stencilRef),
+                "   Comp Always",
+                "   Pass Replace",
+                "}"
+            };
         }
     }
 }

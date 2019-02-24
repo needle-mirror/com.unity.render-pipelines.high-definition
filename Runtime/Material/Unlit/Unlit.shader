@@ -47,6 +47,8 @@ Shader "HDRP/Unlit"
         [HideInInspector] _BlendMode("__blendmode", Float) = 0.0
         [HideInInspector] _SrcBlend("__src", Float) = 1.0
         [HideInInspector] _DstBlend("__dst", Float) = 0.0
+        [HideInInspector] _AlphaSrcBlend("__alphaSrc", Float) = 1.0
+        [HideInInspector] _AlphaDstBlend("__alphaDst", Float) = 0.0
         [HideInInspector] _ZWrite("__zw", Float) = 1.0
         [HideInInspector] _CullMode("__cullmode", Float) = 2.0
         [HideInInspector] _ZTestModeDistortion("_ZTestModeDistortion", Int) = 8
@@ -55,10 +57,14 @@ Shader "HDRP/Unlit"
         [ToggleUI] _DoubleSidedEnable("Double sided enable", Float) = 0.0
 
         // Stencil state
-        [HideInInspector] _StencilRef("_StencilRef", Int) = 2 // StencilLightingUsage.RegularLighting  (fixed at compile time)
-        [HideInInspector] _StencilWriteMask("_StencilWriteMask", Int) = 7 // StencilMask.Lighting  (fixed at compile time)
-        [HideInInspector] _StencilRefMV("_StencilRefMV", Int) = 128 // StencilLightingUsage.RegularLighting  (fixed at compile time)
-        [HideInInspector] _StencilWriteMaskMV("_StencilWriteMaskMV", Int) = 128 // StencilMask.ObjectsVelocity  (fixed at compile time)
+        [HideInInspector] _StencilRef("_StencilRef", Int) = 0 // StencilLightingUsage.NoLighting
+        [HideInInspector] _StencilWriteMask("_StencilWriteMask", Int) = 3 // StencilMask.Lighting
+        // Depth prepass
+        [HideInInspector] _StencilRefDepth("_StencilRefDepth", Int) = 0 // Nothing
+        [HideInInspector] _StencilWriteMaskDepth("_StencilWriteMaskDepth", Int) = 32 // DoesntReceiveSSR
+        // Motion vector pass
+        [HideInInspector] _StencilRefMV("_StencilRefMV", Int) = 128 // StencilMask.ObjectsVelocity
+        [HideInInspector] _StencilWriteMaskMV("_StencilWriteMaskMV", Int) = 128 // StencilMask.ObjectsVelocity
 
         // Caution: C# code in BaseLitUI.cs call LightmapEmissionFlagsProperty() which assume that there is an existing "_EmissionColor"
         // value that exist to identify if the GI emission need to be enabled.
@@ -155,14 +161,26 @@ Shader "HDRP/Unlit"
             Name "DepthForwardOnly"
             Tags{ "LightMode" = "DepthForwardOnly" }
 
+            Stencil
+            {
+                WriteMask [_StencilWriteMaskDepth]
+                Ref  [_StencilRefDepth]
+                Comp Always
+                Pass Replace
+            }
+
             Cull[_CullMode]
 
             ZWrite On
 
-            ColorMask 0 // We don't have WRITE_NORMAL_BUFFER for unlit, but as we bind a buffer we shouldn't write into it.
+            // Caution: When using MSAA we have normal and depth buffer bind.
+            // Mean unlit object need to not write in it (or write 0) - Disable color mask for this RT
+            // This is not a problem in no MSAA mode as there is no buffer bind
+            ColorMask 0 0
 
             HLSLPROGRAM
             #pragma multi_compile _ WRITE_MSAA_DEPTH
+            // Note we don't need to define WRITE_NORMAL_BUFFER
 
             #define SHADERPASS SHADERPASS_DEPTH_ONLY
 
@@ -197,9 +215,15 @@ Shader "HDRP/Unlit"
 
             ZWrite On
 
+            // Caution: When using MSAA we have motion vector, normal and depth buffer bind.
+            // Mean unlit object need to not write in it (or write 0) - Disable color mask for this RT
+            // This is not a problem in no MSAA mode as there is no buffer bind
+            ColorMask 0 1
+
             HLSLPROGRAM
             #pragma multi_compile _ WRITE_MSAA_DEPTH
-            
+            // Note we don't need to define WRITE_NORMAL_BUFFER
+
             #define SHADERPASS SHADERPASS_VELOCITY
 
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
@@ -221,8 +245,17 @@ Shader "HDRP/Unlit"
             Name "ForwardOnly"
             Tags { "LightMode" = "ForwardOnly" }
 
-            Blend [_SrcBlend] [_DstBlend]
+            Blend [_SrcBlend] [_DstBlend], [_AlphaSrcBlend] [_AlphaDstBlend]
             ZWrite [_ZWrite]
+
+            Stencil
+            {
+                WriteMask[_StencilWriteMask]
+                Ref[_StencilRef]
+                Comp Always
+                Pass Replace
+            }
+
             Cull [_CullMode]
 
             HLSLPROGRAM
@@ -337,26 +370,26 @@ Shader "HDRP/Unlit"
 
             HLSLPROGRAM
 
-            #pragma raytracing test      
+            #pragma raytracing test
 
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingMacros.hlsl"
 
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
- 
+
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingIntersection.hlsl"
-            
+
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Unlit/Unlit.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Unlit/UnlitRaytracingData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderpassRaytracingForward.hlsl"
 
             ENDHLSL
         }
-        
+
         Pass
         {
-            Name "ShadowsDXR"
-            Tags{ "LightMode" = "ShadowsDXR" }
+            Name "VisibilityDXR"
+            Tags{ "LightMode" = "VisibilityDXR" }
 
             HLSLPROGRAM
 
@@ -372,7 +405,7 @@ Shader "HDRP/Unlit"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingIntersection.hlsl"
 
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Unlit/Unlit.hlsl"
-            
+
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Unlit/UnlitRaytracingData.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderpassRaytracingVisibility.hlsl"
 

@@ -56,7 +56,7 @@ EnvLightData InitSkyEnvLightData(int envIndex)
     output.lightLayers = 0xFFFFFFFF; // Enable sky for all layers
     output.influenceShapeType = ENVSHAPETYPE_SKY;
     // 31 bit index, 1 bit cache type
-    output.envIndex = ENVCACHETYPE_CUBEMAP | (envIndex << 1);
+    output.envIndex = envIndex;
 
     output.influenceForward = float3(0.0, 0.0, 1.0);
     output.influenceUp = float3(0.0, 1.0, 0.0);
@@ -75,8 +75,8 @@ EnvLightData InitSkyEnvLightData(int envIndex)
     return output;
 }
 
-bool IsEnvIndexCubemap(int index)   { return (index & 1) == ENVCACHETYPE_CUBEMAP; }
-bool IsEnvIndexTexture2D(int index) { return (index & 1) == ENVCACHETYPE_TEXTURE2D; }
+bool IsEnvIndexCubemap(int index)   { return index >= 0; }
+bool IsEnvIndexTexture2D(int index) { return index < 0; }
 
 // Note: index is whatever the lighting architecture want, it can contain information like in which texture to sample (in case we have a compressed BC6H texture and an uncompressed for real time reflection ?)
 // EnvIndex can also be use to fetch in another array of struct (to  atlas information etc...).
@@ -85,8 +85,9 @@ bool IsEnvIndexTexture2D(int index) { return (index & 1) == ENVCACHETYPE_TEXTURE
 float4 SampleEnv(LightLoopContext lightLoopContext, int index, float3 texCoord, float lod, int sliceIdx = 0)
 {
     // 31 bit index, 1 bit cache type
-    uint cacheType = index & 1;
-    index = index >> 1;
+    uint cacheType = IsEnvIndexCubemap(index) ? ENVCACHETYPE_CUBEMAP : ENVCACHETYPE_TEXTURE2D;
+    // Index start at 1, because -0 == 0, so we can't known which cache to sample for that index. Thus it is invalid.
+    index = abs(index) - 1;
 
     float4 color = float4(0.0, 0.0, 0.0, 1.0);
 
@@ -295,7 +296,7 @@ float InitContactShadow(PositionInputs posInput)
     // Note: When we ImageLoad outside of texture size, the value returned by Load is 0 (Note: On Metal maybe it clamp to value of texture which is also fine)
     // We use this property to have a neutral value for contact shadows that doesn't consume a sampler and work also with compute shader (i.e use ImageLoad)
     // We store inverse contact shadow so neutral is white. So either we sample inside or outside the texture it return 1 in case of neutral
-    return 1.0 - LOAD_TEXTURE2D(_DeferredShadowTexture, posInput.positionSS).x;
+    return 1.0 - LOAD_TEXTURE2D_X(_DeferredShadowTexture, posInput.positionSS).x;
 }
 
 float GetContactShadow(LightLoopContext lightLoopContext, int contactShadowIndex)
