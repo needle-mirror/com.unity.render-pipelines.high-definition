@@ -4,9 +4,38 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [5.6.1-preview] - 2019-02-25
+## [5.7.2-preview] - 2019-03-09
+
+## [5.7.1-preview] - 2019-03-08
+
+## [5.7.0-preview] - 2019-03-07
+
+### Added
+- Added depth-of-field support with stereo instancing
+- Adding real time area light shadow support
+- Added a new FrameSettings: Specular Lighting to toggle the specular during the rendering
+- Added support for overriding Shaders that render terrain details. You can override them via the render pipeline editor resources asset.
+
+### Fixed
+- Fixed diffusion profile upgrade breaking package when upgrading to a new version
+- Fixed decals cropped by gizmo not updating correctly if prefab
+- Fixed an issue when enabling SSR on multiple view
+- Fixed edition of the intensity's unit field while selecting multiple lights
+- Fixed wrong calculation in soft voxelization for density volume
+- Fixed gizmo not working correctly with pre-exposure
+- Fixed issue with setting a not available RT when disabling motion vectors
+- Fixed planar reflection when looking at mirror normal
+- Fixed mutiselection issue with HDLight Inspector
+- Fixed HDAdditionalCameraData data migration
+- Fixed failing builds when light explorer window is open
+- Fixed cascade shadows border sometime causing artefacts between cascades
+- Restored shadows in the Cascade Shadow debug visualization
+
+### Changed
+- When rendering reflection probe disable all specular lighting and for metals use fresnelF0 as diffuse color for bake lighting.
 
 ## [5.6.0-preview] - 2019-02-21
+
 
 ### Added
 - VR: Added TextureXR system to selectively expand TEXTURE2D macros to texture array for single-pass stereo instancing + Convert textures call to these macros
@@ -18,10 +47,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed Light explorer. The volume explorer used `profile` instead of `sharedProfile` which instantiate a custom volume profile instead of editing the asset itself.
 - Fixed UI issue where all is displayed using metric unit in shadow cascade and Percent is set in the unit field (happening when opening the inspector).
 - Fixed culling and shadows for Pyramid, Box, Rectangle and Tube lights
-- Fix inspector event error when double clicking on an asset (diffusion profile/material).
-- Fix nullref on layered material UI when the material is not an asset.
-- Fix nullref exception when undo/redo a light property.
-- Fix visual bug when area light handle size is 0.
+- Fixed inspector event error when double clicking on an asset (diffusion profile/material).
+- Fixed nullref on layered material UI when the material is not an asset.
+- Fixed nullref exception when undo/redo a light property.
+- Fixed visual bug when area light handle size is 0.
  
 ### Changed
 - When a lit material has a clear coat mask that is not null, we now use the clear coat roughness to compute the screen space reflection.
