@@ -109,9 +109,8 @@ AttributesMesh ApplyMeshModification(AttributesMesh input)
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalUtilities.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitDecalData.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitSurfaceData.hlsl"
 
-void TerrainLitShade(float2 uv, inout TerrainLitSurfaceData surfaceData);
+void TerrainLitShade(float2 uv, out float3 outAlbedo, out float3 outNormalData, out float outSmoothness, out float outMetallic, out float outAO);
 void TerrainLitDebug(float2 uv, inout float3 baseColor);
 
 float3 ConvertToNormalTS(float3 normalData, float3 tangentWS, float3 bitangentWS)
@@ -156,14 +155,8 @@ void GetSurfaceAndBuiltinData(inout FragInputs input, float3 V, inout PositionIn
     // terrain lightmap uvs are always taken from uv0
     input.texCoord1 = input.texCoord2 = input.texCoord0;
 
-    TerrainLitSurfaceData terrainLitSurfaceData;
-    InitializeTerrainLitSurfaceData(terrainLitSurfaceData);
-    TerrainLitShade(input.texCoord0.xy, terrainLitSurfaceData);
-
-    surfaceData.baseColor = terrainLitSurfaceData.albedo;
-    surfaceData.perceptualSmoothness = terrainLitSurfaceData.smoothness;
-    surfaceData.metallic = terrainLitSurfaceData.metallic;
-    surfaceData.ambientOcclusion = terrainLitSurfaceData.ao;
+    float3 normalData;
+    TerrainLitShade(input.texCoord0.xy, surfaceData.baseColor, normalData, surfaceData.perceptualSmoothness, surfaceData.metallic, surfaceData.ambientOcclusion);
 
     surfaceData.tangentWS = normalize(input.worldToTangent[0].xyz); // The tangent is not normalize in worldToTangent for mikkt. Tag: SURFACE_GRADIENT
     surfaceData.subsurfaceMask = 0;
@@ -186,7 +179,7 @@ void GetSurfaceAndBuiltinData(inout FragInputs input, float3 V, inout PositionIn
     surfaceData.atDistance = 1000000.0;
     surfaceData.transmittanceMask = 0.0;
 
-    float3 normalTS = ConvertToNormalTS(terrainLitSurfaceData.normalData, input.worldToTangent[0], input.worldToTangent[1]);
+    float3 normalTS = ConvertToNormalTS(normalData, input.worldToTangent[0], input.worldToTangent[1]);
     GetNormalWS(input, normalTS, surfaceData.normalWS, float3(1.0, 1.0, 1.0));
 
     surfaceData.geomNormalWS = input.worldToTangent[2];
@@ -215,9 +208,6 @@ void GetSurfaceAndBuiltinData(inout FragInputs input, float3 V, inout PositionIn
         TerrainLitDebug(input.texCoord0.xy, surfaceData.baseColor);
         surfaceData.metallic = 0;
     }
-    // We need to call ApplyDebugToSurfaceData after filling the surfarcedata and before filling builtinData
-    // as it can modify attribute use for static lighting
-    ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);
 #endif
 
     GetBuiltinData(input, V, posInput, surfaceData, 1, bentNormalWS, 0, builtinData);

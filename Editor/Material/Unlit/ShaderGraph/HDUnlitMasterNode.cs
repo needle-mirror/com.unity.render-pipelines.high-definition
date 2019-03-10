@@ -73,7 +73,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         }
 
         [SerializeField]
-        HDRenderQueue.RenderQueueType m_RenderingPass = HDRenderQueue.RenderQueueType.Opaque;
+        HDRenderQueue.RenderQueueType m_RenderingPass = HDRenderQueue.RenderQueueType.Unknown;
 
         public HDRenderQueue.RenderQueueType renderingPass
         {
@@ -222,9 +222,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public override string documentationURL
         {
-            get { return "https://github.com/Unity-Technologies/ShaderGraph/wiki/HDUnlit-Master-Node"; }
+            get { return null; }
         }
-
+        
         public bool HasDistortion()
         {
             return (surfaceType == SurfaceType.Transparent && distortion.isOn);

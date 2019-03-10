@@ -129,7 +129,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_CopyStencilForSplitLighting.SetInt(HDShaderIDs._StencilMask, (int)HDRenderPipeline.StencilBitMask.LightingMask);
             
             this.hdAsset = hdAsset;
-            defaultDiffusionProfile = hdAsset.renderPipelineResources.assets.defaultDiffusionProfile;
+            defaultDiffusionProfile = hdAsset.defaultDiffusionProfileSettings;
         }
 
         public void Cleanup()
@@ -326,7 +326,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 
                 int numTilesX = ((int)(hdCamera.textureWidthScaling.x * hdCamera.screenSize.x) + 15) / 16;
                 int numTilesY = ((int)hdCamera.screenSize.y + 15) / 16;
-                int numTilesZ = hdCamera.computePassCount;
+                int numTilesZ = XRGraphics.computePassCount;
 
                 if (NeedTemporarySubsurfaceBuffer() || hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA))
                 {

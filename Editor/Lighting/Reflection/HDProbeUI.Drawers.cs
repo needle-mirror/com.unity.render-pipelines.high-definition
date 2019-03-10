@@ -138,7 +138,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                     var targetMode = k_ToolbarMode[toolbar];
                     var mode = EditMode.editMode == targetMode ? EditMode.SceneViewEditMode.None : targetMode;
-                    EditorApplication.delayCall += () => EditMode.ChangeEditMode(mode, HDEditorUtils.GetBoundsGetter(owner)(), owner);
+                    EditMode.ChangeEditMode(mode, HDEditorUtils.GetBoundsGetter(owner)(), owner);
                     evt.Use();
                 }
             }

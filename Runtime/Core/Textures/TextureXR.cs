@@ -17,7 +17,6 @@ namespace UnityEngine.Experimental.Rendering
                 {
                     // XRTODO: disabled until all SPI code is merged
                     case GraphicsDeviceType.Direct3D11:
-					case GraphicsDeviceType.Direct3D12:
                         return false;
                 }
 
@@ -27,17 +26,16 @@ namespace UnityEngine.Experimental.Rendering
 
         public static VRTextureUsage OverrideRenderTexture(bool xrInstancing, ref TextureDimension dimension, ref int slices)
         {
-            // XRTODO: need to also check if stereo is enabled in camera!
             if (xrInstancing && useTexArray)
             {
                 // TEXTURE2D_X macros will now expand to TEXTURE2D_ARRAY
                 dimension = TextureDimension.Tex2DArray;
 
-                // XR legacy single-pass stereo instancing (will be deprecated by XR SDK)
+                // XRTODO: need to also check if stereo is enabled in camera!
                 if (XRGraphics.stereoRenderingMode == XRGraphics.StereoRenderingMode.SinglePassInstanced)
                 {
                     // Add a new dimension
-                    slices = slices * 2;
+                    slices = slices * XRGraphics.eyeCount;
 
                     // XRTODO: useful? if yes, add validation, asserts
                     return XRGraphics.eyeTextureDesc.vrUsage;
@@ -104,6 +102,7 @@ namespace UnityEngine.Experimental.Rendering
                 if (m_ClearTexture2DArray == null)
                     m_ClearTexture2DArray = CreateTexture2DArrayFromTexture2D(clearTexture, "Clear Texture2DArray");
 
+                Debug.Assert(XRGraphics.eyeCount <= m_ClearTexture2DArray.depth);
                 return m_ClearTexture2DArray;
             }
         }
@@ -116,6 +115,7 @@ namespace UnityEngine.Experimental.Rendering
                 if (m_BlackTexture2DArray == null)
                     m_BlackTexture2DArray = CreateTexture2DArrayFromTexture2D(Texture2D.blackTexture, "Black Texture2DArray");
 
+                Debug.Assert(XRGraphics.eyeCount <= m_BlackTexture2DArray.depth);
                 return m_BlackTexture2DArray;
             }
         }
@@ -128,6 +128,7 @@ namespace UnityEngine.Experimental.Rendering
                 if (m_WhiteTexture2DArray == null)
                     m_WhiteTexture2DArray = CreateTexture2DArrayFromTexture2D(Texture2D.whiteTexture, "White Texture2DArray");
 
+                Debug.Assert(XRGraphics.eyeCount <= m_WhiteTexture2DArray.depth);
                 return m_WhiteTexture2DArray;
             }
         }

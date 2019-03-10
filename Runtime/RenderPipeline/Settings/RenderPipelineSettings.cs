@@ -27,12 +27,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             Both = ForwardOnly | DeferredOnly
         }
 
-        public enum ColorBufferFormat
-        {
-            R11G11B10 = GraphicsFormat.B10G11R11_UFloatPack32,
-            R16G16B16A16 = GraphicsFormat.R16G16B16A16_SFloat
-        }
-
         /// <summary>Default RenderPipelineSettings</summary>
         public static readonly RenderPipelineSettings @default = new RenderPipelineSettings()
         {
@@ -44,8 +38,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             supportTransparentBackface = true,
             supportTransparentDepthPrepass = true,
             supportTransparentDepthPostpass = true,
-            supportLowResTransparent = true,
-            colorBufferFormat = ColorBufferFormat.R11G11B10,
             supportedLitShaderMode = SupportedLitShaderMode.DeferredOnly,
             supportDecals = true,
             msaaSampleCount = MSAASamples.None,
@@ -56,8 +48,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             hdShadowInitParams = HDShadowInitParameters.@default,
             decalSettings = GlobalDecalSettings.@default,
             postProcessSettings = GlobalPostProcessSettings.@default,
-            dynamicResolutionSettings = GlobalDynamicResolutionSettings.@default,
-            lowresTransparentSettings = GlobalLowResolutionTransparencySettings.@default
+            dynamicResolutionSettings = GlobalDynamicResolutionSettings.@default
         };
 
         // Lighting
@@ -73,8 +64,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public bool supportTransparentBackface;
         public bool supportTransparentDepthPrepass;
         public bool supportTransparentDepthPostpass;
-        public bool supportLowResTransparent;
-        public ColorBufferFormat colorBufferFormat;
         public SupportedLitShaderMode supportedLitShaderMode;
 
         // Engine
@@ -99,6 +88,5 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public GlobalDecalSettings decalSettings;
         public GlobalPostProcessSettings postProcessSettings;
         public GlobalDynamicResolutionSettings dynamicResolutionSettings;
-        public GlobalLowResolutionTransparencySettings lowresTransparentSettings;
     }
 }

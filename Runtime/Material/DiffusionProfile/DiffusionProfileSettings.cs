@@ -199,7 +199,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         }
     }
 
-    public sealed partial class DiffusionProfileSettings : ScriptableObject
+    public sealed partial class DiffusionProfileSettings : ScriptableObject, ISerializationCallbackReceiver
     {
         public DiffusionProfile profile;
 
@@ -218,12 +218,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             profile.Validate();
             UpdateCache();
-
-#if UNITY_EDITOR
-            if (m_Version != Version.Last)
-                TryToUpgrade();
-            UnityEditor.Experimental.Rendering.HDPipeline.DiffusionProfileHashTable.UpdateDiffusionProfileHashNow(this);
-#endif
         }
 
         public void UpdateCache()
@@ -279,6 +273,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 filterKernels[n].z = 0f;
                 filterKernels[n].w = 1f;
             }
+        }
+
+        public void OnBeforeSerialize() {}
+
+        public void OnAfterDeserialize()
+        {
+#if UNITY_EDITOR
+            // watch for asset duplication, a workaround because the AssetModificationProcessor doesn't handle all the cases
+            // i.e: https://issuetracker.unity3d.com/issues/assetmodificationprocessor-is-not-notified-when-an-asset-is-duplicated
+            UnityEditor.Experimental.Rendering.HDPipeline.DiffusionProfileHashTable.UpdateUniqueHash(this);
+#endif
         }
     }
 }

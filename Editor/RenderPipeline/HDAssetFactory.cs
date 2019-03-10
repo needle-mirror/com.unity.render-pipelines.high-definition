@@ -50,8 +50,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 var newAsset = CreateInstance<RenderPipelineResources>();
                 newAsset.name = Path.GetFileName(pathName);
 
-                ResourceReloader.ReloadAllNullIn(newAsset);
-
+                newAsset.Init();
+                
                 AssetDatabase.CreateAsset(newAsset, pathName);
                 ProjectWindowUtil.ShowCreatedAsset(newAsset);
             }
@@ -72,7 +72,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 var newAsset = CreateInstance<HDRenderPipelineEditorResources>();
                 newAsset.name = Path.GetFileName(pathName);
 
-                ResourceReloader.ReloadAllNullIn(newAsset);
+                newAsset.Init();
 
                 AssetDatabase.CreateAsset(newAsset, pathName);
                 ProjectWindowUtil.ShowCreatedAsset(newAsset);

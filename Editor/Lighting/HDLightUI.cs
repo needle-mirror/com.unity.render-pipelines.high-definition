@@ -65,7 +65,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         enum Advanceable
         {
             General = 1 << 0,
-            //Shape = 1 << 1, //not used anymore
+            Shape = 1 << 1,
             Emission = 1 << 2,
             Shadow = 1 << 3,
         }
@@ -116,7 +116,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     DrawGeneralContent,
                     DrawGeneralAdvancedContent
                     ),
-                CED.FoldoutGroup(s_Styles.shapeHeader, Expandable.Shape, k_ExpandedState, DrawShapeContent),
+                CED.AdvancedFoldoutGroup(s_Styles.shapeHeader, Expandable.Shape, k_ExpandedState,
+                    (serialized, owner) => GetAdvanced(Advanceable.Shape, serialized, owner),
+                    (serialized, owner) => SwitchAdvanced(Advanceable.Shape, serialized, owner),
+                    DrawShapeContent,
+                    DrawShapeAdvancedContent
+                    ),
                 CED.AdvancedFoldoutGroup(s_Styles.emissionHeader, Expandable.Emission, k_ExpandedState,
                     (serialized, owner) => GetAdvanced(Advanceable.Emission, serialized, owner),
                     (serialized, owner) => SwitchAdvanced(Advanceable.Emission, serialized, owner),
@@ -203,14 +208,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             using (new EditorGUI.DisabledScope(!HDUtils.hdrpSettings.supportLightLayers))
             {
                 var renderingLayerMask = serialized.serializedLightData.renderingLayerMask.intValue;
-                int lightLayer;
-                if (serialized.serializedLightData.renderingLayerMask.hasMultipleDifferentValues)
-                {
-                    EditorGUI.showMixedValue = true;
-                    lightLayer = 0;
-                }
-                else
-                    lightLayer = HDAdditionalLightData.RenderingLayerMaskToLightLayer(renderingLayerMask);
+                var lightLayer = HDAdditionalLightData.RenderingLayerMaskToLightLayer(renderingLayerMask);
                 EditorGUI.BeginChangeCheck();
                 lightLayer = Convert.ToInt32(EditorGUILayout.EnumFlagsField(s_Styles.lightLayer, (LightLayerEnum)lightLayer));
                 if (EditorGUI.EndChangeCheck())
@@ -219,7 +217,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     lightLayer = HDAdditionalLightData.LightLayerToRenderingLayerMask(lightLayer, renderingLayerMask);
                     serialized.serializedLightData.renderingLayerMask.intValue = lightLayer;
                 }
-                EditorGUI.showMixedValue = false;
             }
         }
 
@@ -251,39 +248,31 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         UpdateLightIntensityUnit(serialized, owner);
                     }
 
-                    if (serialized.serializedLightData.spotLightShape.hasMultipleDifferentValues)
+                    var spotLightShape = (SpotLightShape)serialized.serializedLightData.spotLightShape.enumValueIndex;
+                    switch (spotLightShape)
                     {
-                        using (new EditorGUI.DisabledScope(true))
-                            EditorGUILayout.LabelField("Multiple different spot Shapes in selection");
-                    }
-                    else
-                    {
-                        var spotLightShape = (SpotLightShape)serialized.serializedLightData.spotLightShape.enumValueIndex;
-                        switch (spotLightShape)
-                        {
-                            case SpotLightShape.Box:
-                                // Box directional light.
-                                EditorGUILayout.PropertyField(serialized.serializedLightData.shapeWidth, s_Styles.shapeWidthBox);
-                                EditorGUILayout.PropertyField(serialized.serializedLightData.shapeHeight, s_Styles.shapeHeightBox);
-                                break;
-                            case SpotLightShape.Cone:
-                                // Cone spot projector
-                                EditorGUILayout.Slider(serialized.settings.spotAngle, 1f, 179f, s_Styles.outterAngle);
-                                EditorGUILayout.Slider(serialized.serializedLightData.spotInnerPercent, 0f, 100f, s_Styles.spotInnerPercent);
-                                EditorGUILayout.PropertyField(serialized.serializedLightData.shapeRadius, s_Styles.lightRadius);
-                                EditorGUILayout.PropertyField(serialized.serializedLightData.maxSmoothness, s_Styles.maxSmoothness);
-                                break;
-                            case SpotLightShape.Pyramid:
-                                // pyramid spot projector
-                                serialized.settings.DrawSpotAngle();
-                                EditorGUILayout.Slider(serialized.serializedLightData.aspectRatio, 0.05f, 20.0f, s_Styles.aspectRatioPyramid);
-                                EditorGUILayout.PropertyField(serialized.serializedLightData.shapeRadius, s_Styles.lightRadius);
-                                EditorGUILayout.PropertyField(serialized.serializedLightData.maxSmoothness, s_Styles.maxSmoothness);
-                                break;
-                            default:
-                                Debug.Assert(false, "Not implemented light type");
-                                break;
-                        }
+                        case SpotLightShape.Box:
+                            // Box directional light.
+                            EditorGUILayout.PropertyField(serialized.serializedLightData.shapeWidth, s_Styles.shapeWidthBox);
+                            EditorGUILayout.PropertyField(serialized.serializedLightData.shapeHeight, s_Styles.shapeHeightBox);
+                            break;
+                        case SpotLightShape.Cone:
+                            // Cone spot projector
+                            EditorGUILayout.Slider(serialized.settings.spotAngle, 1f, 179f, s_Styles.outterAngle);
+                            EditorGUILayout.Slider(serialized.serializedLightData.spotInnerPercent, 0f, 100f, s_Styles.spotInnerPercent);
+                            EditorGUILayout.PropertyField(serialized.serializedLightData.shapeRadius, s_Styles.lightRadius);
+                            EditorGUILayout.PropertyField(serialized.serializedLightData.maxSmoothness, s_Styles.maxSmoothness);
+                            break;
+                        case SpotLightShape.Pyramid:
+                            // pyramid spot projector
+                            serialized.settings.DrawSpotAngle();
+                            EditorGUILayout.Slider(serialized.serializedLightData.aspectRatio, 0.05f, 20.0f, s_Styles.aspectRatioPyramid);
+                            EditorGUILayout.PropertyField(serialized.serializedLightData.shapeRadius, s_Styles.lightRadius);
+                            EditorGUILayout.PropertyField(serialized.serializedLightData.maxSmoothness, s_Styles.maxSmoothness);
+                            break;
+                        default:
+                            Debug.Assert(false, "Not implemented light type");
+                            break;
                     }
                     break;
 
@@ -311,8 +300,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 case (LightShape)(-1):
                     // don't do anything, this is just to handle multi selection
-                    using (new EditorGUI.DisabledScope(true))
-                        EditorGUILayout.LabelField("Multiple different Types in selection");
                     break;
 
                 default:
@@ -329,6 +316,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 serialized.needUpdateAreaLightEmissiveMeshComponents = true;
                 ((Light)owner.target).SetLightDirty(); // Should be apply only to parameter that's affect GI, but make the code cleaner
             }
+        }
+
+        static void DrawShapeAdvancedContent(SerializedHDLight serialized, Editor owner)
+        {
+            switch (serialized.editorLightShape)
+            {
+                case LightShape.Spot:
+                case LightShape.Directional:
+                case LightShape.Point:
+                case LightShape.Rectangle:
+                case LightShape.Tube:
+                // no advanced parameters
+                case (LightShape)(-1):
+                    // don't do anything, this is just to handle multi selection
+                    break;
+                default:
+                    Debug.Assert(false, "Not implemented light type");
+                    break;
+            }              
         }
 
         static void UpdateLightIntensityUnit(SerializedHDLight serialized, Editor owner)
@@ -443,27 +449,21 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         static void DrawEmissionContent(SerializedHDLight serialized, Editor owner)
         {
-            using (var changes = new EditorGUI.ChangeCheckScope())
+            if (GraphicsSettings.lightsUseLinearIntensity && GraphicsSettings.lightsUseColorTemperature)
             {
-                if (GraphicsSettings.lightsUseLinearIntensity && GraphicsSettings.lightsUseColorTemperature)
+                EditorGUILayout.PropertyField(serialized.settings.useColorTemperature, s_Styles.useColorTemperature);
+                if (serialized.settings.useColorTemperature.boolValue)
                 {
-                    EditorGUILayout.PropertyField(serialized.settings.useColorTemperature, s_Styles.useColorTemperature);
-                    if (serialized.settings.useColorTemperature.boolValue)
-                    {
-                        EditorGUI.indentLevel += 1;
-                        EditorGUILayout.PropertyField(serialized.settings.color, s_Styles.colorFilter);
-                        SliderWithTexture(s_Styles.colorTemperature, serialized.settings.colorTemperature, serialized.settings);
-                        EditorGUI.indentLevel -= 1;
-                    }
-                    else
-                        EditorGUILayout.PropertyField(serialized.settings.color, s_Styles.color);
+                    EditorGUI.indentLevel += 1;
+                    EditorGUILayout.PropertyField(serialized.settings.color, s_Styles.colorFilter);
+                    SliderWithTexture(s_Styles.colorTemperature, serialized.settings.colorTemperature, serialized.settings);
+                    EditorGUI.indentLevel -= 1;
                 }
                 else
                     EditorGUILayout.PropertyField(serialized.settings.color, s_Styles.color);
-                
-                if (changes.changed && HDRenderPipelinePreferences.lightColorNormalization)
-                    serialized.settings.color.colorValue = HDUtils.NormalizeColor(serialized.settings.color.colorValue);
             }
+            else
+                EditorGUILayout.PropertyField(serialized.settings.color, s_Styles.color);
 
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.BeginHorizontal();
@@ -714,19 +714,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // Draw shadow settings using the current shadow algorithm
             HDShadowInitParameters hdShadowInitParameters = (GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset).currentPlatformRenderPipelineSettings.hdShadowInitParams;
-            LightType lightType = (LightType)serialized.settings.lightType.enumValueIndex;
-
-            if (hdShadowInitParameters.shadowQuality == HDShadowQuality.VeryHigh)
-            {
-                // For very high settings shadow punctial lights we do not use the Very high settings but rather the High
-                if (quality == HDShadowQuality.High && lightType != LightType.Directional)
-                    return true;
-                // Only the directional can access the very high shadow settings
-                else if (quality == HDShadowQuality.VeryHigh && lightType == LightType.Directional)
-                    return true;
-                return false;
-            }
-
             return hdShadowInitParameters.shadowQuality == quality;
         }
 

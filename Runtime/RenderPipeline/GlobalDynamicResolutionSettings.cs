@@ -19,7 +19,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     }
 
     [Serializable]
-    public struct GlobalDynamicResolutionSettings
+    public class GlobalDynamicResolutionSettings
     {
         /// <summary>Default GlobalDynamicResolutionSettings</summary>
         public static readonly GlobalDynamicResolutionSettings @default = new GlobalDynamicResolutionSettings()

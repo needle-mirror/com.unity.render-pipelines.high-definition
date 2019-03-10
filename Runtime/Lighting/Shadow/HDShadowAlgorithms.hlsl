@@ -3,7 +3,7 @@
 // The variant without resource parameters dynamically accesses the texture when sampling.
 
 // WARNINGS:
-// Keep in sync with HDShadowManager::GetDirectionalShadowAlgorithm()
+// Keep in sync with HDShadowManager::GetDirectionaShadowAlgorithm()
 // Be careful this require to update GetPunctualFilterWidthInTexels() in C# as well!
 
 // We can't use multi_compile for compute shaders so we force the shadow algorithm
@@ -28,6 +28,7 @@
 
 #ifdef SHADOW_VERY_HIGH
 #define PUNCTUAL_FILTER_ALGORITHM(sd, posSS, posTC, sampleBias, tex, samp) SampleShadow_PCSS(posTC, posSS, sd.shadowMapSize.xy * _ShadowAtlasSize.zw, sd.atlasOffset, sampleBias, sd.shadowFilterParams0.x, sd.shadowFilterParams0.w, asint(sd.shadowFilterParams0.y), asint(sd.shadowFilterParams0.z), tex, samp, s_point_clamp_sampler)
+#define USE_IMPROVED_MOMENT_SHADOWS
 #define DIRECTIONAL_FILTER_ALGORITHM(sd, posSS, posTC, sampleBias, tex, samp) SampleShadow_IMS(sd, posTC, sampleBias.x, sd.shadowFilterParams0.x, sd.shadowFilterParams0.y, sd.shadowFilterParams0.z)
 #endif
 
@@ -287,7 +288,7 @@ float EvalShadow_AreaDepth(HDShadowData sd, Texture2D tex, float2 positionSS, fl
     /* get shadowmap texcoords */
     float3 posTC = EvalShadow_GetTexcoordsAtlas(sd, _AreaShadowAtlasSize.zw, positionWS, perspective);
 
-    int blurPassesScale = (1 + min(4, sd.shadowFilterParams0.w) * 4.0f);// This is needed as blurring might cause some leaks. It might be overclipping, but empirically is a good value. 
+    int blurPassesScale = (1 + sd.shadowFilterParams0.w);// This is needed as blurring might cause some leaks. 
     float2 maxCoord = (sd.shadowMapSize.xy - 0.5f * blurPassesScale) * _AreaShadowAtlasSize.zw + sd.atlasOffset;
     float2 minCoord = sd.atlasOffset + _AreaShadowAtlasSize.zw * blurPassesScale;
 
