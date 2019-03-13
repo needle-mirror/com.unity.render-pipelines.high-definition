@@ -30,8 +30,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Shader colorPyramidPS;
             public ComputeShader depthPyramidCS;
             public ComputeShader copyChannelCS;
-            public ComputeShader applyDistortionCS;
             public ComputeShader screenSpaceReflectionsCS;
+            public Shader applyDistortionPS;
 
             // Lighting tile pass
             public ComputeShader clearDispatchIndirectCS;
@@ -127,11 +127,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public ComputeShader bloomUpsampleCS;
             public ComputeShader FXAACS;
             public Shader finalPassPS;
+            public Shader clearBlackPS;
+            public Shader SMAAPS;
+
 
 #if ENABLE_RAYTRACING
             // Raytracing shaders
             public RaytracingShader aoRaytracing;
             public RaytracingShader reflectionRaytracing;
+            public RaytracingShader indirectDiffuseRaytracing;
             public RaytracingShader shadowsRaytracing;
             public Shader           raytracingFlagMask;
             public RaytracingShader forwardRaytracing;
@@ -169,6 +173,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // Post-processing
             public Texture2D[] filmGrainTex;
+            public Texture2D   SMAASearchTex;
+            public Texture2D   SMAAAreaTex;
         }
 
         [Serializable]
@@ -214,7 +220,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 colorPyramidPS = Load<Shader>(HDRenderPipelinePath + "RenderPipeline/RenderPass/ColorPyramidPS.Shader"),
                 depthPyramidCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipeline/RenderPass/DepthPyramid.compute"),
                 copyChannelCS = Load<ComputeShader>(CorePath + "CoreResources/GPUCopy.compute"),
-                applyDistortionCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipeline/RenderPass/Distortion/ApplyDistorsion.compute"),
+                applyDistortionPS = Load<Shader>(HDRenderPipelinePath + "RenderPipeline/RenderPass/Distortion/ApplyDistortion.shader"),
                 screenSpaceReflectionsCS = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/ScreenSpaceLighting/ScreenSpaceReflections.compute"),
 
                 // Lighting tile pass
@@ -268,7 +274,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 encodeBC6HCS = Load<ComputeShader>(CorePath + "CoreResources/EncodeBC6H.compute"),
                 cubeToPanoPS = Load<Shader>(CorePath + "CoreResources/CubeToPano.shader"),
                 blitCubeTextureFacePS = Load<Shader>(CorePath + "CoreResources/BlitCubeTextureFace.shader"),
-                filterAreaLightCookiesPS = Load<Shader>(CorePath + "CoreResources/FilterAreaLightCookies.shader"),
+                filterAreaLightCookiesPS = Load<Shader>(HDRenderPipelinePath + "Material/LTCAreaLight/FilterAreaLightCookies.shader"),
 
                 // Shadow
                 shadowClearPS = Load<Shader>(HDRenderPipelinePath + "Lighting/Shadow/ShadowClear.shader"),
@@ -315,10 +321,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 bloomUpsampleCS = Load<ComputeShader>(HDRenderPipelinePath + "PostProcessing/Shaders/BloomUpsample.compute"),
                 FXAACS = Load<ComputeShader>(HDRenderPipelinePath + "PostProcessing/Shaders/FXAA.compute"),
                 finalPassPS = Load<Shader>(HDRenderPipelinePath + "PostProcessing/Shaders/FinalPass.shader"),
+                clearBlackPS = Load<Shader>(HDRenderPipelinePath + "PostProcessing/Shaders/ClearBlack.shader"),
+                SMAAPS = Load<Shader>(HDRenderPipelinePath + "PostProcessing/Shaders/SubpixelMorphologicalAntialiasing.shader"),
 
 #if ENABLE_RAYTRACING
                 aoRaytracing = Load<RaytracingShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/RaytracingAmbientOcclusion.raytrace"),
                 reflectionRaytracing = Load<RaytracingShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/RaytracingReflections.raytrace"),
+                indirectDiffuseRaytracing = Load<RaytracingShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/RaytracingIndirectDiffuse.raytrace"),
                 shadowsRaytracing = Load<RaytracingShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/RaytracingAreaShadows.raytrace"),
                 areaBillateralFilterCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/AreaBilateralShadow.compute"),
                 jointBilateralFilterCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/JointBilateralFilter.compute"),
@@ -327,11 +336,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 lightClusterDebugCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/DebugLightCluster.compute"),
 				countTracedRays = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipeline/Raytracing/Shaders/CountTracedRays.compute"),
 #endif
-        };
+            };
 
             // Materials
             materials = new MaterialResources
             {
+                defaultDiffuseMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDMaterial.mat"),
+                defaultMirrorMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDMirrorMaterial.mat"),
+                defaultDecalMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDDecalMaterial.mat"),
+                defaultTerrainMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDTerrainMaterial.mat")
             };
 
             // Textures
@@ -356,6 +369,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     Load<Texture2D>(HDRenderPipelinePath + "RenderPipelineResources/Texture/FilmGrain/Large02.png")
                 },
 
+                SMAAAreaTex = Load<Texture2D>(HDRenderPipelinePath + "RenderPipelineResources/Texture/SMAA/AreaTex.tga"),
+                SMAASearchTex = Load<Texture2D>(HDRenderPipelinePath + "RenderPipelineResources/Texture/SMAA/SearchTex.tga"),
+
                 blueNoise16LTex = new Texture2D[32],
                 blueNoise16RGBTex = new Texture2D[32],
             };
@@ -375,6 +391,139 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Coherent noise textures
             textures.owenScrambledTex = Load<Texture2D>(HDRenderPipelinePath + "RenderPipelineResources/Texture/CoherentNoise/OwenScrambledNoise.png");
             textures.scramblingTex = Load<Texture2D>(HDRenderPipelinePath + "RenderPipelineResources/Texture/CoherentNoise/ScrambleNoise.png");
+        }
+
+        bool NeedReload()
+        {
+            bool needReload = false;
+            needReload |= shaders == null;
+            if (needReload) return true;
+            needReload |= shaders.defaultPS == null;
+            needReload |= shaders.debugDisplayLatlongPS == null;
+            needReload |= shaders.debugViewMaterialGBufferPS == null;
+            needReload |= shaders.debugViewTilesPS == null;
+            needReload |= shaders.debugFullScreenPS == null;
+            needReload |= shaders.debugColorPickerPS == null;
+            needReload |= shaders.debugLightVolumePS == null;
+            needReload |= shaders.debugLightVolumeCS == null;
+            needReload |= shaders.colorPyramidCS == null;
+            needReload |= shaders.colorPyramidPS == null;
+            needReload |= shaders.depthPyramidCS == null;
+            needReload |= shaders.copyChannelCS == null;
+            needReload |= shaders.applyDistortionPS == null;
+            needReload |= shaders.screenSpaceReflectionsCS == null;
+            needReload |= shaders.clearDispatchIndirectCS == null;
+            needReload |= shaders.buildDispatchIndirectCS == null;
+            needReload |= shaders.buildScreenAABBCS == null;
+            needReload |= shaders.buildPerTileLightListCS == null;
+            needReload |= shaders.buildPerBigTileLightListCS == null;
+            needReload |= shaders.buildPerVoxelLightListCS == null;
+            needReload |= shaders.buildMaterialFlagsCS == null;
+            needReload |= shaders.deferredCS == null;
+            needReload |= shaders.screenSpaceShadowCS == null;
+            needReload |= shaders.volumeVoxelizationCS == null;
+            needReload |= shaders.volumetricLightingCS == null;
+            needReload |= shaders.deferredTilePS == null;
+            needReload |= shaders.subsurfaceScatteringCS == null;
+            needReload |= shaders.combineLightingPS == null;
+            needReload |= shaders.cameraMotionVectorsPS == null;
+            needReload |= shaders.copyStencilBufferPS == null;
+            needReload |= shaders.copyDepthBufferPS == null;
+            needReload |= shaders.blitPS == null;
+            needReload |= shaders.blitCubemapPS == null;
+            needReload |= shaders.buildProbabilityTablesCS == null;
+            needReload |= shaders.computeGgxIblSampleDataCS == null;
+            needReload |= shaders.GGXConvolvePS == null;
+            needReload |= shaders.charlieConvolvePS == null;
+            needReload |= shaders.opaqueAtmosphericScatteringPS == null;
+            needReload |= shaders.hdriSkyPS == null;
+            needReload |= shaders.integrateHdriSkyPS == null;
+            needReload |= shaders.proceduralSkyPS == null;
+            needReload |= shaders.gradientSkyPS == null;
+            needReload |= shaders.ambientProbeConvolutionCS == null;
+            needReload |= shaders.skyboxCubemapPS == null;
+            needReload |= shaders.preIntegratedFGD_GGXDisneyDiffusePS == null;
+            needReload |= shaders.preIntegratedFGD_CharlieFabricLambertPS == null;
+            needReload |= shaders.preIntegratedFGD_CookTorrancePS == null;
+            needReload |= shaders.preIntegratedFGD_WardPS == null;
+            needReload |= shaders.encodeBC6HCS == null;
+            needReload |= shaders.cubeToPanoPS == null;
+            needReload |= shaders.blitCubeTextureFacePS == null;
+            needReload |= shaders.filterAreaLightCookiesPS == null;
+            needReload |= shaders.shadowClearPS == null;
+            needReload |= shaders.evsmBlurCS == null;
+            needReload |= shaders.debugHDShadowMapPS == null;
+            needReload |= shaders.momentShadowsCS == null;
+            needReload |= shaders.decalNormalBufferPS == null;
+            needReload |= shaders.aoDownsample1CS == null;
+            needReload |= shaders.aoDownsample2CS == null;
+            needReload |= shaders.aoRenderCS == null;
+            needReload |= shaders.aoUpsampleCS == null;
+            needReload |= shaders.depthValuesPS == null;
+            needReload |= shaders.colorResolvePS == null;
+            needReload |= shaders.aoResolvePS == null;
+            needReload |= shaders.nanKillerCS == null;
+            needReload |= shaders.exposureCS == null;
+            needReload |= shaders.uberPostCS == null;
+            needReload |= shaders.lutBuilder3DCS == null;
+            needReload |= shaders.temporalAntialiasingCS == null;
+            needReload |= shaders.depthOfFieldKernelCS == null;
+            needReload |= shaders.depthOfFieldCoCCS == null;
+            needReload |= shaders.depthOfFieldCoCReprojectCS == null;
+            needReload |= shaders.depthOfFieldDilateCS == null;
+            needReload |= shaders.depthOfFieldMipCS == null;
+            needReload |= shaders.depthOfFieldMipSafeCS == null;
+            needReload |= shaders.depthOfFieldPrefilterCS == null;
+            needReload |= shaders.depthOfFieldGatherCS == null;
+            needReload |= shaders.depthOfFieldCombineCS == null;
+            needReload |= shaders.motionBlurTileGenCS == null;
+            needReload |= shaders.motionBlurCS == null;
+            needReload |= shaders.motionBlurVelocityPrepCS == null;
+            needReload |= shaders.paniniProjectionCS == null;
+            needReload |= shaders.bloomPrefilterCS == null;
+            needReload |= shaders.bloomBlurCS == null;
+            needReload |= shaders.bloomUpsampleCS == null;
+            needReload |= shaders.FXAACS == null;
+            needReload |= shaders.finalPassPS == null;
+            needReload |= shaders.clearBlackPS == null;
+            needReload |= shaders.SMAAPS == null;
+            
+            needReload |= materials == null;
+            if (needReload) return true;
+
+            needReload |= textures == null;
+            if (needReload) return true;
+            needReload |= textures.debugFontTex == null;
+            needReload |= textures.colorGradient == null;
+            needReload |= textures.owenScrambledTex == null;
+            needReload |= textures.scramblingTex == null;
+            needReload |= textures.SMAAAreaTex == null;
+            needReload |= textures.SMAASearchTex == null;
+            needReload |= textures.SMAASearchTex == null;
+            needReload |= textures.SMAASearchTex == null;
+            needReload |= textures.blueNoise16LTex == null;
+            if (needReload) return true;
+            needReload |= textures.blueNoise16LTex.Length != 32;
+            for (int i = 0; i < textures.blueNoise16LTex.Length; ++i)
+                needReload |= textures.blueNoise16LTex[i] == null;
+            needReload |= textures.blueNoise16RGBTex == null;
+            if (needReload) return true;
+            needReload |= textures.blueNoise16RGBTex.Length != 32;
+            for (int i = 0; i < textures.blueNoise16RGBTex.Length; ++i)
+                needReload |= textures.blueNoise16RGBTex[i] == null;
+            needReload |= textures.filmGrainTex == null;
+            if (needReload) return true;
+            needReload |= textures.filmGrainTex.Length != 10;
+            for (int i = 0; i < textures.filmGrainTex.Length; ++i)
+                needReload |= textures.filmGrainTex[i] == null;
+
+            return needReload;
+        }
+
+        public void ReloadIfNeeded()
+        {
+            if (NeedReload())
+                Init();
         }
 #endif
     }
