@@ -1,18 +1,25 @@
 #if UNITY_EDITOR //file must be in realtime assembly folder to be found in HDRPAsset
 using System;
-using UnityEditor;
 using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
     public partial class HDRenderPipelineEditorResources : ScriptableObject
     {
+        [Reload("DefaultScene/DefaultSceneRoot.prefab", ReloadAttribute.Package.HDRPEditor)]
         public GameObject defaultScene;
+        [Reload("DefaultScene/DefaultRenderingSettings.asset", ReloadAttribute.Package.HDRPEditor)]
         public VolumeProfile defaultRenderSettingsProfile;
+        [Reload("DefaultScene/DefaultPostProcessingSettings.asset", ReloadAttribute.Package.HDRPEditor)]
         public VolumeProfile defaultPostProcessingProfile;
+        [Reload(new[]
+        {
+            "RenderPipelineResources/Skin Diffusion Profile.asset",
+            "RenderPipelineResources/Foliage Diffusion Profile.asset"
+        })]
         public DiffusionProfileSettings[] defaultDiffusionProfileSettingsList;
 
-        [Serializable]
+        [Serializable, ReloadGroup]
         public sealed class ShaderResources
         {
             public Shader terrainDetailLitShader;
@@ -20,26 +27,33 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public Shader terrainDetailGrassBillboardShader;
         }
 
-        [Serializable]
+        [Serializable, ReloadGroup]
         public sealed class MaterialResources
         {
             // Defaults
+            [Reload("RenderPipelineResources/Material/DefaultHDMaterial.mat")]
             public Material defaultDiffuseMat;
+            [Reload("RenderPipelineResources/Material/DefaultHDMirrorMaterial.mat")]
             public Material defaultMirrorMat;
+            [Reload("RenderPipelineResources/Material/DefaultHDDecalMaterial.mat")]
             public Material defaultDecalMat;
+            [Reload("RenderPipelineResources/Material/DefaultHDTerrainMaterial.mat")]
             public Material defaultTerrainMat;
         }
 
-        [Serializable]
+        [Serializable, ReloadGroup]
         public sealed class TextureResources
         {
         }
 
-        [Serializable]
+        [Serializable, ReloadGroup]
         public sealed class ShaderGraphResources
         {
+            [Reload("RenderPipelineResources/ShaderGraph/AutodeskInteractive.ShaderGraph")]
             public Shader autodeskInteractive;
+            [Reload("RenderPipelineResources/ShaderGraph/AutodeskInteractiveMasked.ShaderGraph")]
             public Shader autodeskInteractiveMasked;
+            [Reload("RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.ShaderGraph")]
             public Shader autodeskInteractiveTransparent;
         }
 
@@ -47,101 +61,32 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public MaterialResources materials;
         public TextureResources textures;
         public ShaderGraphResources shaderGraphs;
+    }
 
-        // Note: move this to a static using once we can target C#6+
-        T Load<T>(string path) where T : UnityEngine.Object
+
+
+    [UnityEditor.CustomEditor(typeof(HDRenderPipelineEditorResources))]
+    class HDRenderPipelineEditorResourcesEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
         {
-            return AssetDatabase.LoadAssetAtPath<T>(path);
-        }
+            DrawDefaultInspector();
 
-        public void Init()
-        {
-            // Load default renderPipelineResources / Material / Shader
-            string HDRenderPipelinePath = HDUtils.GetHDRenderPipelinePath() + "Runtime/";
-            string HDRenderPipelineEditorPath = HDUtils.GetHDRenderPipelinePath() + "Editor/";
-
-            defaultScene = Load<GameObject>(HDRenderPipelineEditorPath + "DefaultScene/DefaultSceneRoot.prefab");
-            defaultRenderSettingsProfile = Load<VolumeProfile>(HDRenderPipelineEditorPath + "DefaultScene/DefaultRenderingSettings.asset");
-            defaultPostProcessingProfile = Load<VolumeProfile>(HDRenderPipelineEditorPath + "DefaultScene/DefaultPostProcessingSettings.asset");
-            defaultDiffusionProfileSettingsList = new DiffusionProfileSettings[2];
-            defaultDiffusionProfileSettingsList[0] = Load<DiffusionProfileSettings>(HDRenderPipelinePath + "RenderPipelineResources/Skin Diffusion Profile.asset");
-            defaultDiffusionProfileSettingsList[1] = Load<DiffusionProfileSettings>(HDRenderPipelinePath + "RenderPipelineResources/Foliage Diffusion Profile.asset");
-            
-            // Shaders
-            shaders = new ShaderResources
+            // Add a "Reload All" button in inspector when we are in developer's mode
+            if (UnityEditor.EditorPrefs.GetBool("DeveloperMode")
+                && GUILayout.Button("Reload All"))
             {
-            };
-
-            // Materials
-            materials = new MaterialResources
-            {
-                // Defaults
-                defaultDiffuseMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDMaterial.mat"),
-                defaultMirrorMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDMirrorMaterial.mat"),
-                defaultDecalMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDDecalMaterial.mat"),
-                defaultTerrainMat = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/Material/DefaultHDTerrainMaterial.mat"),
-            };
-
-            // Textures
-            textures = new TextureResources
-            {
-            };
-
-            // ShaderGraphs
-            shaderGraphs = new ShaderGraphResources
-            {
-                //autodesk interactive
-                autodeskInteractive = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/ShaderGraph/AutodeskInteractive.ShaderGraph"),
-                autodeskInteractiveMasked = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/ShaderGraph/AutodeskInteractiveMasked.ShaderGraph"),
-                autodeskInteractiveTransparent = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.ShaderGraph"),
-            };
-        }
-
-        bool NeedReload()
-        {
-            bool needReload = false;
-            needReload |= defaultScene == null;
-            if (needReload) return true;
-
-            needReload |= defaultRenderSettingsProfile == null;
-            if (needReload) return true;
-
-            needReload |= defaultPostProcessingProfile == null;
-            if (needReload) return true;
-
-            needReload |= defaultDiffusionProfileSettingsList == null;
-            if (needReload) return true;
-            needReload |= defaultDiffusionProfileSettingsList.Length < 2;
-            needReload |= defaultDiffusionProfileSettingsList[0] == null;
-            needReload |= defaultDiffusionProfileSettingsList[1] == null;
-
-            needReload |= shaders == null;
-            if (needReload) return true;
-
-            needReload |= materials == null;
-            if (needReload) return true;
-            needReload |= materials.defaultDiffuseMat == null;
-            needReload |= materials.defaultMirrorMat == null;
-            needReload |= materials.defaultDecalMat == null;
-            needReload |= materials.defaultTerrainMat == null;
-
-            needReload |= textures == null;
-            if (needReload) return true;
-
-            needReload |= shaderGraphs == null;
-            if (needReload) return true;
-            needReload |= shaderGraphs.autodeskInteractive == null;
-            needReload |= shaderGraphs.autodeskInteractiveMasked == null;
-            needReload |= shaderGraphs.autodeskInteractiveTransparent == null;
-
-            return needReload;
-        }
-
-
-        public void ReloadIfNeeded()
-        {
-            if (NeedReload())
-                Init();
+                var resources = target as HDRenderPipelineEditorResources;
+                resources.defaultScene = null;
+                resources.defaultRenderSettingsProfile = null;
+                resources.defaultPostProcessingProfile = null;
+                resources.defaultDiffusionProfileSettingsList = null;
+                resources.materials = null;
+                resources.textures = null;
+                resources.shaders = null;
+                resources.shaderGraphs = null;
+                ResourceReloader.ReloadAllNullIn(target);
+            }
         }
     }
 }
