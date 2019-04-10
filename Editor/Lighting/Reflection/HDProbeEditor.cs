@@ -27,7 +27,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         HDProbe IHDProbeEditor.GetTarget(Object editorTarget) => GetTarget(editorTarget);
 
         TSerialized m_SerializedHDProbe;
-        Dictionary<Object, TSerialized> m_SerializedHDProbePerTarget;
         protected HDProbe[] m_TypedTargets;
 
         public override void OnInspectorGUI()
@@ -43,13 +42,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             m_SerializedHDProbe = NewSerializedObject(serializedObject);
 
-            m_SerializedHDProbePerTarget = new Dictionary<Object, TSerialized>(targets.Length);
             m_TypedTargets = new HDProbe[targets.Length];
             for (var i = 0; i < m_TypedTargets.Length; i++)
             {
                 m_TypedTargets[i] = GetTarget(targets[i]);
-                var so = new SerializedObject(targets[i]);
-                m_SerializedHDProbePerTarget[targets[i]] = NewSerializedObject(so);
             }
 
             foreach (var target in serializedObject.targetObjects)
@@ -92,15 +88,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected void OnSceneGUI()
         {
-            EditorGUI.BeginChangeCheck();
-            var soo = m_SerializedHDProbePerTarget[target];
-            soo.Update();
-            HDProbeUI.DrawHandles(soo, this);
+            m_SerializedHDProbe.Update();
 
+            EditorGUI.BeginChangeCheck();
+            HDProbeUI.DrawHandles(m_SerializedHDProbe, this);
             HDProbeUI.Drawer<TProvider>.DoToolbarShortcutKey(this);
-            DrawHandles(soo, this);
+            DrawHandles(m_SerializedHDProbe, this);
             if (EditorGUI.EndChangeCheck())
-                soo.Apply();
+                m_SerializedHDProbe.Apply();
         }
 
         static Func<float> s_CapturePointPreviewSizeGetter = ComputeCapturePointPreviewSizeGetter();

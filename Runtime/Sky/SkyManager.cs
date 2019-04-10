@@ -28,6 +28,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     public class BuiltinSkyParameters
     {
         public Matrix4x4                pixelCoordToViewDirMatrix;
+        public Matrix4x4                invViewProjMatrix;
         public Vector3                  cameraPosWS;
         public Vector4                  screenSize;
         public CommandBuffer            commandBuffer;
@@ -112,7 +113,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         SkySettings GetSkySetting(VolumeStack stack)
         {
             var visualEnv = stack.GetComponent<VisualEnvironment>();
-            int skyID = visualEnv.skyType.value;
+            int skyID = visualEnv.skyType;
             Type skyType;
             if (skyTypesDict.TryGetValue(skyID, out skyType))
             {
@@ -130,7 +131,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 m_SkyTypesDict = new Dictionary<int, Type>();
 
-                var skyTypes = CoreUtils.GetAllTypesDerivedFrom<SkySettings>().Where(t => !t.IsAbstract);
+                var skyTypes = CoreUtils.GetAllAssemblyTypes().Where(t => t.IsSubclassOf(typeof(SkySettings)) && !t.IsAbstract);
                 foreach (Type skyType in skyTypes)
                 {
                     var uniqueIDs = skyType.GetCustomAttributes(typeof(SkyUniqueID), false);
@@ -313,7 +314,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             bool isRegularPreview = HDUtils.IsRegularPreviewCamera(hdCamera.camera);
 
-            SkyAmbientMode ambientMode = VolumeManager.instance.stack.GetComponent<VisualEnvironment>().skyAmbientMode.value;
+            SkyAmbientMode ambientMode = VolumeManager.instance.stack.GetComponent<VisualEnvironment>().skyAmbientMode;
             SkyUpdateContext currentSky = m_LightingOverrideSky.IsValid() ? m_LightingOverrideSky : m_VisualSky;
 
             // Preview should never use dynamic ambient or they will conflict with main view (async readback of sky texture will update ambient probe for main view one frame later)
@@ -389,7 +390,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             using (new ProfilingSample(cmd, "Opaque Atmospheric Scattering"))
             {
-                // FIXME: 24B GC pressure
                 var propertyBlock = new MaterialPropertyBlock();
                 propertyBlock.SetMatrix(HDShaderIDs._PixelCoordToViewDirWS, pixelCoordToViewDirWS);
                 HDUtils.DrawFullScreen(cmd, hdCamera, m_OpaqueAtmScatteringMaterial, colorBuffer, depthBuffer, propertyBlock, isMSAA? 1 : 0);

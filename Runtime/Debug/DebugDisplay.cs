@@ -4,7 +4,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine.Experimental.Rendering.HDPipeline.Attributes;
 using UnityEngine.Rendering;
-using static UnityEngine.Experimental.Rendering.HDPipeline.MaterialDebugSettings;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -24,8 +23,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Raytracing
         LightCluster,
         RaytracedAreaShadow,
-        IndirectDiffuse,
-        PrimaryVisibility,
         MaxLightingFullScreenDebug,
 
         // Rendering
@@ -69,7 +66,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         static int[] s_CameraNamesValues = null;
 
         static bool needsRefreshingCameraFreezeList = true;
-        
+
         public class DebugData
         {
             public float debugOverlayRatio = 0.33f;
@@ -99,6 +96,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             public int lightingFulscreenDebugModeEnumIndex;
             public int tileClusterDebugEnumIndex;
             public int mipMapsEnumIndex;
+            public int materialEnumIndex;
             public int engineEnumIndex;
             public int attributesEnumIndex;
             public int propertiesEnumIndex;
@@ -138,9 +136,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         
         Action IDebugData.GetReset() => () => m_Data = new DebugData();
         
-        public float[] GetDebugMaterialIndexes()
+        public int GetDebugMaterialIndex()
         {
-            return data.materialDebugSettings.GetDebugMaterialIndexes();
+            return data.materialDebugSettings.GetDebugMaterialIndex();
         }
 
         public DebugLightingMode GetDebugLightingMode()
@@ -212,13 +210,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             data.lightingDebugSettings.debugLightingMode = DebugLightingMode.None;
             data.mipMapDebugSettings.debugMipMapMode = DebugMipMapMode.None;
-        }
-
-        public void SetDebugViewCommonMaterialProperty(MaterialSharedProperty value)
-        {
-            if (value != MaterialSharedProperty.None)
-                DisableNonMaterialDebugSettings();
-            data.materialDebugSettings.SetDebugViewCommonMaterialProperty(value);
         }
 
         public void SetDebugViewMaterial(int value)
@@ -349,9 +340,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             var list = new List<DebugUI.Widget>();
 
-            list.Add( new DebugUI.EnumField { displayName = "Common Material Property", getter = () => (int)data.materialDebugSettings.debugViewMaterialCommonValue, setter = value => SetDebugViewCommonMaterialProperty((MaterialSharedProperty)value), autoEnum = typeof(MaterialSharedProperty), getIndex = () => (int)data.materialDebugSettings.debugViewMaterialCommonValue, setIndex = value => data.materialDebugSettings.debugViewMaterialCommonValue = (MaterialSharedProperty)value});
-
-            list.Add( new DebugUI.EnumField { displayName = "Material", getter = () => (data.materialDebugSettings.debugViewMaterial[0]) == 0 ? 0 : data.materialDebugSettings.debugViewMaterial[1], setter = value => SetDebugViewMaterial(value), enumNames = MaterialDebugSettings.debugViewMaterialStrings, enumValues = MaterialDebugSettings.debugViewMaterialValues, getIndex = () => data.materialDebugSettings.materialEnumIndex, setIndex = value => data.materialDebugSettings.materialEnumIndex = value});
+            list.Add( new DebugUI.EnumField { displayName = "Material", getter = () => data.materialDebugSettings.debugViewMaterial, setter = value => SetDebugViewMaterial(value), enumNames = MaterialDebugSettings.debugViewMaterialStrings, enumValues = MaterialDebugSettings.debugViewMaterialValues, getIndex = () => data.materialEnumIndex, setIndex = value => data.materialEnumIndex = value });
             list.Add( new DebugUI.EnumField { displayName = "Engine", getter = () => data.materialDebugSettings.debugViewEngine, setter = value => SetDebugViewEngine(value), enumNames = MaterialDebugSettings.debugViewEngineStrings, enumValues = MaterialDebugSettings.debugViewEngineValues, getIndex = () => data.engineEnumIndex, setIndex = value => data.engineEnumIndex = value });
             list.Add( new DebugUI.EnumField { displayName = "Attributes", getter = () => (int)data.materialDebugSettings.debugViewVarying, setter = value => SetDebugViewVarying((DebugViewVarying)value), autoEnum = typeof(DebugViewVarying), getIndex = () => data.attributesEnumIndex, setIndex = value => data.attributesEnumIndex = value });
             list.Add( new DebugUI.EnumField { displayName = "Properties", getter = () => (int)data.materialDebugSettings.debugViewProperties, setter = value => SetDebugViewProperties((DebugViewProperties)value), autoEnum = typeof(DebugViewProperties), getIndex = () => data.propertiesEnumIndex, setIndex = value => data.propertiesEnumIndex = value });

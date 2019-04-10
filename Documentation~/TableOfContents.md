@@ -3,7 +3,6 @@
   * [Getting Started with HDRP](Getting-started-with-HDRP)
   * [Upgrading to HDRP](Upgrading-To-HDRP)
   * [Forward and Deferred Rendering](Forward-And-Deferred-Rendering)
-  * [Advanced Properties](Advanced-Properties)
   * Overviews
     * [Materials Overview](Materials-Shaders-Overview)
     * [Fog Overview](Fog-Overview)
@@ -11,26 +10,17 @@
 * Volume Framework
   * [Volumes](Volumes)
   * [Volume Profiles](Volume-Profile)
-  * [Volume Overrides](Volume-Components)
-* Volume Overrides
-  * [Diffusion Profile](Override-Diffusion-Profile)
-  * Fog
-    * [Exponential Fog](Override-Exponential-Fog)
-    * [Linear Fog](Override-Linear-Fog)
-    * [Volumetric Fog](Override-Volumetric-Fog)
-  * Lighting
-    * [Ambient Occlusion](Override-Ambient-Occlusion)
-    * [Indirect Lighting Controller](Override-Indirect-Lighting-Controller)
-    * [Volumetric Lighting Quality](Override-Volumetric-Lighting-Controller)
-  * Shadowing
-    * [Contact Shadows](Override-Contact-Shadows)
-    * [Micro Shadows](Override-Micro-Shadows)
-    * [Shadows](Override-Shadows)
-  * Sky
-    * [Gradient Sky](Override-Gradient-Sky)
-    * [HDRI Sky](Override-HDRI-Sky)
-    * [Procedural Sky](Override-Procedural-Sky)
-  * [Visual Environment](Override-Visual-Environment)
+  * [Volume Component Overrides](Volume-Components)
+* Volume Components
+  * [Visual Environment](Visual-Environment)
+  * [Gradient Sky](Gradient-Sky)
+  * [HDRI Sky](HDRI-Sky)
+  * [Procedural Sky](Procedural-Sky)
+  * [HD Shadow Settings](HD-Shadow-Settings)
+  * [Contact Shadows](Contact-Shadows)
+  * [Volumetric Fog](Volumetric-Fog)
+  * [Indirect Lighting Controller](Indirect-Lighting-Controller)
+  * [Volumetric Lighting Controller](Volumetric-Lighting-Controller)
 * Render Pipeline Settings
   * [HDRP Asset](HDRP-Asset)
   * [Frame Settings](Frame-Settings)
@@ -57,8 +47,7 @@
   * [Environment Lighting](Environment-Lighting)
   * [Static Lighting Sky](Static-Lighting-Sky)
   * [Atmospheric Scattering](Atmospheric-Scattering)
-  * [Light Layers](Light-Layers)
-  * [Shadows](Shadows-in-HDRP)
+  * [Shadows](Shadows)
   * [Volumetric Lighting](Volumetric-Lighting)
   * [Physical Light Units and Intensities](Physical-Light-Units)
 * Object Sorting
@@ -66,8 +55,6 @@
 * Decals
   * [Decal Projector](Decal-Projector)
 * Camera
-  * [Dynamic Resolution](Dynamic-Resolution)
   * [Multisampling Anti-Aliasing](MSAA)
-* [VR in HDRP](VR-in-HDRP)
 * [HDRP Glossary](Glossary)
 

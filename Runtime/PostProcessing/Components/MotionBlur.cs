@@ -6,6 +6,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [Serializable, VolumeComponentMenu("Post-processing/Motion Blur")]
     public sealed class MotionBlur : VolumeComponent, IPostProcessComponent
     {
+
+
         public MinIntParameter sampleCount = new MinIntParameter(8, 2);
 
         [Tooltip("Sets the intensity of the motion blur effect. Acts as a multiplier for velocities.")]
@@ -23,7 +25,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public bool IsActive()
         {
-            return intensity.value > 0.0f;
+            return intensity > 0.0f;
         }
     }
 }

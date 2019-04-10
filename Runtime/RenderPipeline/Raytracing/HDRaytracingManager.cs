@@ -86,7 +86,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // The HDRPAsset data that needs to be 
         RenderPipelineResources m_Resources = null;
         RenderPipelineSettings m_Settings;
-        public LightLoop m_LightLoop = null;
+        LightLoop m_LightLoop = null;
         SharedRTManager m_SharedRTManager = null;
         BlueNoise m_BlueNoise = null;
 
@@ -284,7 +284,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             UpdateEffectSubScene(rtEnv.reflLayerMask.value, 1);
             UpdateEffectSubScene(rtEnv.shadowLayerMask.value, 2);
             UpdateEffectSubScene(rtEnv.raytracedLayerMask.value, 3);
-            UpdateEffectSubScene(rtEnv.indirectDiffuseLayerMask.value, 4);
 
             // Let's now go through all the sub-scenes and delete the ones that are not referenced by anyone
             var nonReferencedSubScenes = m_SubScenes.Where(x => x.Value.references == 0).ToArray();
@@ -341,13 +340,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 currentSubScene.needUpdate = true;
             }
 
-            // If indirect diffuse is on flag its RAS needUpdate
-            if (rtEnv.raytracedIndirectDiffuse)
-            {
-                HDRayTracingSubScene currentSubScene = RequestSubScene(rtEnv.indirectDiffuseLayerMask);
-                currentSubScene.needUpdate = true;
-            }
-
             // Let's go through all the sub-scenes that are flagged needUpdate and update their RAS
             foreach (var subScene in m_SubScenes)
             {
@@ -393,13 +385,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (rtEnv.raytracedObjects)
             {
                 HDRayTracingSubScene currentSubScene = RequestSubScene(rtEnv.raytracedLayerMask);
-                currentSubScene.needUpdate = true;
-            }
-
-            // If indirect diffuse is on flag its light cluster
-            if (rtEnv.raytracedIndirectDiffuse)
-            {
-                HDRayTracingSubScene currentSubScene = RequestSubScene(rtEnv.indirectDiffuseLayerMask);
                 currentSubScene.needUpdate = true;
             }
 
@@ -680,11 +665,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public BlueNoise GetBlueNoiseManager()
         {
             return m_BlueNoise;
-        }
-
-        public LightLoop GetLightLoop()
-        {
-            return m_LightLoop;
         }
     }
 #endif

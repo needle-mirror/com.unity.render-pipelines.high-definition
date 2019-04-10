@@ -17,9 +17,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             Reflection = (1<<0),
             AreaShadow = (1<<1) ,
             PrimaryVisibility = (1<<2),
-            IndirectDiffuse = (1<<3),
         }
-        public readonly static int numRaytracingPasses = 5;
+        public readonly static int numRaytracingPasses = 4;
 
         // Generic Ray Data
         [Range(0.0f, 0.1f)]
@@ -37,7 +36,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public enum AOFilterMode
         {
             None,
-            SpatioTemporal,
+            Bilateral,
             Nvidia
         };
         public AOFilterMode aoFilterMode = AOFilterMode.None;
@@ -52,7 +51,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         // AO Bilateral Filter Data
         [Range(1, 27)]
-        public int aoBilateralRadius = 16;
+        public int aoBilateralRadius = 10;
+        [Range(0.001f, 9.0f)]
+        public float aoBilateralSigma = 5.0f;
 
         // Nvidia AO Filter Data
         [Range(1, 27)]
@@ -105,18 +106,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Range(1, 64)]
         public int reflNumMaxSamples = 8;
 
-        // The different reflection filtering modes
-        public enum ReflectionsFilterMode
-        {
-            SpatioTemporal,
-            None
-        };
-        public ReflectionsFilterMode reflFilterMode = ReflectionsFilterMode.None;
-
-        // The radius for the spatio temporal filter
-        [Range(1, 27)]
-        public int reflFilterRadius = 16;
-
         /////////////////////////////////////////////////////////////////////////////////////////////////
         // Light Cluster
         [Range(0, 24)]
@@ -153,37 +142,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public int shadowNumSamples = 4;
         [Range(0, 4)]
         public int numAreaLightShadows = 1;
-        [Range(0, 32)]
-        public int shadowFilterRadius = 8;
-        public bool splitIntegration = true;
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        // Indirect diffuse
-        public bool raytracedIndirectDiffuse = false;
-
-        // Culling mask that defines the layers that the subscene used for this effect should use
-        public LayerMask indirectDiffuseLayerMask = -1;
-
-        [Range(1, 32)]
-        public int indirectDiffuseNumSamples = 4;
-        // Max Ray Length for the indirect diffuse
-        [Range(0.001f, 50.0f)]
-        public float indirectDiffuseRayLength = 20.0f;
-        // Value that is used to clamp the intensity to avoid fireflies
-        [Range(0.01f, 10.0f)]
-        public float indirectDiffuseClampValue = 1.0f;
-
-        // The different reflection filtering modes
-        public enum IndirectDiffuseFilterMode
-        {
-            SpatioTemporal,
-            None
-        };
-        public IndirectDiffuseFilterMode indirectDiffuseFilterMode = IndirectDiffuseFilterMode.None;
-
-        // The radius for the spatio temporal filter
         [Range(1, 27)]
-        public int indirectDiffuseFilterRadius = 16;
+        public int shadowFilterRadius = 1;
+        [Range(0.001f, 9.0f)]
+        public float shadowFilterSigma = 0.001f;
 
         void Start()
         {

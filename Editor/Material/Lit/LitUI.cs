@@ -308,16 +308,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kSSRefractionProjectionModel = "_SSRefractionProjectionModel";
 
         protected override bool showBlendModePopup
-            => refractionModel == null
-            || refractionModel.floatValue == 0f
-            || HDRenderQueue.k_RenderQueue_PreRefraction.Contains(renderQueue);
-
+        {
+            get { return refractionModel == null || refractionModel.floatValue == 0f || HDRenderQueue.k_RenderQueue_PreRefraction.Contains((m_MaterialEditor.target as Material).renderQueue); }
+        }
         protected override bool showPreRefractionPass
-            => refractionModel == null
-            || refractionModel.floatValue == 0f;
-
-        protected override bool showAfterPostProcessPass => false; 
-        protected override bool showLowResolutionPass => true; 
+        {
+            get { return refractionModel == null || refractionModel.floatValue == 0f; }
+        }
+        protected override bool showAfterPostProcessPass { get { return false; } }
+        protected override bool showLowResolutionPass { get { return false; } }
 
         protected void FindMaterialLayerProperties(MaterialProperty[] props)
         {
@@ -888,7 +887,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                         EditorGUI.BeginChangeCheck();
                         {
                             DoEmissiveTextureProperty(material, emissiveColorLDR);
-                            emissiveColorLDR.colorValue = NormalizeEmissionColor(ref updateEmissiveColor, emissiveColorLDR.colorValue);
 
                             using (new EditorGUILayout.HorizontalScope())
                             {

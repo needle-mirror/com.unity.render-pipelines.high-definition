@@ -68,7 +68,7 @@ float4 RemapMasks(float4 masks, float blendMask, float4 remapOffset, float4 rema
     SAMPLER(OVERRIDE_SPLAT_SAMPLER_NAME);
 #endif
 
-void TerrainSplatBlend(float2 controlUV, float2 splatBaseUV, inout TerrainLitSurfaceData surfaceData)
+void TerrainSplatBlend(float2 controlUV, float2 splatBaseUV, out float3 outAlbedo, out float3 outNormalData, out float outSmoothness, out float outMetallic, out float outAO)
 {
     // TODO: triplanar
     // TODO: POM
@@ -138,7 +138,7 @@ void TerrainSplatBlend(float2 controlUV, float2 splatBaseUV, inout TerrainLitSur
     ZERO_INITIALIZE_ARRAY(float, weights, _LAYER_COUNT);
 
     #ifdef _MASKMAP
-        #if defined(_TERRAIN_BLEND_HEIGHT)
+        #ifdef _TERRAIN_BLEND_HEIGHT
             // Modify blendMask to take into account the height of the layer. Higher height should be more visible.
             float maxHeight = masks[0].z;
             maxHeight = max(maxHeight, masks[1].z);
@@ -176,7 +176,7 @@ void TerrainSplatBlend(float2 controlUV, float2 splatBaseUV, inout TerrainLitSur
             #ifdef _TERRAIN_8_LAYERS
                 blendMasks1 = weightedHeights1 / sumHeight.xxxx;
             #endif
-        #elif defined(_TERRAIN_BLEND_DENSITY)
+        #else
             // Denser layers are more visible.
             float4 opacityAsDensity0 = saturate((float4(albedo[0].a, albedo[1].a, albedo[2].a, albedo[3].a) - (float4(1.0, 1.0, 1.0, 1.0) - blendMasks0)) * 20.0); // 20.0 is the number of steps in inputAlphaMask (Density mask. We decided 20 empirically)
             opacityAsDensity0 += 0.001f * blendMasks0;		// if all weights are zero, default to what the blend mask says
@@ -209,23 +209,23 @@ void TerrainSplatBlend(float2 controlUV, float2 splatBaseUV, inout TerrainLitSur
         weights[7] = blendMasks1.w;
     #endif
 
-    surfaceData.albedo = 0;
-    surfaceData.normalData = 0;
+    outAlbedo = 0;
+    outNormalData = 0;
     float3 outMasks = 0;
     UNITY_UNROLL for (int i = 0; i < _LAYER_COUNT; ++i)
     {
-        surfaceData.albedo += albedo[i].rgb * weights[i];
-        surfaceData.normalData += normal[i].rgb * weights[i]; // no need to normalize
+        outAlbedo += albedo[i].rgb * weights[i];
+        outNormalData += normal[i].rgb * weights[i]; // no need to normalize
         outMasks += masks[i].xyw * weights[i];
     }
-    surfaceData.smoothness = outMasks.z;
-    surfaceData.metallic = outMasks.x;
-    surfaceData.ao = outMasks.y;
+    outSmoothness = outMasks.z;
+    outMetallic = outMasks.x;
+    outAO = outMasks.y;
 }
 
-void TerrainLitShade(float2 uv, inout TerrainLitSurfaceData surfaceData)
+void TerrainLitShade(float2 uv, out float3 outAlbedo, out float3 outNormalData, out float outSmoothness, out float outMetallic, out float outAO)
 {
-    TerrainSplatBlend(uv, uv, surfaceData);
+    TerrainSplatBlend(uv, uv, outAlbedo, outNormalData, outSmoothness, outMetallic, outAO);
 }
 
 void TerrainLitDebug(float2 uv, inout float3 baseColor)
