@@ -374,6 +374,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             UseInPreview = true,
         };
 
+        public int GetPreviewPassIndex() { return 0; }
 
         private static string[] m_ColorMasks = new string[8]
         {
@@ -416,7 +417,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             if (mode == GenerationMode.ForReals || pass.UseInPreview)
             {
-                SurfaceMaterialOptions materialOptions = HDSubShaderUtilities.BuildMaterialOptions(SurfaceType.Opaque, AlphaMode.Alpha, false, false);
+                SurfaceMaterialOptions materialOptions = HDSubShaderUtilities.BuildMaterialOptions(SurfaceType.Opaque, AlphaMode.Alpha, false, false, false);
 
                 pass.OnGeneratePass(masterNode);
 

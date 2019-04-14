@@ -14,7 +14,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         EV100,
     }
 
-    [Title("Input", "High Definition Render Pipeline", "Emission Node")]
+    [Title("Utility", "High Definition Render Pipeline", "Emission Node")]
     class EmissionNode : AbstractMaterialNode, IGeneratesBodyCode, IGeneratesFunction
     {
         public EmissionNode()
@@ -91,26 +91,26 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         public void GenerateNodeCode(ShaderGenerator visitor, GraphContext graphContext, GenerationMode generationMode)
         {
-            if (generationMode.IsPreview())
-                return;
-
             var sb = new ShaderStringBuilder();
 
             var colorValue = GetSlotValue(kEmissionColorInputSlotId, generationMode);
             var intensityValue = GetSlotValue(kEmissionIntensityInputSlotId, generationMode);
             var exposureWeightValue = GetSlotValue(kEmissionExposureWeightInputSlotId, generationMode);
+            var outputValue = GetSlotValue(kEmissionOutputSlotId, generationMode);
             
             if (intensityUnit == EmissiveIntensityUnit.EV100)
                 intensityValue = "ConvertEvToLuminance(" + intensityValue + ")";
             
-            sb.AppendLine(@"{0}3 {1} = {2}({3}, {4}, {5}, {6});",
+            string inverseExposureMultiplier = (generationMode.IsPreview()) ? "1.0" : "GetInverseCurrentExposureMultiplier()";
+            
+            sb.AppendLine(@"{0}3 {1} = {2}({3}.xyz, {4}, {5}, {6});",
                 precision,
-                GetVariableNameForNode(),
+                outputValue,
                 GetFunctionName(),
                 colorValue,
                 intensityValue,
                 exposureWeightValue,
-                "GetInverseCurrentExposureMultiplier()"
+                inverseExposureMultiplier
             );
 
             visitor.AddShaderChunk(sb.ToString(), true);
@@ -125,6 +125,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             registry.ProvideFunction(GetFunctionName(), s =>
                 {
+                    // We may need ConvertEvToLuminance() so we include CommonLighting.hlsl
+                    s.AppendLine("#include \"Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl\"");
+                    
                     s.AppendLine("{1}3 {0}({1}3 ldrColor, {2} luminanceIntensity, {2} exposureWeight, {2} inverseCurrentExposureMultiplier)",
                         GetFunctionName(),
                         precision,
@@ -160,14 +163,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             properties.Add(new PreviewProperty(PropertyType.Vector3)
             {
-                name = GetVariableNameForNode(),
+                name = GetVariableNameForSlot(kEmissionColorInputSlotId),
                 vector4Value = outputColor
             });
-        }
-
-        public override string GetVariableNameForSlot(int slotId)
-        {
-            return GetVariableNameForNode();
         }
     }
 }
