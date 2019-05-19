@@ -18,7 +18,7 @@ To create a Diffusion Profile, navigate to __Assets > Create > Rendering > Diffu
 
 | Property| Description |
 |:---|:---|
-| **Texturing Mode** | Use the drop-down to select when HDRP applies the albedo of the Material.<br />**Post-Scatter**: HDRP applies the albedo to the Material after the subsurface scattering pass pass. This means that the contents of the texture are not blurred. Use this mode for scanned data and photographs that already contain some blur due to subsurface scattering. <br />**Pre- and Post-Scatter**: HDRP effectively blurs the albedo. This results in a softer, more natural look. |
+| **Texturing Mode** | Use the drop-down to select when HDRP applies the albedo of the Material.<br />&#8226; **Post-Scatter**: HDRP applies the albedo to the Material after the subsurface scattering pass pass. This means that the contents of the texture are not blurred. Use this mode for scanned data and photographs that already contain some blur due to subsurface scattering. <br />&#8226; **Pre- and Post-Scatter**: HDRP effectively blurs the albedo. This results in a softer, more natural look. |
 
 
 
@@ -26,7 +26,7 @@ To create a Diffusion Profile, navigate to __Assets > Create > Rendering > Diffu
 
 | Property| Description |
 |:---|:---|
-| **Transmission Mode** | Use the drop-down to select a method for calculating light transmission. <br />**Thick Object**: is for geometrically thick meshes.<br />**Thin Object**: is for thin, double-sided, geometry. |
+| **Transmission Mode** | Use the drop-down to select a method for calculating light transmission. <br />&#8226; **Thick Object**: is for geometrically thick meshes.<br />&#8226; **Thin Object**: is for thin, double-sided, geometry. |
 | **Transmission Tint** | Specifies a color to tint the translucent lighting. Unlike the Scattering Distance, its effect does not change depending on the distance below the surface. |
 | **Min-Max Thickness (mm)** | Sets the range of the thickness of the Mesh. Displays the minimum and maximum values of the Thickness Remap (mm) slider property below. |
 | **Thickness Remap (mm)** | Sets the range of the thickness. The Material’s Thickness Map modulates this value. |
@@ -49,13 +49,6 @@ If you disable shadows on your Light, both __Transmission Modes__ give the same 
 The results change if you enable shadows. The __Thin Object__ mode is likely to cause self-shadowing, which can cause the object to appear completely black. The __Thick Object__ mode derives the thickness from the shadow map, taking the largest value between the baked thickness and the shadow thickness, and uses this to evaluate the light transmittance.
 
 Because you cannot control the distances HDRP derives from the shadow map, the best way to approach __Thick Object__ is to enable shadows, then adjust the __Scattering Distance__ until the overall transmission intensity is in the desired range, and then use the __Thickness Map__ to mask any shadow mapping artifacts.
-
-
-
-## Diffusion Profile Override Volume
-
-HDRP can only handle 15 Diffusion Profiles in view at once. To have more than 15 Diffusion Profiles in a Scene, you can use the __Diffusion Profile Override__ component available inside [Volumes](Volumes.html). This allows you to specify which Diffusion Profile to use in a certain area (or in the Scene if the volume is global). 
-When the Volume is local, you have access to the __Fill profiles with scene materials__ button which fetches the Diffusion Profiles from Materials inside the Volume's bounds and fills the __Diffusion Profile List__ with them.
 
 
 

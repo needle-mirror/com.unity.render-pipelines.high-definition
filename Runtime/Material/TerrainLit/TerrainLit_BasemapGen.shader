@@ -14,19 +14,19 @@ Shader "Hidden/HDRP/TerrainLit_BasemapGen"
         #pragma target 4.5
         #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
-        #define USE_LEGACY_UNITY_MATRIX_VARIABLES
         #define SURFACE_GRADIENT // Must use Surface Gradient as the normal map texture format is now RG floating point
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Material.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/NormalSurfaceGradient.hlsl"
+        #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLitSurfaceData.hlsl"
 
         // Terrain builtin keywords
-        #pragma shader_feature _TERRAIN_8_LAYERS
-        #pragma shader_feature _NORMALMAP
-        #pragma shader_feature _MASKMAP
+        #pragma shader_feature_local _TERRAIN_8_LAYERS
+        #pragma shader_feature_local _NORMALMAP
+        #pragma shader_feature_local _MASKMAP
 
-        #pragma shader_feature _TERRAIN_BLEND_HEIGHT
+        #pragma shader_feature_local _TERRAIN_BLEND_HEIGHT
 
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLit_Splatmap_Includes.hlsl"
 
@@ -35,11 +35,6 @@ Shader "Hidden/HDRP/TerrainLit_BasemapGen"
             float4 _Control0_ST;
             float4 _Control0_TexelSize;
         CBUFFER_END
-
-        struct Attributes {
-            float3 vertex : POSITION;
-            float2 texcoord : TEXCOORD0;
-        };
 
         struct Varyings
         {
@@ -56,11 +51,11 @@ Shader "Hidden/HDRP/TerrainLit_BasemapGen"
             return (uv * (_Control0_TexelSize.zw - 1.0f) + 0.5f) * _Control0_TexelSize.xy;
         }
 
-        Varyings Vert(Attributes input)
+        Varyings Vert(uint vertexID : SV_VertexID)
         {
             Varyings output;
-            output.positionCS = TransformWorldToHClip(input.vertex);
-            output.texcoord.xy = TRANSFORM_TEX(input.texcoord, _Control0);
+            output.positionCS = GetFullScreenTriangleVertexPosition(vertexID);
+            output.texcoord.xy = TRANSFORM_TEX(GetFullScreenTriangleTexCoord(vertexID), _Control0);
             output.texcoord.zw = ComputeControlUV(output.texcoord.xy);
             return output;
         }
@@ -85,45 +80,10 @@ Shader "Hidden/HDRP/TerrainLit_BasemapGen"
 
             float4 Frag(Varyings input) : SV_Target
             {
-                float4 albedo;
-                float3 normalData;
-                float metallic;
-                float ao;
-                TerrainSplatBlend(input.texcoord.zw, input.texcoord.xy, albedo.xyz, normalData, albedo.w, metallic, ao);
-
-                return albedo;
-            }
-
-            ENDHLSL
-        }
-
-        Pass
-        {
-            // _NormalMap pass will get ignored by terrain basemap generation code. Put here so that the VTC can use it to generate cache for normal maps.
-            Tags
-            {
-                "Name" = "_NormalMap"
-                "Format" = "R16G16_Float"
-                "Size" = "1"
-            }
-
-            ZTest Always Cull Off ZWrite Off
-            Blend One [_DstBlend]
-
-            HLSLPROGRAM
-
-            #define OVERRIDE_SPLAT_SAMPLER_NAME sampler_Normal0
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/TerrainLit/TerrainLit_Splatmap.hlsl"
-
-            float2 Frag(Varyings input) : SV_Target
-            {
-                float4 albedo;
-                float3 normalData;
-                float metallic;
-                float ao;
-                TerrainSplatBlend(input.texcoord.zw, input.texcoord.xy, albedo.xyz, normalData, albedo.w, metallic, ao);
-
-                return normalData.xy; // RT format is supposed to be floating point
+                TerrainLitSurfaceData surfaceData;
+                InitializeTerrainLitSurfaceData(surfaceData);
+                TerrainSplatBlend(input.texcoord.zw, input.texcoord.xy, surfaceData);
+                return float4(surfaceData.albedo, surfaceData.smoothness);
             }
 
             ENDHLSL
@@ -148,13 +108,10 @@ Shader "Hidden/HDRP/TerrainLit_BasemapGen"
 
             float2 Frag(Varyings input) : SV_Target
             {
-                float4 albedo;
-                float3 normalData;
-                float metallic;
-                float ao;
-                TerrainSplatBlend(input.texcoord.zw, input.texcoord.xy, albedo.xyz, normalData, albedo.w, metallic, ao);
-
-                return float2(metallic, ao);
+                TerrainLitSurfaceData surfaceData;
+                InitializeTerrainLitSurfaceData(surfaceData);
+                TerrainSplatBlend(input.texcoord.zw, input.texcoord.xy, surfaceData);
+                return float2(surfaceData.metallic, surfaceData.ao);
             }
 
             ENDHLSL

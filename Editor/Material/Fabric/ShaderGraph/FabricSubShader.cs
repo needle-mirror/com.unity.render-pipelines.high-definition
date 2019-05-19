@@ -63,10 +63,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             BlendOverride = "Blend One Zero",
             ZWriteOverride = "ZWrite On",
             ColorMaskOverride = "ColorMask 0",
-            ExtraDefines = new List<string>()
-            {
-                "#define USE_LEGACY_UNITY_MATRIX_VARIABLES",
-            },
             Includes = new List<string>()
             {
                 "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassDepthOnly.hlsl\"",
@@ -74,7 +70,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             PixelShaderSlots = new List<int>()
             {
                 FabricMasterNode.AlphaSlotId,
-                FabricMasterNode.AlphaClipThresholdSlotId
+                FabricMasterNode.AlphaClipThresholdSlotId,
+                FabricMasterNode.DepthOffsetSlotId,
             },
             VertexShaderSlots = new List<int>()
             {
@@ -102,13 +99,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             PixelShaderSlots = new List<int>()
             {
                 FabricMasterNode.AlphaSlotId,
-                FabricMasterNode.AlphaClipThresholdSlotId
+                FabricMasterNode.AlphaClipThresholdSlotId,
+                FabricMasterNode.DepthOffsetSlotId,
             },
             VertexShaderSlots = new List<int>()
             {
                 FabricMasterNode.PositionSlotId
             },
-            UseInPreview = true
+            UseInPreview = false
         };
 
         Pass m_PassDepthForwardOnly = new Pass()
@@ -131,7 +129,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 FabricMasterNode.NormalSlotId,
                 FabricMasterNode.SmoothnessSlotId,
                 FabricMasterNode.AlphaSlotId,
-                FabricMasterNode.AlphaClipThresholdSlotId
+                FabricMasterNode.AlphaClipThresholdSlotId,
+                FabricMasterNode.DepthOffsetSlotId,
             },
 
             RequiredFields = new List<string>()
@@ -172,11 +171,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LightMode = "MotionVectors",
             TemplateName = "FabricPass.template",
             MaterialName = "Fabric",
-            ShaderPassName = "SHADERPASS_VELOCITY",
+            ShaderPassName = "SHADERPASS_MOTION_VECTORS",
             ExtraDefines = HDSubShaderUtilities.s_ExtraDefinesForwardMaterialDepthOrMotion,
             Includes = new List<string>()
             {
-                "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassVelocity.hlsl\"",
+                "#include \"Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPassMotionVectors.hlsl\"",
             },
             RequiredFields = new List<string>()
             {
@@ -201,7 +200,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 FabricMasterNode.NormalSlotId,
                 FabricMasterNode.SmoothnessSlotId,
                 FabricMasterNode.AlphaSlotId,
-                FabricMasterNode.AlphaClipThresholdSlotId
+                FabricMasterNode.AlphaClipThresholdSlotId,
+                FabricMasterNode.DepthOffsetSlotId,
             },
             VertexShaderSlots = new List<int>()
             {
@@ -265,6 +265,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 FabricMasterNode.AlphaClipThresholdSlotId,
                 FabricMasterNode.LightingSlotId,
                 FabricMasterNode.BackLightingSlotId,
+                FabricMasterNode.DepthOffsetSlotId,
             },
             VertexShaderSlots = new List<int>()
             {
@@ -293,6 +294,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         };
 
+        public int GetPreviewPassIndex() { return 0; }
+
         private static HashSet<string> GetActiveFieldsFromMasterNode(AbstractMaterialNode iMasterNode, Pass pass)
         {
             HashSet<string> activeFields = new HashSet<string>();
@@ -306,7 +309,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             if (masterNode.doubleSidedMode != DoubleSidedMode.Disabled)
             {
                 activeFields.Add("DoubleSided");
-                if (pass.ShaderPassName != "SHADERPASS_VELOCITY")   // HACK to get around lack of a good interpolator dependency system
+                if (pass.ShaderPassName != "SHADERPASS_MOTION_VECTORS")   // HACK to get around lack of a good interpolator dependency system
                 {                                                   // we need to be able to build interpolators using multiple input structs
                                                                     // also: should only require isFrontFace if Normals are required...
                     if (masterNode.doubleSidedMode == DoubleSidedMode.FlippedNormals)
@@ -443,6 +446,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 activeFields.Add("BackLightingGI");
             }
 
+            if (masterNode.depthOffset.isOn && pass.PixelShaderUsesSlot(FabricMasterNode.DepthOffsetSlotId))
+                activeFields.Add("DepthOffset");
+
             return activeFields;
         }
 
@@ -450,7 +456,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         {
             if (mode == GenerationMode.ForReals || pass.UseInPreview)
             {
-                SurfaceMaterialOptions materialOptions = HDSubShaderUtilities.BuildMaterialOptions(masterNode.surfaceType, masterNode.alphaMode, masterNode.doubleSidedMode != DoubleSidedMode.Disabled, false);
+                SurfaceMaterialOptions materialOptions = HDSubShaderUtilities.BuildMaterialOptions(masterNode.surfaceType, masterNode.alphaMode, masterNode.doubleSidedMode != DoubleSidedMode.Disabled, false, false);
 
                 pass.OnGeneratePass(masterNode);
 

@@ -126,6 +126,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 ),
             CED.space,
             CED.Group(
+                Drawer_AllowDynamicResolution
+                ),
+            CED.space,
+            CED.Group(
                 Drawer_CameraWarnings,
                 Drawer_FieldRenderingPath
                 )
@@ -425,6 +429,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         static void Drawer_Antialiasing(SerializedHDCamera p, Editor owner)
         {
             p.antialiasing.intValue = EditorGUILayout.Popup(antialiasingContent, p.antialiasing.intValue, antialiasingModeNames);
+            if(p.antialiasing.intValue == (int)HDAdditionalCameraData.AntialiasingMode.SubpixelMorphologicalAntiAliasing)
+            {
+                EditorGUILayout.PropertyField(p.SMAAQuality, SMAAQualityPresetContent);
+            }
         }
 
         static void Drawer_Dithering(SerializedHDCamera p, Editor owner)
@@ -435,6 +443,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         static void Drawer_StopNaNs(SerializedHDCamera p, Editor owner)
         {
             EditorGUILayout.PropertyField(p.stopNaNs, stopNaNsContent);
+        }
+
+        static void Drawer_AllowDynamicResolution(SerializedHDCamera p, Editor owner)
+        {
+            EditorGUILayout.PropertyField(p.allowDynamicResolution, allowDynResContent);
+            p.baseCameraSettings.allowDynamicResolution.boolValue = p.allowDynamicResolution.boolValue;
         }
 
         static void Drawer_FieldRenderingPath(SerializedHDCamera p, Editor owner)

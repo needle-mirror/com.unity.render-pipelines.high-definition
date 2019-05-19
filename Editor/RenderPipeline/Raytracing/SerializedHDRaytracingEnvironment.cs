@@ -21,7 +21,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty aoRayLength;
         public SerializedProperty aoNumSamples;
         public SerializedProperty aoBilateralRadius;
-        public SerializedProperty aoBilateralSigma;
         public SerializedProperty maxFilterWidthInPixels;
         public SerializedProperty filterRadiusInMeters;
         public SerializedProperty normalSharpness;
@@ -38,9 +37,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty reflMinSmoothness;
         public SerializedProperty reflClampValue;
         public SerializedProperty reflQualityMode;
+        public SerializedProperty reflFilterMode;
         public SerializedProperty reflTemporalAccumulationWeight;
         public SerializedProperty reflSpatialFilterRadius;
         public SerializedProperty reflNumMaxSamples;
+        public SerializedProperty reflFilterRadius;
 
         // Primary visiblity raytracing
         public SerializedProperty raytracedObjects;
@@ -54,7 +55,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty shadowNumSamples;
         public SerializedProperty numAreaLightShadows;
         public SerializedProperty shadowFilterRadius;
-        public SerializedProperty shadowFilterSigma;
+        public SerializedProperty splitIntegration;
+
+        // Indirect diffuse Properties
+        public SerializedProperty raytracedIndirectDiffuse;
+        public SerializedProperty indirectDiffuseLayerMask;
+        public SerializedProperty indirectDiffuseNumSamples;
+        public SerializedProperty indirectDiffuseRayLength;
+        public SerializedProperty indirectDiffuseClampValue;
+        public SerializedProperty indirectDiffuseFilterMode;
+        public SerializedProperty indirectDiffuseFilterRadius;
 
         public SerializedHDRaytracingEnvironment(HDRaytracingEnvironment rtEnv)
         {
@@ -70,7 +80,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             aoRayLength = o.Find(x => x.aoRayLength);
             aoNumSamples = o.Find(x => x.aoNumSamples);
             aoBilateralRadius = o.Find(x => x.aoBilateralRadius);
-            aoBilateralSigma = o.Find(x => x.aoBilateralSigma);
             maxFilterWidthInPixels = o.Find(x => x.maxFilterWidthInPixels);
             filterRadiusInMeters = o.Find(x => x.filterRadiusInMeters);
             normalSharpness = o.Find(x => x.normalSharpness);
@@ -83,9 +92,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             reflMinSmoothness = o.Find(x => x.reflMinSmoothness);
             reflClampValue = o.Find(x => x.reflClampValue);
             reflQualityMode = o.Find(x => x.reflQualityMode);
+            reflFilterMode = o.Find(x => x.reflFilterMode);
             reflTemporalAccumulationWeight = o.Find(x => x.reflTemporalAccumulationWeight);
             reflSpatialFilterRadius = o.Find(x => x.reflSpatialFilterRadius);
             reflNumMaxSamples = o.Find(x => x.reflNumMaxSamples);
+            reflFilterRadius = o.Find(x => x.reflFilterRadius);
 
             // Shadows Attributes
             raytracedShadows = o.Find(x => x.raytracedShadows);
@@ -93,7 +104,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             shadowNumSamples = o.Find(x => x.shadowNumSamples);
             numAreaLightShadows = o.Find(x => x.numAreaLightShadows);
             shadowFilterRadius = o.Find(x => x.shadowFilterRadius);
-            shadowFilterSigma = o.Find(x => x.shadowFilterSigma);
+            splitIntegration = o.Find(x => x.splitIntegration);
 
             // Light Cluster Attributes
             maxNumLightsPercell = o.Find(x => x.maxNumLightsPercell);
@@ -104,6 +115,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             raytracedLayerMask = o.Find(x => x.raytracedLayerMask);
             rayMaxDepth = o.Find(x => x.rayMaxDepth);
             raytracingRayLength = o.Find(x => x.raytracingRayLength);
+
+            // Indirect diffuse Properties
+            raytracedIndirectDiffuse = o.Find(x => x.raytracedIndirectDiffuse);
+            indirectDiffuseLayerMask = o.Find(x => x.indirectDiffuseLayerMask);
+            indirectDiffuseNumSamples = o.Find(x => x.indirectDiffuseNumSamples);
+            indirectDiffuseRayLength = o.Find(x => x.indirectDiffuseRayLength);
+            indirectDiffuseClampValue = o.Find(x => x.indirectDiffuseClampValue);
+            indirectDiffuseFilterMode = o.Find(x => x.indirectDiffuseFilterMode);
+            indirectDiffuseFilterRadius = o.Find(x => x.indirectDiffuseFilterRadius);
         }
 
         public void Update()

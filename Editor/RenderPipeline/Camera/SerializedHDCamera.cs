@@ -20,6 +20,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty anamorphism;
 
         public SerializedProperty antialiasing;
+        public SerializedProperty SMAAQuality;
         public SerializedProperty dithering;
         public SerializedProperty stopNaNs;
         public SerializedProperty clearColorMode;
@@ -29,6 +30,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public SerializedProperty clearDepth;
         public SerializedProperty volumeLayerMask;
         public SerializedProperty volumeAnchorOverride;
+        public SerializedProperty allowDynamicResolution;
         public SerializedFrameSettings frameSettings;
         public CameraEditor.Settings baseCameraSettings { get; private set; }
 
@@ -53,7 +55,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             serializedAdditionalDataObject.ApplyModifiedProperties();
 
             //backgroundColor = serializedObject.FindProperty("m_BackGroundColor");
-           
             iso = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Iso");
             shutterSpeed = serializedAdditionalDataObject.FindProperty("physicalParameters.m_ShutterSpeed");
             aperture = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Aperture");
@@ -63,6 +64,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             anamorphism = serializedAdditionalDataObject.FindProperty("physicalParameters.m_Anamorphism");
 
             antialiasing = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.antialiasing);
+            SMAAQuality = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.SMAAQuality);
             dithering = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.dithering);
             stopNaNs = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.stopNaNs);
             clearColorMode = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.clearColorMode);
@@ -78,6 +80,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 );
 
             probeLayerMask = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.probeLayerMask);
+            allowDynamicResolution = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.allowDynamicResolution);
 
             baseCameraSettings = new CameraEditor.Settings(serializedObject);
             baseCameraSettings.OnEnable();

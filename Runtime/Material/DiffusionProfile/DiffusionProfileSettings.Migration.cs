@@ -15,6 +15,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             Initial,                // 16 profiles per asset
             DiffusionProfileRework, // one profile per asset
+            // This must stay updated to the latest version
+            Last = DiffusionProfileRework,
         }
         
         [Obsolete("Profiles are obsolete, only one diffusion profile per asset is allowed.")]
@@ -40,7 +42,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 
                 // If the asset importer for the asset we're upgrading is null, it means that the asset
                 // does not exists on the disk and we don't want to upgrade these assets
-                var importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(d));
+                string assetPath = AssetDatabase.GetAssetPath(d);
+                var importer = AssetImporter.GetAtPath(assetPath);
                 if (importer == null)
                     return;
                 
@@ -54,11 +57,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 // diffusion profile which have been modified, and store them into a dictionary to be able to upgrade materials
                 int index = 0;
                 var newProfiles = new Dictionary<int, DiffusionProfileSettings>();
+                string assetName = Path.GetFileNameWithoutExtension(assetPath);
                 foreach (var profile in d.profiles)
                 {
                     if (!profile.Equals(defaultProfile))
                     {
-                        newProfiles[index] = CreateNewDiffusionProfile(d, profile, index);
+                        newProfiles[index] = CreateNewDiffusionProfile(d, assetName, profile, index);
                         // Update the diffusion profile hash is required for assets that are upgraded because it will
                         // be assigned to materials right after the create of the asset so we don't wait for the auto hash update
                         UnityEditor.Experimental.Rendering.HDPipeline.DiffusionProfileHashTable.UpdateDiffusionProfileHashNow(newProfiles[index]);
@@ -168,23 +172,25 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     stencilRef |= (int)HDRenderPipeline.StencilBitMask.DoesntReceiveSSR;
                 }
 
-                // As we tag both during velocity pass and Gbuffer pass we need a separate state and we need to use the write mask
+                // As we tag both during motion vector pass and Gbuffer pass we need a separate state and we need to use the write mask
                 mat.SetInt("_StencilRef", stencilRef);
                 mat.SetInt("_StencilWriteMask", stencilWriteMask);
-                mat.SetInt("_StencilRefMV", (int)HDRenderPipeline.StencilBitMask.ObjectVelocity);
-                mat.SetInt("_StencilWriteMaskMV", (int)HDRenderPipeline.StencilBitMask.ObjectVelocity);
+                mat.SetInt("_StencilRefMV", (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors);
+                mat.SetInt("_StencilWriteMaskMV", (int)HDRenderPipeline.StencilBitMask.ObjectMotionVectors);
             }
         }
 
-        static DiffusionProfileSettings CreateNewDiffusionProfile(DiffusionProfileSettings asset, DiffusionProfile profile, int index)
+        static DiffusionProfileSettings CreateNewDiffusionProfile(DiffusionProfileSettings asset, string assetName, DiffusionProfile profile, int index)
         {
             var path = AssetDatabase.GetAssetPath(asset);
-            path = Path.GetDirectoryName(path) + "/" + Path.GetFileNameWithoutExtension(path) + "_" + profile.name + Path.GetExtension(path);
+            path = Path.GetDirectoryName(path) + "/" + assetName + "_" + profile.name + Path.GetExtension(path);
             path = AssetDatabase.GenerateUniqueAssetPath(path);
 
             if (index == 0)
             {
                 asset.profile = profile;
+                profile.Validate();
+                asset.UpdateCache();
                 AssetDatabase.MoveAsset(AssetDatabase.GetAssetPath(asset), path);
                 return asset;
             }
@@ -206,7 +212,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 UnityEditor.EditorUtility.SetDirty(this);
                 UnityEditor.AssetDatabase.SaveAssets();
-                UnityEditor.AssetDatabase.Refresh();
+                // Do not refresh the database now because it will force the reimport of all new diffusion profile settings
+                EditorApplication.delayCall += UnityEditor.AssetDatabase.Refresh;
             }
         }
 #endif
