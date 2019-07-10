@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine.Rendering;
 using System;
 using System.Diagnostics;
@@ -219,7 +219,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             InitializeDebugMaterials();
 
-
             m_MaterialList.ForEach(material => material.Build(asset));
 
             m_IBLFilterGGX = new IBLFilterGGX(asset.renderPipelineResources);
@@ -232,8 +231,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_DebugDisplaySettings.RegisterDebug();
 #if UNITY_EDITOR
-            // We don't need the debug of Default camera at runtime (each camera have its own debug settings)
-            FrameSettings.RegisterDebug("Default Camera", m_Asset.GetFrameSettings());
+            // We don't need the debug of Scene View at runtime (each camera have its own debug settings)
+            FrameSettings.RegisterDebug("Scene View", m_Asset.GetFrameSettings());
 #endif
 
             InitializeRenderTextures();
@@ -321,6 +320,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         void SetRenderingFeatures()
         {
+            // Set subshader pipeline tag
+            Shader.globalRenderPipeline = "HDRenderPipeline";
+
             // HD use specific GraphicsSettings
             GraphicsSettings.lightsUseLinearIntensity = true;
             GraphicsSettings.lightsUseColorTemperature = true;
@@ -348,6 +350,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 Debug.LogError("High Definition Render Pipeline doesn't support Gamma mode, change to Linear mode");
             }
 #endif
+        }
+
+        void UnsetRenderingFeatures()
+        {
+            Shader.globalRenderPipeline = "";
+
+            SupportedRenderingFeatures.active = new SupportedRenderingFeatures();
+
+            Lightmapping.ResetDelegate();
         }
 
         void InitializeDebugMaterials()
@@ -415,15 +426,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_SSSBufferManager.Cleanup();
             m_SkyManager.Cleanup();
             m_VolumetricLightingModule.Cleanup();
+            m_IBLFilterGGX.Cleanup();
 
             DestroyRenderTextures();
 
-            SupportedRenderingFeatures.active = new SupportedRenderingFeatures();
-
-            Lightmapping.ResetDelegate();
+            UnsetRenderingFeatures();
 
 #if UNITY_EDITOR
             SceneViewDrawMode.ResetDrawMode();
+            FrameSettings.UnRegisterDebug("Scene View");
 #endif
         }
 
@@ -523,6 +534,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
             base.Render(renderContext, cameras);
+            RenderPipeline.BeginFrameRendering(cameras);
 
             if (m_FrameCount != Time.frameCount)
             {
@@ -544,6 +556,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 if (camera == null)
                     continue;
+
+                RenderPipeline.BeginCameraRendering(camera);
 
                 if (camera.cameraType != CameraType.Reflection)
                     // TODO: Render only visible probes
@@ -619,6 +633,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                             }
                             VolumeManager.instance.Update(camera.transform, layerMask);
                         }
+                    }
+
+                    // Disable postprocess if we enable debug mode
+                    if (m_CurrentDebugDisplaySettings.fullScreenDebugMode == FullScreenDebugMode.None && m_CurrentDebugDisplaySettings.IsDebugDisplayEnabled())
+                    {
+                        m_FrameSettings.enablePostprocess = false;
                     }
 
                     var postProcessLayer = camera.GetComponent<PostProcessLayer>();
@@ -1460,8 +1480,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             Vector2 pyramidScale = m_BufferPyramid.GetPyramidToScreenScale(hdCamera);
             PushFullScreenDebugTextureMip(cmd, m_BufferPyramid.depthPyramid, m_BufferPyramid.GetPyramidLodCount(hdCamera), new Vector4(pyramidScale.x, pyramidScale.y, 0.0f, 0.0f), hdCamera, debugMode);
-
-            cmd.SetGlobalTexture(HDShaderIDs._PyramidDepthTexture, m_BufferPyramid.depthPyramid);
         }
 
         void RenderPostProcess(HDCamera hdcamera, CommandBuffer cmd, PostProcessLayer layer)

@@ -82,7 +82,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             base.OnEnable();
 
             // Get & automatically add additional HD data if not present
-            var lightData = CoreEditorUtils.GetAdditionalData<HDAdditionalLightData>(targets);
+            var lightData = CoreEditorUtils.GetAdditionalData<HDAdditionalLightData>(targets, HDAdditionalLightData.InitDefaultHDAdditionalLightData);
             var shadowData = CoreEditorUtils.GetAdditionalData<AdditionalShadowData>(targets, HDAdditionalShadowData.InitDefaultHDAdditionalShadowData);
             m_SerializedAdditionalLightData = new SerializedObject(lightData);
             m_SerializedAdditionalShadowData = new SerializedObject(shadowData);
@@ -139,6 +139,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_SerializedAdditionalLightData.Update();
             m_SerializedAdditionalShadowData.Update();
 
+            // Disable the default light editor for the release, it is just use for development
+            /*
             // Temporary toggle to go back to the old editor & separated additional datas
             bool useOldInspector = m_AdditionalLightData.useOldInspector.boolValue;
 
@@ -155,6 +157,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 m_SerializedAdditionalLightData.ApplyModifiedProperties();
                 return;
             }
+            */
 
             // New editor
             ApplyAdditionalComponentsVisibility(true);
@@ -305,6 +308,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
+        // Caution: this function must match the one in HDAdditionalLightData.ConvertPhysicalLightIntensityToLightIntensity - any change need to be replicated
         void UpdateLightIntensity()
         {
             switch (m_LightShape)
@@ -330,7 +334,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     break;
 
                 case LightShape.Line:
-                    settings.intensity.floatValue = LightUtils.calculateLineLightArea(m_AdditionalLightData.areaIntensity.floatValue, m_AdditionalLightData.shapeWidth.floatValue);
+                    settings.intensity.floatValue = LightUtils.CalculateLineLightIntensity(m_AdditionalLightData.areaIntensity.floatValue, m_AdditionalLightData.shapeWidth.floatValue);
                     break;
             }
         }
@@ -397,6 +401,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             if (EditorGUI.EndChangeCheck())
             {
+                m_AdditionalLightData.fadeDistance.floatValue = Mathf.Max(m_AdditionalLightData.fadeDistance.floatValue, 0.01f);
                 ((Light)target).SetLightDirty(); // Should be apply only to parameter that's affect GI, but make the code cleaner
             }
         }
@@ -452,7 +457,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 if (EditorGUI.EndChangeCheck())
                 {
                     // Link min to max and don't expose normalBiasScale (useless when min == max)
-                    m_AdditionalShadowData.normalBiasMax = m_AdditionalShadowData.normalBiasMin;
+                    m_AdditionalShadowData.normalBiasMax.floatValue = m_AdditionalShadowData.normalBiasMin.floatValue;
                 }
                 //EditorGUILayout.PropertyField(m_AdditionalShadowData.normalBiasMax, s_Styles.normalBiasMax);
                 //EditorGUILayout.PropertyField(m_AdditionalShadowData.normalBiasScale, s_Styles.normalBiasScale);
@@ -486,7 +491,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             var type = settings.lightType;
 
             // Special case for multi-selection: don't resolve light shape or it'll corrupt lights
-            if (type.hasMultipleDifferentValues)
+            if (type.hasMultipleDifferentValues
+                || m_AdditionalLightData.lightTypeExtent.hasMultipleDifferentValues)
             {
                 m_LightShape = (LightShape)(-1);
                 return;
