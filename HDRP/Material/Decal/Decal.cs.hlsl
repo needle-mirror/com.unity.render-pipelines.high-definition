@@ -43,6 +43,7 @@ struct DecalData
     float4 diffuseScaleBias;
     float4 normalScaleBias;
     float4 maskScaleBias;
+    float4 baseColor;
 };
 
 //
@@ -67,6 +68,10 @@ float4 GetNormalScaleBias(DecalData value)
 float4 GetMaskScaleBias(DecalData value)
 {
     return value.maskScaleBias;
+}
+float4 GetBaseColor(DecalData value)
+{
+    return value.baseColor;
 }
 
 //
