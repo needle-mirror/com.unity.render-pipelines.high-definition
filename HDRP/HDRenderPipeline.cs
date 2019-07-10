@@ -164,6 +164,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         RTHandle                        m_DebugColorPickerBuffer;
         RTHandle                        m_DebugFullScreenTempBuffer;
         bool                            m_FullScreenDebugPushed;
+        bool                            m_ValidAPI; // False by default mean we render normally, true mean we don't render anything
 
         public Material GetBlitMaterial() { return m_Blit; }
 
@@ -171,7 +172,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public HDRenderPipeline(HDRenderPipelineAsset asset)
         {
-            SetRenderingFeatures();
+            m_ValidAPI = true;
+
+            if (!SetRenderingFeatures())
+            {
+                m_ValidAPI = false;
+
+                return ;
+            }            
 
             m_Asset = asset;
             m_GPUCopy = new GPUCopy(asset.renderPipelineResources.copyChannelCS);
@@ -317,7 +325,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         }
 
 
-        void SetRenderingFeatures()
+        bool SetRenderingFeatures()
         {
             // Set subshader pipeline tag
             Shader.globalRenderPipeline = "HDRenderPipeline";
@@ -348,7 +356,68 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 Debug.LogError("High Definition Render Pipeline doesn't support Gamma mode, change to Linear mode");
             }
+
+
 #endif
+
+            if (!IsSupportedPlatform())
+            {
+                Debug.LogError("Platform " + SystemInfo.operatingSystem + " with device " + SystemInfo.graphicsDeviceType.ToString() + " is not supported, no rendering will occur");
+
+#if UNITY_EDITOR
+                foreach (UnityEditor.SceneView sv in Resources.FindObjectsOfTypeAll(typeof(UnityEditor.SceneView)))
+                    sv.ShowNotification(new GUIContent("Platform " + SystemInfo.operatingSystem + " with device " + SystemInfo.graphicsDeviceType.ToString() + " is not supported, no rendering will occur"));
+#endif                
+
+                return false;
+            }
+
+            return true;
+        }
+
+        bool IsSupportedPlatform()
+        {
+            if (!SystemInfo.supportsComputeShaders)
+                return false;
+
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation4 ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12 ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan)
+            {
+                return true;
+            }
+
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
+            {
+                string os = SystemInfo.operatingSystem;
+
+                // Metal support depends on OS version:
+                // macOS 10.11.x doesn't have tessellation / earlydepthstencil support, early driver versions were buggy in general
+                // macOS 10.12.x should usually work with AMD, but issues with Intel/Nvidia GPUs. Regardless of the GPU, there are issues with MTLCompilerService crashing with some shaders
+                // macOS 10.13.x is expected to work, and if it's a driver/shader compiler issue, there's still hope on getting it fixed to next shipping OS patch release
+                //
+                // Has worked experimentally with iOS in the past, but it's not currently supported
+                //
+
+                if (os.StartsWith("Mac"))
+                {
+                    // TODO: Expose in C# version number, for now assume "Mac OS X 10.10.4" format with version 10 at least
+                    int startIndex = os.LastIndexOf(" ");
+                    var parts = os.Substring(startIndex + 1).Split('.');
+                    int a = Convert.ToInt32(parts[0]);
+                    int b = Convert.ToInt32(parts[1]);
+                    // In case in the future there's a need to disable specific patch releases
+                    // int c = Convert.ToInt32(parts[2]);
+
+                    if (a >= 10 && b >= 13)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         void UnsetRenderingFeatures()
@@ -389,6 +458,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public override void Dispose()
         {
+            UnsetRenderingFeatures();
+
+            if (!m_ValidAPI)
+                return ;
+
             base.Dispose();
 
             m_DebugDisplaySettings.UnregisterDebug();
@@ -420,8 +494,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_IBLFilterGGX.Cleanup();
 
             DestroyRenderTextures();
-
-            UnsetRenderingFeatures();
 
 #if UNITY_EDITOR
             SceneViewDrawMode.ResetDrawMode();
@@ -528,6 +600,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         ReflectionProbeCullResults m_ReflectionProbeCullResults;
         public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
         {
+            if (!m_ValidAPI)
+                return;
+
             base.Render(renderContext, cameras);
             RenderPipeline.BeginFrameRendering(cameras);
 
