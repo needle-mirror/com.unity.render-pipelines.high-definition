@@ -27,7 +27,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("Assets/Create/Render Pipeline/High Definition/Render Pipeline", priority = CoreUtils.assetCreateMenuPriority1)]
+        [MenuItem("Assets/Create/Rendering/High Definition Render Pipeline Asset", priority = CoreUtils.assetCreateMenuPriority1)]
         static void CreateHDRenderPipeline()
         {
             var icon = EditorGUIUtility.FindTexture("ScriptableObject Icon");
@@ -49,7 +49,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                 // Load default renderPipelineResources / Material / Shader
                 string HDRenderPipelinePath = HDEditorUtils.GetHDRenderPipelinePath();
-                string PostProcessingPath = HDEditorUtils.GetPostProcessingPath();
                 string CorePath = HDEditorUtils.GetCorePath();
 
                 newAsset.defaultDiffuseMaterial = Load<Material>(HDRenderPipelinePath + "RenderPipelineResources/DefaultHDMaterial.mat");
@@ -64,9 +63,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 newAsset.debugColorPickerShader = Load<Shader>(HDRenderPipelinePath + "Debug/DebugColorPicker.Shader");
 
                 newAsset.deferredShader = Load<Shader>(HDRenderPipelinePath + "Lighting/Deferred.Shader");
-                newAsset.gaussianPyramidCS = Load<ComputeShader>(PostProcessingPath + "Shaders/Builtins/GaussianDownsample.compute");
-                newAsset.depthPyramidCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipelineResources/DepthDownsample.compute");
-                newAsset.copyChannelCS = Load<ComputeShader>(CorePath + "Resources/GPUCopy.compute");
+                newAsset.colorPyramidCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipelineResources/ColorPyramid.compute");
+                newAsset.depthPyramidCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipelineResources/DepthPyramid.compute");
+                newAsset.copyChannelCS = Load<ComputeShader>(CorePath + "CoreResources/GPUCopy.compute");
                 newAsset.applyDistortionCS = Load<ComputeShader>(HDRenderPipelinePath + "RenderPipelineResources/ApplyDistorsion.compute");
 
                 newAsset.clearDispatchIndirectShader = Load<ComputeShader>(HDRenderPipelinePath + "Lighting/LightLoop/cleardispatchindirect.compute");
@@ -88,6 +87,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 // General
                 newAsset.cameraMotionVectors = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/CameraMotionVectors.shader");
                 newAsset.copyStencilBuffer = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/CopyStencilBuffer.shader");
+                newAsset.copyDepthBuffer = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/CopyDepthBuffer.shader");
                 newAsset.blit = Load<Shader>(HDRenderPipelinePath + "RenderPipelineResources/Blit.shader");
 
                 // Sky
@@ -97,17 +97,25 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 newAsset.GGXConvolve = Load<Shader>(HDRenderPipelinePath + "Material/GGXConvolution/GGXConvolve.shader");
                 newAsset.opaqueAtmosphericScattering = Load<Shader>(HDRenderPipelinePath + "Sky/OpaqueAtmosphericScattering.shader");
 
-                newAsset.encodeBC6HCS = Load<ComputeShader>(CorePath + "Resources/EncodeBC6H.compute");
+                // Utilities / Core
+                newAsset.encodeBC6HCS = Load<ComputeShader>(CorePath + "CoreResources/EncodeBC6H.compute");
+                newAsset.cubeToPanoShader = Load<Shader>(CorePath + "CoreResources/CubeToPano.shader");
+                newAsset.blitCubeTextureFace = Load<Shader>(CorePath + "CoreResources/BlitCubeTextureFace.shader");
 
                 // Skybox/Cubemap is a builtin shader, must use Sahder.Find to access it. It is fine because we are in the editor
                 newAsset.skyboxCubemap = Shader.Find("Skybox/Cubemap");
+
+                // Shadow
+                newAsset.shadowClearShader = Load<Shader>(CorePath + "Shadow/ShadowClear.shader");
+                newAsset.shadowBlurMoments = Load<ComputeShader>(CorePath + "Shadow/ShadowBlurMoments.compute");
+                newAsset.debugShadowMapShader = Load<Shader>(CorePath + "Shadow/DebugDisplayShadowMap.shader");
 
                 AssetDatabase.CreateAsset(newAsset, pathName);
                 ProjectWindowUtil.ShowCreatedAsset(newAsset);
             }
         }
 
-        [MenuItem("Assets/Create/Render Pipeline/High Definition/Render Pipeline Resources", priority = CoreUtils.assetCreateMenuPriority1)]
+        [MenuItem("Assets/Create/Rendering/High Definition Render Pipeline Resources", priority = CoreUtils.assetCreateMenuPriority1)]
         static void CreateRenderPipelineResources()
         {
             var icon = EditorGUIUtility.FindTexture("ScriptableObject Icon");

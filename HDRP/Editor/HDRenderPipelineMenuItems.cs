@@ -12,6 +12,52 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
     public class HDRenderPipelineMenuItems
     {
+        [MenuItem("Internal/HDRenderPipeline/Upgrade Scene Light Intensity to physical light unit", priority = CoreUtils.editMenuPriority2)]
+        static void UpgradeLightsPLU()
+        {
+            Light[] lights = Resources.FindObjectsOfTypeAll<Light>();
+
+            foreach (var l in lights)
+            {
+                var add = l.GetComponent<HDAdditionalLightData>();
+
+                if (add == null)
+                {
+                    continue;
+                }
+
+                // We only need to update the new intensity parameters on additional data, no need to change intensity
+                if (add.lightTypeExtent == LightTypeExtent.Punctual)
+                {
+                    switch (l.type)
+                    {
+                        case LightType.Point:
+                            add.punctualIntensity = l.intensity / LightUtils.ConvertPointLightIntensity(1.0f);
+                            break;
+
+                        case LightType.Spot:
+                            add.punctualIntensity = l.intensity / LightUtils.ConvertPointLightIntensity(1.0f);
+                            break;
+
+                        case LightType.Directional:
+                            add.directionalIntensity = l.intensity;
+                            break;
+                    }
+                }
+                else if (add.lightTypeExtent == LightTypeExtent.Rectangle)
+                {
+                    add.areaIntensity = l.intensity / LightUtils.ConvertRectLightIntensity(1.0f, add.shapeWidth, add.shapeHeight);
+                }
+                else if (add.lightTypeExtent == LightTypeExtent.Line)
+                {
+                    add.areaIntensity = l.intensity / LightUtils.calculateLineLightArea(1.0f, add.shapeWidth);
+                }
+            }
+
+            var scene = SceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
         [MenuItem("Internal/HDRenderPipeline/Add \"Additional Light-shadow Data\" (if not present)")]
         static void AddAdditionalLightData()
         {
@@ -24,7 +70,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     light.gameObject.AddComponent<HDAdditionalLightData>();
 
                 if (light.GetComponent<AdditionalShadowData>() == null)
-                    light.gameObject.AddComponent<AdditionalShadowData>();
+                {
+                    AdditionalShadowData shadowData = light.gameObject.AddComponent<AdditionalShadowData>();
+                    HDAdditionalShadowData.InitDefaultHDAdditionalShadowData(shadowData);
+                }
             }
         }
 
@@ -76,7 +125,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // In case the shader code have change and the inspector have been update with new kind of keywords we need to regenerate the set of keywords use by the material.
         // This script will remove all keyword of a material and trigger the inspector that will re-setup all the used keywords.
         // It require that the inspector of the material have a static function call that update all keyword based on material properties.
-        [MenuItem("Edit/Render Pipeline/Upgrade/High Definition/Reset All Materials Keywords (Loaded Materials)", priority = CoreUtils.editMenuPriority2)]
+        [MenuItem("Edit/Render Pipeline/Reset All Loaded High Definition Materials Keywords", priority = CoreUtils.editMenuPriority3)]
         static void ResetAllMaterialKeywords()
         {
             try
@@ -89,7 +138,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("Edit/Render Pipeline/Upgrade/High Definition/Reset All Material Asset's Keywords (Materials in Project)", priority = CoreUtils.editMenuPriority2)]
+        // Don't expose, ResetAllMaterialKeywordsInProjectAndScenes include it anyway
+        //[MenuItem("Edit/Render Pipeline/Reset All Material Asset's Keywords (Materials in Project)", priority = CoreUtils.editMenuPriority3)]
         static void ResetAllMaterialAssetsKeywords()
         {
             try
@@ -102,7 +152,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("Edit/Render Pipeline/Upgrade/High Definition/Reset All Materials Keywords (Materials in Project and scenes)", priority = CoreUtils.editMenuPriority2)]
+        [MenuItem("Edit/Render Pipeline/Reset All Project and Scene High Definition Materials Keywords", priority = CoreUtils.editMenuPriority3)]
         static void ResetAllMaterialKeywordsInProjectAndScenes()
         {
             var openedScenes = new string[EditorSceneManager.loadedSceneCount];
@@ -125,7 +175,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     var sceneName = Path.GetFileNameWithoutExtension(scenePath);
                     var description = string.Format("{0} {1}/{2} - ", sceneName, i + 1, scenes.Length);
 
-                    ResetAllLoadedMaterialKeywords(description, scale, scale * i);
+                    if (ResetAllLoadedMaterialKeywords(description, scale, scale * i))
+                    {
+                        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
+                    }
                 }
 
                 ResetAllMaterialAssetsKeywords(scale, scale * (scenes.Length - 1));
@@ -143,8 +196,35 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("Internal/HDRenderPipeline/Update/Update SSS profile indices")]
-        static void UpdateSSSProfileIndices()
+        [MenuItem("Internal/HDRenderPipeline/Update/Update diffusion profile")]
+        static void UpdateDiffusionProfile()
+        {
+            var matIds = AssetDatabase.FindAssets("t:DiffusionProfileSettings");
+
+            for (int i = 0, length = matIds.Length; i < length; i++)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(matIds[i]);
+                var diffusionProfileSettings = AssetDatabase.LoadAssetAtPath<DiffusionProfileSettings>(path);
+
+                bool VSCEnabled = (UnityEditor.VersionControl.Provider.enabled && UnityEditor.VersionControl.Provider.isActive);
+                CheckOutFile(VSCEnabled, diffusionProfileSettings);
+
+                var profiles = diffusionProfileSettings.profiles;
+
+                for (int j = 0; j < profiles.Length; j++)
+                {
+                    if ((uint)profiles[j].transmissionMode == 2)
+                    {
+                        profiles[j].transmissionMode = (DiffusionProfile.TransmissionMode)0;
+                    }
+                }
+
+                EditorUtility.SetDirty(diffusionProfileSettings);
+            }
+        }
+
+        [MenuItem("Internal/HDRenderPipeline/Update/Update material for clear coat")]
+        static void UpdateMaterialForClearCoat()
         {
             try
             {
@@ -157,7 +237,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                     EditorUtility.DisplayProgressBar(
                         "Setup materials Keywords...",
-                        string.Format("{0} / {1} materials SSS updated.", i, length),
+                        string.Format("{0} / {1} materials clearcoat updated.", i, length),
                         i / (float)(length - 1));
 
                     bool VSCEnabled = (UnityEditor.VersionControl.Provider.enabled && UnityEditor.VersionControl.Provider.isActive);
@@ -165,11 +245,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     if (mat.shader.name == "HDRenderPipeline/LitTessellation" ||
                         mat.shader.name == "HDRenderPipeline/Lit")
                     {
-                        if (mat.HasProperty("_SubsurfaceProfile"))
+                        if (mat.HasProperty("_CoatMask"))
                         {
+                            // 3 is Old value for clear coat
+                            float materialID = mat.GetInt("_MaterialID");
+                            if (materialID == 3.0)
+                                continue;
+
                             CheckOutFile(VSCEnabled, mat);
-                            //float value = mat.GetInt("_DiffusionProfile");
-                            //mat.SetInt("_DiffusionProfile", 0);
+                            mat.SetInt("_CoatMask", 0);
 
                             EditorUtility.SetDirty(mat);
                         }
@@ -177,6 +261,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     else if (mat.shader.name == "HDRenderPipeline/LayeredLit" ||
                                 mat.shader.name == "HDRenderPipeline/LayeredLitTessellation")
                     {
+                        /*
                         bool hasSubsurfaceProfile = false;
 
                         int numLayer = (int)mat.GetFloat("_LayerCount");
@@ -203,6 +288,65 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
                                     EditorUtility.SetDirty(mat);
                                 }
+                            }
+
+                            EditorUtility.SetDirty(mat);
+                        }
+                        */
+                    }
+                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
+        [MenuItem("Internal/HDRenderPipeline/Update/Update material for subsurface")]
+        static void UpdateMaterialForSubsurface()
+        {
+            try
+            {
+                var matIds = AssetDatabase.FindAssets("t:Material");
+
+                for (int i = 0, length = matIds.Length; i < length; i++)
+                {
+                    var path = AssetDatabase.GUIDToAssetPath(matIds[i]);
+                    var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+
+                    EditorUtility.DisplayProgressBar(
+                        "Setup materials Keywords...",
+                        string.Format("{0} / {1} materials subsurface updated.", i, length),
+                        i / (float)(length - 1));
+
+                    bool VSCEnabled = (UnityEditor.VersionControl.Provider.enabled && UnityEditor.VersionControl.Provider.isActive);
+
+                    if (mat.shader.name == "HDRenderPipeline/LitTessellation" ||
+                        mat.shader.name == "HDRenderPipeline/Lit" ||
+                        mat.shader.name == "HDRenderPipeline/LayeredLit" ||
+                        mat.shader.name == "HDRenderPipeline/LayeredLitTessellation")
+                    {
+                        float materialID = mat.GetInt("_MaterialID");
+                        if (materialID != 0.0)
+                            continue;
+
+                        if (mat.HasProperty("_SSSAndTransmissionType"))
+                        {
+                            CheckOutFile(VSCEnabled, mat);
+
+                            int materialSSSAndTransmissionID = mat.GetInt("_SSSAndTransmissionType");
+
+                            // Both;, SSS only, Transmission only
+                            if (materialSSSAndTransmissionID == 2.0)
+                            {
+                                mat.SetInt("_MaterialID", 5);
+                            }
+                            else
+                            {
+                                if (materialSSSAndTransmissionID == 0.0)
+                                    mat.SetFloat("_TransmissionEnable", 1.0f);
+                                else
+                                    mat.SetFloat("_TransmissionEnable", 0.0f);
                             }
 
                             EditorUtility.SetDirty(mat);
@@ -332,7 +476,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("Edit/Render Pipeline/Tools/High Definition/Export Sky to Image", priority = CoreUtils.editMenuPriority2)]
+        [MenuItem("Edit/Render Pipeline/Export Sky to Image", priority = CoreUtils.editMenuPriority3)]
         static void ExportSkyToImage()
         {
             var renderpipeline = RenderPipelineManager.currentPipeline as HDRenderPipeline;
@@ -358,7 +502,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        [MenuItem("GameObject/Render Pipeline/High Definition/Scene Settings", priority = CoreUtils.gameObjectMenuPriority)]
+        [MenuItem("GameObject/Rendering/Scene Settings", priority = CoreUtils.gameObjectMenuPriority)]
         static void CreateCustomGameObject(MenuCommand menuCommand)
         {
             var sceneSettings = new GameObject("Scene Settings");
@@ -396,7 +540,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         class DoCreateNewAssetDiffusionProfileSettings : DoCreateNewAsset<DiffusionProfileSettings> {}
 
-        [MenuItem("Assets/Create/Render Pipeline/High Definition/Diffusion profile Settings", priority = CoreUtils.assetCreateMenuPriority2)]
+        [MenuItem("Assets/Create/Rendering/Diffusion profile Settings", priority = CoreUtils.assetCreateMenuPriority2)]
         static void MenuCreateDiffusionProfile()
         {
             var icon = EditorGUIUtility.FindTexture("ScriptableObject Icon");
@@ -427,11 +571,13 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
         }
 
-        static void ResetAllLoadedMaterialKeywords(string descriptionPrefix, float progressScale, float progressOffset)
+        static bool ResetAllLoadedMaterialKeywords(string descriptionPrefix, float progressScale, float progressOffset)
         {
             var materials = Resources.FindObjectsOfTypeAll<Material>();
 
             bool VSCEnabled = (UnityEditor.VersionControl.Provider.enabled && UnityEditor.VersionControl.Provider.isActive);
+
+            bool anyMaterialDirty = false; // Will be true if any material is dirty.
 
             for (int i = 0, length = materials.Length; i < length; i++)
             {
@@ -441,8 +587,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     (i / (float)(length - 1)) * progressScale + progressOffset);
 
                 CheckOutFile(VSCEnabled, materials[i]);
-                HDEditorUtils.ResetMaterialKeywords(materials[i]);
+
+                if (HDEditorUtils.ResetMaterialKeywords(materials[i]))
+                {
+                    anyMaterialDirty = true;
+                }
             }
+
+            return anyMaterialDirty;
         }
 
         class UnityContextualLogHandler : ILogHandler

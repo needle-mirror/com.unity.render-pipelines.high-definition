@@ -28,22 +28,24 @@
 #define DEBUGVIEW_LIT_SURFACEDATA_MATERIAL_FEATURES (1000)
 #define DEBUGVIEW_LIT_SURFACEDATA_BASE_COLOR (1001)
 #define DEBUGVIEW_LIT_SURFACEDATA_SPECULAR_OCCLUSION (1002)
-#define DEBUGVIEW_LIT_SURFACEDATA_NORMAL_WS (1003)
-#define DEBUGVIEW_LIT_SURFACEDATA_PERCEPTUAL_SMOOTHNESS (1004)
-#define DEBUGVIEW_LIT_SURFACEDATA_AMBIENT_OCCLUSION (1005)
-#define DEBUGVIEW_LIT_SURFACEDATA_METALLIC (1006)
-#define DEBUGVIEW_LIT_SURFACEDATA_COAT_MASK (1007)
-#define DEBUGVIEW_LIT_SURFACEDATA_SPECULAR_COLOR (1008)
-#define DEBUGVIEW_LIT_SURFACEDATA_DIFFUSION_PROFILE (1009)
-#define DEBUGVIEW_LIT_SURFACEDATA_SUBSURFACE_MASK (1010)
-#define DEBUGVIEW_LIT_SURFACEDATA_THICKNESS (1011)
-#define DEBUGVIEW_LIT_SURFACEDATA_TANGENT_WS (1012)
-#define DEBUGVIEW_LIT_SURFACEDATA_ANISOTROPY (1013)
-#define DEBUGVIEW_LIT_SURFACEDATA_THICKNESS_IRID (1014)
-#define DEBUGVIEW_LIT_SURFACEDATA_IOR (1015)
-#define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_COLOR (1016)
-#define DEBUGVIEW_LIT_SURFACEDATA_AT_DISTANCE (1017)
-#define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_MASK (1018)
+#define DEBUGVIEW_LIT_SURFACEDATA_NORMAL (1003)
+#define DEBUGVIEW_LIT_SURFACEDATA_NORMAL_VIEW_SPACE (1004)
+#define DEBUGVIEW_LIT_SURFACEDATA_SMOOTHNESS (1005)
+#define DEBUGVIEW_LIT_SURFACEDATA_AMBIENT_OCCLUSION (1006)
+#define DEBUGVIEW_LIT_SURFACEDATA_METALLIC (1007)
+#define DEBUGVIEW_LIT_SURFACEDATA_COAT_MASK (1008)
+#define DEBUGVIEW_LIT_SURFACEDATA_SPECULAR_COLOR (1009)
+#define DEBUGVIEW_LIT_SURFACEDATA_DIFFUSION_PROFILE (1010)
+#define DEBUGVIEW_LIT_SURFACEDATA_SUBSURFACE_MASK (1011)
+#define DEBUGVIEW_LIT_SURFACEDATA_THICKNESS (1012)
+#define DEBUGVIEW_LIT_SURFACEDATA_TANGENT (1013)
+#define DEBUGVIEW_LIT_SURFACEDATA_ANISOTROPY (1014)
+#define DEBUGVIEW_LIT_SURFACEDATA_IRIDESCENCE_LAYER_THICKNESS (1015)
+#define DEBUGVIEW_LIT_SURFACEDATA_IRIDESCENCE_MASK (1016)
+#define DEBUGVIEW_LIT_SURFACEDATA_INDEX_OF_REFRACTION (1017)
+#define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_COLOR (1018)
+#define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_ABSORPTION_DISTANCE (1019)
+#define DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_MASK (1020)
 
 //
 // UnityEngine.Experimental.Rendering.HDPipeline.Lit+BSDFData:  static fields
@@ -53,23 +55,25 @@
 #define DEBUGVIEW_LIT_BSDFDATA_FRESNEL0 (1032)
 #define DEBUGVIEW_LIT_BSDFDATA_SPECULAR_OCCLUSION (1033)
 #define DEBUGVIEW_LIT_BSDFDATA_NORMAL_WS (1034)
-#define DEBUGVIEW_LIT_BSDFDATA_PERCEPTUAL_ROUGHNESS (1035)
-#define DEBUGVIEW_LIT_BSDFDATA_COAT_MASK (1036)
-#define DEBUGVIEW_LIT_BSDFDATA_DIFFUSION_PROFILE (1037)
-#define DEBUGVIEW_LIT_BSDFDATA_SUBSURFACE_MASK (1038)
-#define DEBUGVIEW_LIT_BSDFDATA_THICKNESS (1039)
-#define DEBUGVIEW_LIT_BSDFDATA_USE_THICK_OBJECT_MODE (1040)
-#define DEBUGVIEW_LIT_BSDFDATA_TRANSMITTANCE (1041)
-#define DEBUGVIEW_LIT_BSDFDATA_TANGENT_WS (1042)
-#define DEBUGVIEW_LIT_BSDFDATA_BITANGENT_WS (1043)
-#define DEBUGVIEW_LIT_BSDFDATA_ROUGHNESS_T (1044)
-#define DEBUGVIEW_LIT_BSDFDATA_ROUGHNESS_B (1045)
-#define DEBUGVIEW_LIT_BSDFDATA_ANISOTROPY (1046)
-#define DEBUGVIEW_LIT_BSDFDATA_THICKNESS_IRID (1047)
-#define DEBUGVIEW_LIT_BSDFDATA_COAT_ROUGHNESS (1048)
-#define DEBUGVIEW_LIT_BSDFDATA_IOR (1049)
-#define DEBUGVIEW_LIT_BSDFDATA_ABSORPTION_COEFFICIENT (1050)
-#define DEBUGVIEW_LIT_BSDFDATA_TRANSMITTANCE_MASK (1051)
+#define DEBUGVIEW_LIT_BSDFDATA_NORMAL_VIEW_SPACE (1035)
+#define DEBUGVIEW_LIT_BSDFDATA_PERCEPTUAL_ROUGHNESS (1036)
+#define DEBUGVIEW_LIT_BSDFDATA_COAT_MASK (1037)
+#define DEBUGVIEW_LIT_BSDFDATA_DIFFUSION_PROFILE (1038)
+#define DEBUGVIEW_LIT_BSDFDATA_SUBSURFACE_MASK (1039)
+#define DEBUGVIEW_LIT_BSDFDATA_THICKNESS (1040)
+#define DEBUGVIEW_LIT_BSDFDATA_USE_THICK_OBJECT_MODE (1041)
+#define DEBUGVIEW_LIT_BSDFDATA_TRANSMITTANCE (1042)
+#define DEBUGVIEW_LIT_BSDFDATA_TANGENT_WS (1043)
+#define DEBUGVIEW_LIT_BSDFDATA_BITANGENT_WS (1044)
+#define DEBUGVIEW_LIT_BSDFDATA_ROUGHNESS_T (1045)
+#define DEBUGVIEW_LIT_BSDFDATA_ROUGHNESS_B (1046)
+#define DEBUGVIEW_LIT_BSDFDATA_ANISOTROPY (1047)
+#define DEBUGVIEW_LIT_BSDFDATA_IRIDESCENCE_THICKNESS (1048)
+#define DEBUGVIEW_LIT_BSDFDATA_IRIDESCENCE_MASK (1049)
+#define DEBUGVIEW_LIT_BSDFDATA_COAT_ROUGHNESS (1050)
+#define DEBUGVIEW_LIT_BSDFDATA_IOR (1051)
+#define DEBUGVIEW_LIT_BSDFDATA_ABSORPTION_COEFFICIENT (1052)
+#define DEBUGVIEW_LIT_BSDFDATA_TRANSMITTANCE_MASK (1053)
 
 //
 // UnityEngine.Experimental.Rendering.HDPipeline.Lit+GBufferMaterial:  static fields
@@ -94,7 +98,8 @@ struct SurfaceData
     float thickness;
     float3 tangentWS;
     float anisotropy;
-    float thicknessIrid;
+    float iridescenceThickness;
+    float iridescenceMask;
     float ior;
     float3 transmittanceColor;
     float atDistance;
@@ -122,7 +127,8 @@ struct BSDFData
     float roughnessT;
     float roughnessB;
     float anisotropy;
-    float thicknessIrid;
+    float iridescenceThickness;
+    float iridescenceMask;
     float coatRoughness;
     float ior;
     float3 absorptionCoefficient;
@@ -146,10 +152,13 @@ void GetGeneratedSurfaceDataDebug(uint paramId, SurfaceData surfacedata, inout f
         case DEBUGVIEW_LIT_SURFACEDATA_SPECULAR_OCCLUSION:
             result = surfacedata.specularOcclusion.xxx;
             break;
-        case DEBUGVIEW_LIT_SURFACEDATA_NORMAL_WS:
+        case DEBUGVIEW_LIT_SURFACEDATA_NORMAL:
             result = surfacedata.normalWS * 0.5 + 0.5;
             break;
-        case DEBUGVIEW_LIT_SURFACEDATA_PERCEPTUAL_SMOOTHNESS:
+        case DEBUGVIEW_LIT_SURFACEDATA_NORMAL_VIEW_SPACE:
+            result = surfacedata.normalWS * 0.5 + 0.5;
+            break;
+        case DEBUGVIEW_LIT_SURFACEDATA_SMOOTHNESS:
             result = surfacedata.perceptualSmoothness.xxx;
             break;
         case DEBUGVIEW_LIT_SURFACEDATA_AMBIENT_OCCLUSION:
@@ -174,22 +183,25 @@ void GetGeneratedSurfaceDataDebug(uint paramId, SurfaceData surfacedata, inout f
         case DEBUGVIEW_LIT_SURFACEDATA_THICKNESS:
             result = surfacedata.thickness.xxx;
             break;
-        case DEBUGVIEW_LIT_SURFACEDATA_TANGENT_WS:
+        case DEBUGVIEW_LIT_SURFACEDATA_TANGENT:
             result = surfacedata.tangentWS * 0.5 + 0.5;
             break;
         case DEBUGVIEW_LIT_SURFACEDATA_ANISOTROPY:
             result = surfacedata.anisotropy.xxx;
             break;
-        case DEBUGVIEW_LIT_SURFACEDATA_THICKNESS_IRID:
-            result = surfacedata.thicknessIrid.xxx;
+        case DEBUGVIEW_LIT_SURFACEDATA_IRIDESCENCE_LAYER_THICKNESS:
+            result = surfacedata.iridescenceThickness.xxx;
             break;
-        case DEBUGVIEW_LIT_SURFACEDATA_IOR:
+        case DEBUGVIEW_LIT_SURFACEDATA_IRIDESCENCE_MASK:
+            result = surfacedata.iridescenceMask.xxx;
+            break;
+        case DEBUGVIEW_LIT_SURFACEDATA_INDEX_OF_REFRACTION:
             result = surfacedata.ior.xxx;
             break;
         case DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_COLOR:
             result = surfacedata.transmittanceColor;
             break;
-        case DEBUGVIEW_LIT_SURFACEDATA_AT_DISTANCE:
+        case DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_ABSORPTION_DISTANCE:
             result = surfacedata.atDistance.xxx;
             break;
         case DEBUGVIEW_LIT_SURFACEDATA_TRANSMITTANCE_MASK:
@@ -219,6 +231,9 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
             result = bsdfdata.specularOcclusion.xxx;
             break;
         case DEBUGVIEW_LIT_BSDFDATA_NORMAL_WS:
+            result = bsdfdata.normalWS * 0.5 + 0.5;
+            break;
+        case DEBUGVIEW_LIT_BSDFDATA_NORMAL_VIEW_SPACE:
             result = bsdfdata.normalWS * 0.5 + 0.5;
             break;
         case DEBUGVIEW_LIT_BSDFDATA_PERCEPTUAL_ROUGHNESS:
@@ -257,8 +272,11 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
         case DEBUGVIEW_LIT_BSDFDATA_ANISOTROPY:
             result = bsdfdata.anisotropy.xxx;
             break;
-        case DEBUGVIEW_LIT_BSDFDATA_THICKNESS_IRID:
-            result = bsdfdata.thicknessIrid.xxx;
+        case DEBUGVIEW_LIT_BSDFDATA_IRIDESCENCE_THICKNESS:
+            result = bsdfdata.iridescenceThickness.xxx;
+            break;
+        case DEBUGVIEW_LIT_BSDFDATA_IRIDESCENCE_MASK:
+            result = bsdfdata.iridescenceMask.xxx;
             break;
         case DEBUGVIEW_LIT_BSDFDATA_COAT_ROUGHNESS:
             result = bsdfdata.coatRoughness.xxx;

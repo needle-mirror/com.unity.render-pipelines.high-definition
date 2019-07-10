@@ -470,7 +470,7 @@ void ComputeMaskWeights(float4 inputMasks, out float outWeights[_MAX_LAYER])
     // If a top layer doesn't use the full weight, the remaining can be use by the following layer.
     float weightsSum = 0.0;
 
-    [unroll]
+    UNITY_UNROLL
     for (int i = _LAYER_COUNT - 1; i >= 0; --i)
     {
         outWeights[i] = min(masks[i], (1.0 - weightsSum));
@@ -530,9 +530,6 @@ float GetMaxHeight(float4 heights)
 // Returns layering blend mask after application of height based blend.
 float4 ApplyHeightBlend(float4 heights, float4 blendMask)
 {
-    // Add offsets for all the layers.
-    heights = heights + float4(_HeightOffset0, _HeightOffset1, _HeightOffset2, _HeightOffset3);
-
     // We need to mask out inactive layers so that their height does not impact the result.
     float4 maskedHeights = heights * blendMask.argb;
 
@@ -723,22 +720,15 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING;
 #endif
 #ifdef _MATERIAL_FEATURE_TRANSMISSION
-    // TEMP: The UI must control if we have transmission or not.
-    // Currently until we update the UI, this is control in the diffusion profile
-    uint transmissionMode = BitFieldExtract(asuint(_TransmissionFlags), 2u * surfaceData.diffusionProfile, 2u);
-    // Caution: Because of this dynamic test we don't know anymore statically if we have transmission, which mess with performance.
-    // in deferred case as we still have both sss and transmission until we update the UI it should be the same perf
-    if (transmissionMode != TRANSMISSION_MODE_NONE)
-    {
-        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
-    }
+    surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
 #endif
 
     // Init other parameters
     surfaceData.anisotropy = 0.0;
     surfaceData.specularColor = float3(0.0, 0.0, 0.0);
     surfaceData.coatMask = 0.0;
-    surfaceData.thicknessIrid = 0.0;
+    surfaceData.iridescenceThickness = 0.0;
+    surfaceData.iridescenceMask = 0.0;
 
     // Transparency parameters
     // Use thickness from SSS
@@ -769,7 +759,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
 #endif
 
 #ifndef _DISABLE_DBUFFER
-    AddDecalContribution(posInput.positionSS, surfaceData);
+    AddDecalContribution(posInput, surfaceData);
 #endif
 
 #if defined(DEBUG_DISPLAY)

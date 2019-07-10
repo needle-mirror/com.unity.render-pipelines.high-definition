@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
-using System;
+﻿using System;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -17,6 +15,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         IndirectSpecularOcclusionFromSsao,
         IndirectSpecularGtaoFromSsao,
         EnvironmentProxyVolume,
+        EnvironmentSampleCoordinates,
     }
 
     public enum ShadowMapDebugMode
@@ -31,7 +30,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     {
         public bool IsDebugDisplayEnabled()
         {
-            return debugLightingMode != DebugLightingMode.None;
+            return debugLightingMode != DebugLightingMode.None || overrideSmoothness || overrideAlbedo || overrideNormal;
         }
 
         public DebugLightingMode    debugLightingMode = DebugLightingMode.None;
@@ -44,7 +43,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public bool                 overrideSmoothness = false;
         public float                overrideSmoothnessValue = 0.5f;
-        public Color                debugLightingAlbedo = new Color(0.5f, 0.5f, 0.5f);
+        public bool                 overrideAlbedo = false;
+        public Color                overrideAlbedoValue = new Color(0.5f, 0.5f, 0.5f);
+        public bool                 overrideNormal = false;
 
         public bool                 displaySkyReflection = false;
         public float                skyReflectionMipmap = 0.0f;
@@ -53,11 +54,5 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public LightLoop.TileClusterDebug tileClusterDebug = LightLoop.TileClusterDebug.None;
         public LightLoop.TileClusterCategoryDebug tileClusterDebugByCategory = LightLoop.TileClusterCategoryDebug.Punctual;
-
-        public void OnValidate()
-        {
-            overrideSmoothnessValue = Mathf.Clamp(overrideSmoothnessValue, 0.0f, 1.0f);
-            skyReflectionMipmap = Mathf.Clamp(skyReflectionMipmap, 0.0f, 1.0f);
-        }
     }
 }

@@ -5,16 +5,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [GenerateHLSL]
     public class DiffusionProfileConstants
     {
-        public const int DIFFUSION_PROFILE_COUNT           = 16; // Max. number of profiles, including the slot taken by the neutral profile
-        public const int DIFFUSION_PROFILE_NEUTRAL_ID   = 0;  // Does not result in blurring
-        public const int SSS_N_SAMPLES_NEAR_FIELD       = 55; // Used for extreme close ups; must be a Fibonacci number
-        public const int SSS_N_SAMPLES_FAR_FIELD        = 21; // Used at a regular distance; must be a Fibonacci number
-        public const int SSS_LOD_THRESHOLD              = 4;  // The LoD threshold of the near-field kernel (in pixels)
-        public const int TRANSMISSION_MODE_NONE         = 0;
-        public const int TRANSMISSION_MODE_THIN         = 1;
+        public const int DIFFUSION_PROFILE_COUNT      = 16; // Max. number of profiles, including the slot taken by the neutral profile
+        public const int DIFFUSION_PROFILE_NEUTRAL_ID = 0;  // Does not result in blurring
+        public const int SSS_N_SAMPLES_NEAR_FIELD     = 55; // Used for extreme close ups; must be a Fibonacci number
+        public const int SSS_N_SAMPLES_FAR_FIELD      = 21; // Used at a regular distance; must be a Fibonacci number
+        public const int SSS_LOD_THRESHOLD            = 4;  // The LoD threshold of the near-field kernel (in pixels)
         // Old SSS Model >>>
-        public const int SSS_BASIC_N_SAMPLES      = 11; // Must be an odd number
-        public const int SSS_BASIC_DISTANCE_SCALE = 3;  // SSS distance units per centimeter
+        public const int SSS_BASIC_N_SAMPLES          = 11; // Must be an odd number
+        public const int SSS_BASIC_DISTANCE_SCALE     = 3;  // SSS distance units per centimeter
         // <<< Old SSS Model
     }
 
@@ -29,17 +27,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public enum TransmissionMode : uint
         {
-            None = DiffusionProfileConstants.TRANSMISSION_MODE_NONE,
-            ThinObject = DiffusionProfileConstants.TRANSMISSION_MODE_THIN,
-            Regular
+            Regular = 0,
+            ThinObject = 1
         }
 
         public string name;
 
         [ColorUsage(false, true)]
         public Color            scatteringDistance;         // Per color channel (no meaningful units)
-        [ColorUsage(false)]
-        public Color            transmissionTint;           // Color, 0 to 1
+        [ColorUsage(false, true)]
+        public Color            transmissionTint;           // HDR color
         public TexturingMode    texturingMode;
         public TransmissionMode transmissionMode;
         public Vector2          thicknessRemap;             // X = min, Y = max (in millimeters)
@@ -69,7 +66,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             scatteringDistance = Color.grey;
             transmissionTint   = Color.white;
             texturingMode      = TexturingMode.PreAndPostScatter;
-            transmissionMode   = TransmissionMode.None;
+            transmissionMode   = TransmissionMode.ThinObject;
             thicknessRemap     = new Vector2(0f, 5f);
             worldScale         = 1f;
             ior                = 1.4f; // TYpical value for skin specular reflectance
@@ -138,7 +135,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Importance sample the near field kernel.
             for (int i = 0, n = DiffusionProfileConstants.SSS_N_SAMPLES_NEAR_FIELD; i < n; i++)
             {
-                float p = (i + 0.5f) * (1f / n);
+                float p = (i + 0.5f) * (1.0f / n);
                 float r = DisneyProfileCdfInverse(p, s);
 
                 // N.b.: computation of normalized weights, and multiplication by the surface albedo
@@ -150,7 +147,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Importance sample the far field kernel.
             for (int i = 0, n = DiffusionProfileConstants.SSS_N_SAMPLES_FAR_FIELD; i < n; i++)
             {
-                float p = (i + 0.5f) * (1f / n);
+                float p = (i + 0.5f) * (1.0f / n);
                 float r = DisneyProfileCdfInverse(p, s);
 
                 // N.b.: computation of normalized weights, and multiplication by the surface albedo
@@ -361,8 +358,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     {
         public DiffusionProfile[] profiles;
 
-        [NonSerialized] public uint      texturingModeFlags;        // 1 bit/profile; 0 = PreAndPostScatter, 1 = PostScatter
-        [NonSerialized] public uint      transmissionFlags;         // 2 bit/profile; 0 = inf. thick, 1 = thin, 2 = regular
+        [NonSerialized] public uint      texturingModeFlags;        // 1 bit/profile: 0 = PreAndPostScatter, 1 = PostScatter
+        [NonSerialized] public uint      transmissionFlags;         // 1 bit/profile: 0 = regular, 1 = thin
         [NonSerialized] public Vector4[] thicknessRemaps;           // Remap: 0 = start, 1 = end - start
         [NonSerialized] public Vector4[] worldScales;               // X = meters per world unit; Y = world units per meter
         [NonSerialized] public Vector4[] shapeParams;               // RGB = S = 1 / D, A = filter radius
@@ -418,7 +415,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             ValidateArray(ref halfRcpVariancesAndWeights, DiffusionProfileConstants.DIFFUSION_PROFILE_COUNT * 2);
             ValidateArray(ref filterKernelsBasic,         DiffusionProfileConstants.DIFFUSION_PROFILE_COUNT * DiffusionProfileConstants.SSS_BASIC_N_SAMPLES);
 
-            Debug.Assert(DiffusionProfileConstants.DIFFUSION_PROFILE_NEUTRAL_ID <= 16, "Transmission flags (32-bit integer) cannot support more than 16 profiles (2 bits per profile).");
+            Debug.Assert(DiffusionProfileConstants.DIFFUSION_PROFILE_NEUTRAL_ID <= 32, "Transmission and Texture flags (32-bit integer) cannot support more than 32 profiles.");
 
             UpdateCache();
         }
@@ -469,11 +466,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Erase previous value (This need to be done here individually as in the SSS editor we edit individual component)
             uint mask = 1u << i;
             texturingModeFlags &= ~mask;
-            mask = 3u << i * 2;
+            mask = 1u << i;
             transmissionFlags &= ~mask;
 
             texturingModeFlags |= (uint)profiles[p].texturingMode    << i;
-            transmissionFlags  |= (uint)profiles[p].transmissionMode << i * 2;
+            transmissionFlags  |= (uint)profiles[p].transmissionMode << i;
 
             thicknessRemaps[i]   = new Vector4(profiles[p].thicknessRemap.x, profiles[p].thicknessRemap.y - profiles[p].thicknessRemap.x, 0f, 0f);
             worldScales[i]       = new Vector4(profiles[p].worldScale, 1.0f / profiles[p].worldScale, 0f, 0f);

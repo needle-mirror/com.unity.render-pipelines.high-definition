@@ -52,6 +52,10 @@ void Frag(PackedVaryingsToPS packedInput,
     BuiltinData builtinData;
     GetSurfaceAndBuiltinData(input, V, posInput, surfaceData, builtinData);
 
+#ifdef DEBUG_DISPLAY
+    ApplyDebugToSurfaceData(input.worldToTangent, surfaceData);
+#endif
+
     BSDFData bsdfData = ConvertSurfaceDataToBSDFData(surfaceData);
 
     PreLightData preLightData = GetPreLightData(V, posInput, bsdfData);
@@ -78,7 +82,7 @@ void Frag(PackedVaryingsToPS packedInput,
         LightLoop(V, posInput, preLightData, bsdfData, bakeLightingData, featureFlags, diffuseLighting, specularLighting);
 
 #ifdef OUTPUT_SPLIT_LIGHTING
-        if (_EnableSubsurfaceScattering != 0 && PixelHasSubsurfaceScattering(bsdfData))
+        if (_EnableSubsurfaceScattering != 0 && ShouldOutputSplitLighting(bsdfData))
         {
             outColor = float4(specularLighting, 1.0);
             outDiffuseLighting = float4(TagLightingForSSS(diffuseLighting), 1.0);

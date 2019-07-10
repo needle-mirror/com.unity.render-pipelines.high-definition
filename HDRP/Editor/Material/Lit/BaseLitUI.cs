@@ -23,10 +23,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent lockWithObjectScaleText = new GUIContent("Lock with object scale", "Displacement mapping will take the absolute value of the scale of the object into account.");
             public static GUIContent lockWithTilingRateText = new GUIContent("Lock with height map tiling rate", "Displacement mapping will take the absolute value of the tiling rate of the height map into account.");
 
-            public static GUIContent enableMotionVectorForVertexAnimationText = new GUIContent("Enable MotionVector For Vertex Animation", "This will enable an object motion vector pass for this material. Useful if wind animation is enabled or if displacement map is animated");
-
             // Material ID
-            public static GUIContent materialIDText = new GUIContent("Material type", "Subsurface Scattering: enable for translucent materials such as skin, vegetation, fruit, marble, wax and milk.");
+            public static GUIContent materialIDText = new GUIContent("Material type", "Select a material feature to enable on top of regular material");
+            public static GUIContent transmissionEnableText = new GUIContent("Enable Transmission", "Enable Transmission for getting  back lighting");
 
             // Per pixel displacement
             public static GUIContent ppdMinSamplesText = new GUIContent("Minimum steps", "Minimum steps (texture sample) to use with per pixel displacement mapping");
@@ -64,7 +63,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         public enum DoubleSidedNormalMode
         {
             Flip,
-            Mirror
+            Mirror,
+            None
         }
 
         public enum TessellationMode
@@ -86,9 +86,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             LitSSS = 0,
             LitStandard = 1,
             LitAniso = 2,
-            LitClearCoat = 3,
+            LitIridescence = 3,
             LitSpecular = 4,
-            LitIridescence = 5,
+            LitTranslucent = 5
         };
 
         public enum HeightmapParametrization
@@ -105,7 +105,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // Properties
         // Material ID
         protected MaterialProperty materialID  = null;
-        protected const string     kMaterialID = "_MaterialID";
+        protected const string kMaterialID = "_MaterialID";
+        protected MaterialProperty transmissionEnable = null;
+        protected const string kTransmissionEnable = "_TransmissionEnable";
 
         protected const string kStencilRef = "_StencilRef";
         protected const string kStencilWriteMask = "_StencilWriteMask";
@@ -118,9 +120,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kDisplacementLockObjectScale = "_DisplacementLockObjectScale";
         protected MaterialProperty displacementLockTilingScale = null;
         protected const string kDisplacementLockTilingScale = "_DisplacementLockTilingScale";
-
-        protected MaterialProperty enableMotionVectorForVertexAnimation = null;
-        protected const string kEnableMotionVectorForVertexAnimation = "_EnableMotionVectorForVertexAnimation";
 
         // Per pixel displacement params
         protected MaterialProperty ppdMinSamples = null;
@@ -180,12 +179,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // MaterialID
             materialID = FindProperty(kMaterialID, props);
+            transmissionEnable = FindProperty(kTransmissionEnable, props);
 
             displacementMode = FindProperty(kDisplacementMode, props);
             displacementLockObjectScale = FindProperty(kDisplacementLockObjectScale, props);
             displacementLockTilingScale = FindProperty(kDisplacementLockTilingScale, props);
-
-            enableMotionVectorForVertexAnimation = FindProperty(kEnableMotionVectorForVertexAnimation, props);
 
             // Per pixel displacement
             ppdMinSamples = FindProperty(kPpdMinSamples, props);
@@ -250,9 +248,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             m_MaterialEditor.ShaderProperty(materialID, StylesBaseLit.materialIDText);
 
+            if ((int)materialID.floatValue == (int)BaseLitGUI.MaterialId.LitSSS)
+            {
+                EditorGUI.indentLevel++;
+                m_MaterialEditor.ShaderProperty(transmissionEnable, StylesBaseLit.transmissionEnableText);
+                EditorGUI.indentLevel--;
+            }
+
             m_MaterialEditor.ShaderProperty(supportDBuffer, StylesBaseLit.supportDBufferText);
 
-            m_MaterialEditor.ShaderProperty(enableMotionVectorForVertexAnimation, StylesBaseLit.enableMotionVectorForVertexAnimationText);
+            m_MaterialEditor.ShaderProperty(enableMotionVectorForVertexAnimation, StylesBaseUnlit.enableMotionVectorForVertexAnimationText);
 
             EditorGUI.BeginChangeCheck();
             m_MaterialEditor.ShaderProperty(displacementMode, StylesBaseLit.displacementModeText);
@@ -353,6 +358,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     case DoubleSidedNormalMode.Flip: // Flip mode (in tangent space)
                         material.SetVector("_DoubleSidedConstants", new Vector4(-1.0f, -1.0f, -1.0f, 0.0f));
                         break;
+
+                    case DoubleSidedNormalMode.None: // None mode (in tangent space)
+                        material.SetVector("_DoubleSidedConstants", new Vector4(1.0f, 1.0f, 1.0f, 0.0f));
+                        break;
                 }
             }
 
@@ -407,8 +416,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         static public void SetupBaseLitMaterialPass(Material material)
         {
             SetupBaseUnlitMaterialPass(material);
-
-            material.SetShaderPassEnabled(HDShaderPassNames.s_MotionVectorsStr, material.GetFloat(kEnableMotionVectorForVertexAnimation) > 0.0f);
         }
     }
 } // namespace UnityEditor

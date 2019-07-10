@@ -8,7 +8,7 @@ namespace UnityEditor.Experimental.Rendering
         public SerializedObject serializedObject;
         public SerializedObject serializedAdditionalDataObject;
 
-        public SerializedProperty backgroundColor;
+        //public SerializedProperty backgroundColor;
         public SerializedProperty normalizedViewPortRect;
         public SerializedProperty fieldOfView;
         public SerializedProperty orthographic;
@@ -24,11 +24,18 @@ namespace UnityEditor.Experimental.Rendering
         public SerializedProperty farClippingPlane;
         public SerializedProperty targetEye;
 
+        public SerializedProperty aperture;
+        public SerializedProperty shutterSpeed;
+        public SerializedProperty iso;
+
 #if ENABLE_MULTIPLE_DISPLAYS
         public SerializedProperty targetDisplay;
 #endif
 
+        public SerializedProperty clearColorMode;
+        public SerializedProperty backgroundColorHDR;
         public SerializedProperty renderingPath;
+        public SerializedProperty clearDepth;
         public SerializedProperty volumeLayerMask;
         public SerializedFrameSettings frameSettings;
 
@@ -43,7 +50,7 @@ namespace UnityEditor.Experimental.Rendering
             hideFlags.intValue = (int)HideFlags.HideInInspector;
             serializedAdditionalDataObject.ApplyModifiedProperties();
 
-            backgroundColor = serializedObject.FindProperty("m_BackGroundColor");
+            //backgroundColor = serializedObject.FindProperty("m_BackGroundColor");
             normalizedViewPortRect = serializedObject.FindProperty("m_NormalizedViewPortRect");
             nearClippingPlane = serializedObject.FindProperty("near clip plane");
             farClippingPlane = serializedObject.FindProperty("far clip plane");
@@ -65,7 +72,14 @@ namespace UnityEditor.Experimental.Rendering
 
             targetEye = serializedObject.FindProperty("m_TargetEye");
 
+            aperture = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.aperture);
+            shutterSpeed = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.shutterSpeed);
+            iso = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.iso);
+
+            clearColorMode = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.clearColorMode);
+            backgroundColorHDR = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.backgroundColorHDR);
             renderingPath = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.renderingPath);
+            clearDepth = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.clearDepth);
             volumeLayerMask = serializedAdditionalDataObject.Find((HDAdditionalCameraData d) => d.volumeLayerMask);
             frameSettings = new SerializedFrameSettings(serializedAdditionalDataObject.FindProperty("m_FrameSettings"));
         }

@@ -9,24 +9,30 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         static List<MaterialUpgrader> GetHDUpgraders()
         {
             var upgraders = new List<MaterialUpgrader>();
-            upgraders.Add(new StandardToHDLitMaterialUpgrader("Standard", "HDRenderPipeline/Lit", LitGUI.SetupMaterialKeywordsAndPass));
-            upgraders.Add(new StandardSpecularToHDLitMaterialUpgrader("Standard (Specular setup)", "HDRenderPipeline/Lit", LitGUI.SetupMaterialKeywordsAndPass));
+            upgraders.Add(new StandardsToHDLitMaterialUpgrader("Standard", "HDRenderPipeline/Lit"));
+            upgraders.Add(new StandardsToHDLitMaterialUpgrader("Standard (Specular setup)", "HDRenderPipeline/Lit"));
+            upgraders.Add(new StandardsToHDLitMaterialUpgrader("Standard (Roughness setup)", "HDRenderPipeline/Lit"));
+
+            upgraders.Add(new UnlitsToHDUnlitUpgrader("Unlit/Color", "HDRenderPipeline/Unlit"));
+            upgraders.Add(new UnlitsToHDUnlitUpgrader("Unlit/Texture", "HDRenderPipeline/Unlit"));
+            upgraders.Add(new UnlitsToHDUnlitUpgrader("Unlit/Transparent", "HDRenderPipeline/Unlit"));
+            upgraders.Add(new UnlitsToHDUnlitUpgrader("Unlit/Transparent Cutout", "HDRenderPipeline/Unlit"));
             return upgraders;
         }
 
-        [MenuItem("Edit/Render Pipeline/Upgrade/High Definition/Upgrade Standard Materials to Lit Materials (Project)", priority = CoreUtils.editMenuPriority2)]
+        [MenuItem("Edit/Render Pipeline/Upgrade Project Materials to High Definition Materials", priority = CoreUtils.editMenuPriority2)]
         static void UpgradeMaterialsProject()
         {
             MaterialUpgrader.UpgradeProjectFolder(GetHDUpgraders(), "Upgrade to HD Material");
         }
 
-        [MenuItem("Edit/Render Pipeline/Upgrade/High Definition/Upgrade Standard Materials to Lit Materials (Selection)", priority = CoreUtils.editMenuPriority2)]
+        [MenuItem("Edit/Render Pipeline/Upgrade Selected Materials to High Definition Materials", priority = CoreUtils.editMenuPriority2)]
         static void UpgradeMaterialsSelection()
         {
             MaterialUpgrader.UpgradeSelection(GetHDUpgraders(), "Upgrade to HD Material");
         }
 
-        [MenuItem("Edit/Render Pipeline/Upgrade/High Definition/Modify Light Intensity for Upgrade (Scene Only)", priority = CoreUtils.editMenuPriority2)]
+        [MenuItem("Edit/Render Pipeline/Upgrade Scene Light Intensity for High Definition", priority = CoreUtils.editMenuPriority2)]
         static void UpgradeLights()
         {
             Light[] lights = Light.GetLights(LightType.Directional, 0);

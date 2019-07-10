@@ -49,14 +49,18 @@ MonoBehaviour:
       enableBigTilePrepass: 1
       isFptlEnabled: 1
   renderPipelineSettings:
-    supportShadowMask: 1
+    supportShadowMask: 0
     supportSSR: 1
     supportSSAO: 1
     supportSubsurfaceScattering: 1
+    supportForwardOnly: 0
     supportDBuffer: 1
     supportMSAA: 0
+    msaaSampleCount: 1
+    supportMotionVectors: 1
+    supportStereo: 0
     lightLoopSettings:
-      spotCookieSize: 128
+      cookieSize: 128
       cookieTexArraySize: 16
       pointCookieSize: 512
       cubeCookieTexArraySize: 16
@@ -74,5 +78,8 @@ MonoBehaviour:
     shadowInitParams:
       shadowAtlasWidth: 4096
       shadowAtlasHeight: 4096
+    decalSettings:
+      drawDistance: 1000
+      atlasSize: 8192
   diffusionProfileSettings: {fileID: 11400000, guid: 404820c4cf36ad944862fa59c56064f0,
     type: 2}

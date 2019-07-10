@@ -274,15 +274,7 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING;
 #endif
 #ifdef _MATERIAL_FEATURE_TRANSMISSION
-    // TEMP: The UI must control if we have transmission or not.
-    // Currently until we update the UI, this is control in the diffusion profile
-    uint transmissionMode = BitFieldExtract(asuint(_TransmissionFlags), 2u * surfaceData.diffusionProfile, 2u);
-    // Caution: Because of this dynamic test we don't know anymore statically if we have transmission, which mess with performance.
-    // in deferred case as we still have both sss and transmission until we update the UI it should be the same perf
-    if (transmissionMode != TRANSMISSION_MODE_NONE)
-    {
-        surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
-    }
+    surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_TRANSMISSION;
 #endif
 #ifdef _MATERIAL_FEATURE_ANISOTROPY
     surfaceData.materialFeatures |= MATERIALFEATUREFLAGS_LIT_ANISOTROPY;
@@ -328,10 +320,10 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
 #endif
 
 #if HAS_REFRACTION
-    surfaceData.ior = _IOR;
+    surfaceData.ior = _Ior;
     surfaceData.transmittanceColor = _TransmittanceColor;
     #ifdef _TRANSMITTANCECOLORMAP
-    surfaceData.transmittanceColor *= SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_TransmittanceColorMap), ADD_ZERO_IDX(sampler_TransmittanceColorMap), ADD_IDX(layerTexCoord.base)).rgb;
+    surfaceData.transmittanceColor *= SAMPLE_UVMAPPING_TEXTURE2D(_TransmittanceColorMap, sampler_TransmittanceColorMap, ADD_IDX(layerTexCoord.base)).rgb;
     #endif
 
     surfaceData.atDistance = _ATDistance;
@@ -347,9 +339,27 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     surfaceData.transmittanceMask = 0.0;
 #endif
 
+#ifdef _MATERIAL_FEATURE_CLEAR_COAT
     surfaceData.coatMask = _CoatMask;
+    // To shader feature for keyword to limit the variant
+    surfaceData.coatMask *= SAMPLE_UVMAPPING_TEXTURE2D(ADD_IDX(_CoatMaskMap), ADD_ZERO_IDX(sampler_CoatMaskMap), ADD_IDX(layerTexCoord.base)).r;
+#else
+    surfaceData.coatMask = 0.0;
+#endif
 
-    surfaceData.thicknessIrid = 0.0;
+#ifdef _MATERIAL_FEATURE_IRIDESCENCE
+    #ifdef _IRIDESCENCE_THICKNESSMAP
+    surfaceData.iridescenceThickness = SAMPLE_UVMAPPING_TEXTURE2D(_IridescenceThicknessMap, sampler_IridescenceThicknessMap, layerTexCoord.base).r;
+    surfaceData.iridescenceThickness = _IridescenceThicknessRemap.x + _IridescenceThicknessRemap.y * surfaceData.iridescenceThickness;
+    #else
+    surfaceData.iridescenceThickness = _IridescenceThickness;
+    #endif
+    surfaceData.iridescenceMask = _IridescenceMask;
+    surfaceData.iridescenceMask *= SAMPLE_UVMAPPING_TEXTURE2D(_IridescenceMaskMap, sampler_IridescenceMaskMap, layerTexCoord.base).r;
+#else
+    surfaceData.iridescenceThickness = 0.0;
+    surfaceData.iridescenceMask = 0.0;
+#endif
 
 #else // #if !defined(LAYERED_LIT_SHADER)
 
@@ -363,7 +373,8 @@ float ADD_IDX(GetSurfaceData)(FragInputs input, LayerTexCoord layerTexCoord, out
     surfaceData.tangentWS = float3(0.0, 0.0, 0.0);
     surfaceData.anisotropy = 0.0;
     surfaceData.specularColor = float3(0.0, 0.0, 0.0);
-    surfaceData.thicknessIrid = 0.0;
+    surfaceData.iridescenceThickness = 0.0;
+    surfaceData.iridescenceMask = 0.0;
     surfaceData.coatMask = 0.0;
 
     // Transparency

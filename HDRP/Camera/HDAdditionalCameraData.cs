@@ -32,9 +32,26 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             Unlit  // Hard coded path
         };
 
+        public enum ClearColorMode
+        {
+            Sky,
+            BackgroundColor,
+            None
+        };
+
+        public ClearColorMode clearColorMode = ClearColorMode.Sky;
+        [ColorUsage(true, true)]
+        public Color backgroundColorHDR = new Color(0.025f, 0.07f, 0.19f, 0.0f);
+        public bool clearDepth = true;
+
         public RenderingPath    renderingPath;
         [Tooltip("Layer Mask used for the volume interpolation for this camera.")]
         public LayerMask        volumeLayerMask = -1;
+
+        // Physical parameters
+        public float aperture = 8f;
+        public float shutterSpeed = 1f / 200f;
+        public float iso = 400f;
 
         // To be able to turn on/off FrameSettings properties at runtime for debugging purpose without affecting the original one
         // we create a runtime copy (m_ActiveFrameSettings that is used, and any parametrization is done on serialized frameSettings)
@@ -102,7 +119,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 // Note that we register m_FrameSettingsRuntime, so manipulating it in the Debug windows
                 // doesn't affect the serialized version
-                if (m_camera.cameraType != CameraType.Preview)
+                if (m_camera.cameraType != CameraType.Preview && m_camera.cameraType != CameraType.Reflection)
                 {
                     FrameSettings.RegisterDebug(m_camera.name, GetFrameSettings());
                 }
@@ -115,7 +132,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             if (m_IsDebugRegistered)
             {
-                if (m_camera.cameraType != CameraType.Preview)
+                if (m_camera.cameraType != CameraType.Preview && m_camera.cameraType != CameraType.Reflection)
                 {
                     FrameSettings.UnRegisterDebug(m_CameraRegisterName);
                 }

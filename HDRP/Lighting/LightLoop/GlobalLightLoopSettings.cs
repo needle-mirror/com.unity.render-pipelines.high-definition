@@ -11,13 +11,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [Serializable]
     public class GlobalLightLoopSettings
     {
-        public int spotCookieSize = 128;
+        public int cookieSize = 128;
         public int cookieTexArraySize = 16;
-        public int pointCookieSize = 512;
+        public int pointCookieSize = 128;
         public int cubeCookieTexArraySize = 16;
 
-        public int reflectionProbeCacheSize = 128;
-        public int planarReflectionProbeCacheSize = 128;
+        public int reflectionProbeCacheSize = 4;
+        public int planarReflectionProbeCacheSize = 1024;
         public int reflectionCubemapSize = 128;
         public int planarReflectionTextureSize = 128;
         public bool reflectionCacheCompressed = false;

@@ -5,21 +5,21 @@
 // Therefore, given 'logEncodedDepth', we compute a new depth value
 // which allows us to perform HW interpolation which is linear in the view space.
 float ComputeLerpPositionForLogEncoding(float linearDepth, float logEncodedDepth,
-                                        float4 VBufferScaleAndSliceCount,
-                                        float4 VBufferDepthEncodingParams)
+                                        float2 VBufferSliceCount,
+                                        float4 VBufferDepthDecodingParams)
 {
     float z = linearDepth;
     float d = logEncodedDepth;
 
-    float numSlices    = VBufferScaleAndSliceCount.z;
-    float rcpNumSlices = VBufferScaleAndSliceCount.w;
+    float numSlices    = VBufferSliceCount.x;
+    float rcpNumSlices = VBufferSliceCount.y;
 
     float s0 = floor(d * numSlices - 0.5);
     float s1 = ceil(d * numSlices - 0.5);
     float d0 = saturate(s0 * rcpNumSlices + (0.5 * rcpNumSlices));
     float d1 = saturate(s1 * rcpNumSlices + (0.5 * rcpNumSlices));
-    float z0 = DecodeLogarithmicDepth(d0, VBufferDepthEncodingParams);
-    float z1 = DecodeLogarithmicDepth(d1, VBufferDepthEncodingParams);
+    float z0 = DecodeLogarithmicDepthGeneralized(d0, VBufferDepthDecodingParams);
+    float z1 = DecodeLogarithmicDepthGeneralized(d1, VBufferDepthDecodingParams);
 
     // Compute the linear interpolation weight.
     float t = saturate((z - z0) / (z1 - z0));
@@ -30,32 +30,32 @@ float ComputeLerpPositionForLogEncoding(float linearDepth, float logEncodedDepth
 // If (clampToEdge == false), out-of-bounds loads return 0.
 float4 SampleVBuffer(TEXTURE3D_ARGS(VBufferLighting, trilinearSampler), bool clampToEdge,
                      float2 positionNDC, float linearDepth,
-                     float4 VBufferScaleAndSliceCount,
-                     float4 VBufferDepthEncodingParams)
+                     float2 VBufferSliceCount,
+                     float4 VBufferDepthEncodingParams,
+                     float4 VBufferDepthDecodingParams)
 {
-    float numSlices    = VBufferScaleAndSliceCount.z;
-    float rcpNumSlices = VBufferScaleAndSliceCount.w;
+    float numSlices    = VBufferSliceCount.x;
+    float rcpNumSlices = VBufferSliceCount.y;
 
-    // Account for the visible area of the V-Buffer.
-    float2 uv = positionNDC * VBufferScaleAndSliceCount.xy;
+    float2 uv = positionNDC;
 
     // The distance between slices is log-encoded.
     float z = linearDepth;
-    float d = EncodeLogarithmicDepth(z, VBufferDepthEncodingParams);
+    float d = EncodeLogarithmicDepthGeneralized(z, VBufferDepthEncodingParams);
 
     // Unity doesn't support samplers clamping to border, so we have to do it ourselves.
     // TODO: add the proper sampler support.
     bool isInBounds = Min3(uv.x, uv.y, d) > 0 && Max3(uv.x, uv.y, d) < 1;
 
-    [branch] if (clampToEdge || isInBounds)
+    UNITY_BRANCH if (clampToEdge || isInBounds)
     {
-    #if 0
-        // We could ignore non-linearity at the cost of accuracy.
-        // TODO: visually test this option (especially in motion).
+    #if 1
+        // Ignore non-linearity (for performance reasons) at the cost of accuracy.
+        // The results are exact for a stationary camera, but can potentially cause some judder in motion.
         float w = d;
     #else
         // Adjust the texture coordinate for HW trilinear sampling.
-        float w = ComputeLerpPositionForLogEncoding(z, d, VBufferScaleAndSliceCount, VBufferDepthEncodingParams);
+        float w = ComputeLerpPositionForLogEncoding(z, d, VBufferSliceCount, VBufferDepthDecodingParams);
     #endif
 
         return SAMPLE_TEXTURE3D_LOD(VBufferLighting, trilinearSampler, float3(uv, w), 0);
@@ -70,27 +70,34 @@ float4 SampleVBuffer(TEXTURE3D_ARGS(VBufferLighting, trilinearSampler), bool cla
 float4 SampleInScatteredRadianceAndTransmittance(TEXTURE3D_ARGS(VBufferLighting, trilinearSampler),
                                                  float2 positionNDC, float linearDepth,
                                                  float4 VBufferResolution,
-                                                 float4 VBufferScaleAndSliceCount,
-                                                 float4 VBufferDepthEncodingParams)
+                                                 float2 VBufferSliceCount,
+                                                 float4 VBufferDepthEncodingParams,
+                                                 float4 VBufferDepthDecodingParams)
 {
 #ifdef RECONSTRUCTION_FILTER_TRILINEAR
     float4 L = SampleVBuffer(TEXTURE3D_PARAM(VBufferLighting, trilinearSampler), true,
                              positionNDC, linearDepth,
-                             VBufferScaleAndSliceCount, VBufferDepthEncodingParams);
-#else
-    // Perform biquadratic reconstruction in XY, linear in Z, using 4x trilinear taps.
-
-    // Account for the visible area of the V-Buffer.
-    float2 xy = positionNDC * (VBufferResolution.xy * VBufferScaleAndSliceCount.xy);
+                             VBufferSliceCount,
+                             VBufferDepthEncodingParams,
+                             VBufferDepthDecodingParams);
+#else // Perform biquadratic reconstruction in XY, linear in Z, using 4x trilinear taps.
+    float2 uv = positionNDC;
+    float2 xy = uv * VBufferResolution.xy;
     float2 ic = floor(xy);
     float2 fc = frac(xy);
 
     // The distance between slices is log-encoded.
     float z = linearDepth;
-    float d = EncodeLogarithmicDepth(z, VBufferDepthEncodingParams);
+    float d = EncodeLogarithmicDepthGeneralized(z, VBufferDepthEncodingParams);
 
+#if 0
+    // Ignore non-linearity (for performance reasons) at the cost of accuracy.
+    // The results are exact for a stationary camera, but can potentially cause some judder in motion.
+    float w = d;
+#else
     // Adjust the texture coordinate for HW trilinear sampling.
-    float w = ComputeLerpPositionForLogEncoding(z, d, VBufferScaleAndSliceCount, VBufferDepthEncodingParams);
+    float w = ComputeLerpPositionForLogEncoding(z, d, VBufferSliceCount, VBufferDepthDecodingParams);
+#endif
 
     float2 weights[2], offsets[2];
     BiquadraticFilter(1 - fc, weights, offsets); // Inverse-translate the filter centered around 0.5
