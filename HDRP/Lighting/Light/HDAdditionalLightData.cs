@@ -23,17 +23,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [RequireComponent(typeof(Light))]
     public class HDAdditionalLightData : MonoBehaviour
     {
- #pragma warning disable 414 // CS0414 The private field '...' is assigned but its value is never used
-        // We can't rely on Unity for our additional data, we need to version it ourself.
-        [SerializeField]
-        float m_Version = 1.0f;
- #pragma warning restore 414
+        [HideInInspector]
+        public float version = 1.0f;
 
         // To be able to have correct default values for our lights and to also control the conversion of intensity from the light editor (so it is compatible with GI)
         // we add intensity (for each type of light we want to manage).
         public float directionalIntensity   = Mathf.PI; // In Lux
         public float punctualIntensity      = 600.0f;   // Light default to 600 lumen, i.e ~48 candela
         public float areaIntensity          = 200.0f;   // Light default to 200 lumen to better match point light
+
+        // Only for Spotlight, should be hide for other light
+        public bool enableSpotReflector = false;
 
         [Range(0.0f, 100.0f)]
         public float m_InnerSpotPercent = 0.0f; // To display this field in the UI this need to be public
@@ -46,11 +46,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Range(0.0f, 1.0f)]
         public float lightDimmer = 1.0f;
 
+        [Range(0.0f, 1.0f)]
+        public float volumetricDimmer = 1.0f;
+
         // Not used for directional lights.
         public float fadeDistance = 10000.0f;
 
         public bool affectDiffuse = true;
         public bool affectSpecular = true;
+
+        // This property work only with shadow mask and allow to say we don't render any lightMapped object in the shadow map
+        public bool nonLightmappedOnly = false;
 
         public LightTypeExtent lightTypeExtent = LightTypeExtent.Punctual;
 
@@ -157,6 +163,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             DrawGizmos(true);
         }
+
 #endif
 
         // Caution: this function must match the one in HDLightEditor.UpdateLightIntensity - any change need to be replicated
@@ -169,41 +176,59 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 switch (light.type)
                 {
                     case LightType.Directional:
-                        light.intensity = directionalIntensity;
+                        light.intensity = Mathf.Max(0, directionalIntensity);
                         break;
 
                     case LightType.Point:
-                        light.intensity = LightUtils.ConvertPointLightIntensity(punctualIntensity);
+                        light.intensity = LightUtils.ConvertPointLightIntensity(Mathf.Max(0, punctualIntensity));
                         break;
 
                     case LightType.Spot:
-                        // Spot should used conversion which take into account the angle, and thus the intensity vary with angle.
-                        // This is not easy to manipulate for lighter, so we simply consider any spot light as just occluded point light. So reuse the same code.
-                        light.intensity = LightUtils.ConvertPointLightIntensity(punctualIntensity);
-                        // TODO: What to do with box shape ?
-                        // var spotLightShape = (SpotLightShape)m_AdditionalspotLightShape.enumValueIndex;
-                        break;
 
+                        if (enableSpotReflector)
+                        {
+                            if (spotLightShape == SpotLightShape.Cone)
+                            {
+                                light.intensity = LightUtils.ConvertSpotLightIntensity(Mathf.Max(0, punctualIntensity), light.spotAngle * Mathf.Deg2Rad, true);
+                            }
+                            else if (spotLightShape == SpotLightShape.Pyramid)
+                            {
+                                float angleA, angleB;
+                                LightUtils.CalculateAnglesForPyramid(aspectRatio, light.spotAngle,
+                                    out angleA, out angleB);
+
+                                light.intensity = LightUtils.ConvertFrustrumLightIntensity(Mathf.Max(0, punctualIntensity), angleA, angleB);
+                            }
+                            else // Box shape, fallback to punctual light.
+                            {
+                                light.intensity = LightUtils.ConvertPointLightIntensity(Mathf.Max(0, punctualIntensity));
+                            }
+                        }
+                        else
+                        {
+                            // Spot should used conversion which take into account the angle, and thus the intensity vary with angle.
+                            // This is not easy to manipulate for lighter, so we simply consider any spot light as just occluded point light. So reuse the same code.
+                            light.intensity = LightUtils.ConvertPointLightIntensity(Mathf.Max(0, punctualIntensity));
+                            // TODO: What to do with box shape ?
+                            // var spotLightShape = (SpotLightShape)m_AdditionalspotLightShape.enumValueIndex;
+                        }
+                        break;
                 }
             }
             else if (lightTypeExtent == LightTypeExtent.Rectangle)
             {
-                light.intensity = LightUtils.ConvertRectLightIntensity(areaIntensity, shapeWidth, shapeHeight);
+                light.intensity = LightUtils.ConvertRectLightIntensity(Mathf.Max(0, areaIntensity), shapeWidth, shapeHeight);
             }
             else if (lightTypeExtent == LightTypeExtent.Line)
             {
-                light.intensity = LightUtils.CalculateLineLightIntensity(areaIntensity, shapeWidth);
+                light.intensity = LightUtils.CalculateLineLightIntensity(Mathf.Max(0, areaIntensity), shapeWidth);
             }
         }
 
         // As we have our own default value, we need to initialize the light intensity correctly
         public static void InitDefaultHDAdditionalLightData(HDAdditionalLightData lightData)
         {
-            // At first init we need to initialize correctly the default value
-            lightData.ConvertPhysicalLightIntensityToLightIntensity();
-
-            // Special treatment for Unity builtin area light. Change it to our rectangle light
-
+            // Special treatment for Unity built-in area light. Change it to our rectangle light
             var light = lightData.gameObject.GetComponent<Light>();
 
             // Sanity check: lightData.lightTypeExtent is init to LightTypeExtent.Punctual (in case for unknow reasons we recreate additional data on an existing line)
@@ -211,8 +236,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 lightData.lightTypeExtent = LightTypeExtent.Rectangle;
                 light.type = LightType.Point; // Same as in HDLightEditor
+#if UNITY_EDITOR
+                light.lightmapBakeType = LightmapBakeType.Realtime;
+#endif
             }
-        }
 
+            // We don't use the global settings of shadow mask by default
+            light.lightShadowCasterMode = LightShadowCasterMode.Everything;
+
+            // At first init we need to initialize correctly the default value
+            lightData.ConvertPhysicalLightIntensityToLightIntensity();
+        }
     }
 }

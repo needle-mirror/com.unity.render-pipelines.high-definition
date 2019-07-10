@@ -16,11 +16,19 @@
 #define MATERIALFEATUREFLAGS_LIT_CLEAR_COAT (64)
 
 //
-// UnityEngine.Experimental.Rendering.HDPipeline.Lit+RefractionMode:  static fields
+// UnityEngine.Experimental.Rendering.HDPipeline.Lit+ProjectionModel:  static fields
 //
-#define REFRACTIONMODE_NONE (0)
-#define REFRACTIONMODE_PLANE (1)
-#define REFRACTIONMODE_SPHERE (2)
+#define PROJECTIONMODEL_NONE (0)
+#define PROJECTIONMODEL_PROXY (1)
+#define PROJECTIONMODEL_HI_Z (2)
+#define PROJECTIONMODEL_LINEAR (3)
+
+//
+// UnityEngine.Experimental.Rendering.HDPipeline.Lit+HiZIntersectionKind:  static fields
+//
+#define HIZINTERSECTIONKIND_NONE (0)
+#define HIZINTERSECTIONKIND_CELL (1)
+#define HIZINTERSECTIONKIND_DEPTH (2)
 
 //
 // UnityEngine.Experimental.Rendering.HDPipeline.Lit+SurfaceData:  static fields

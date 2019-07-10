@@ -12,7 +12,7 @@ Shader "Hidden/HDRenderPipeline/DebugDisplayLatlong"
 
             HLSLPROGRAM
             #pragma target 4.5
-            #pragma only_renderers d3d11 ps4 xboxone vulkan metal
+            #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
             #pragma vertex Vert
             #pragma fragment Frag
@@ -23,6 +23,8 @@ Shader "Hidden/HDRenderPipeline/DebugDisplayLatlong"
             TEXTURECUBE(_InputCubemap);
             SAMPLER(sampler_InputCubemap);
             float _Mipmap;
+            float _RequireToFlipInputTexture;
+            float _DebugExposure;
 
             struct Attributes
             {
@@ -41,6 +43,11 @@ Shader "Hidden/HDRenderPipeline/DebugDisplayLatlong"
                 output.positionCS = GetFullScreenTriangleVertexPosition(input.vertexID);
                 output.texcoord = GetFullScreenTriangleTexCoord(input.vertexID);// *_TextureScaleBias.xy + _TextureScaleBias.zw;
 
+                if (_RequireToFlipInputTexture > 0.0f)
+                {
+                    output.texcoord.y = 1.0f - output.texcoord.y;
+                }
+
                 return output;
             }
 
@@ -50,7 +57,7 @@ Shader "Hidden/HDRenderPipeline/DebugDisplayLatlong"
                 width = height = depth = mipCount = 0;
                 _InputCubemap.GetDimensions(width, height, depth, mipCount);
                 mipCount = clamp(mipCount, 0, UNITY_SPECCUBE_LOD_STEPS);
-                return SAMPLE_TEXTURECUBE_LOD(_InputCubemap, sampler_InputCubemap, LatlongToDirectionCoordinate(input.texcoord.xy), _Mipmap * mipCount);
+                return SAMPLE_TEXTURECUBE_LOD(_InputCubemap, sampler_InputCubemap, LatlongToDirectionCoordinate(input.texcoord.xy), _Mipmap * mipCount) * exp2(_DebugExposure);
             }
 
             ENDHLSL

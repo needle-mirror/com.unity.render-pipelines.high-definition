@@ -30,7 +30,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             for (int gbufferIndex = 0; gbufferIndex < m_GBufferCount; ++gbufferIndex)
             {
-                m_RTs[gbufferIndex] = RTHandle.Alloc(Vector2.one, colorFormat: rtFormat[gbufferIndex], sRGB: sRGBFlags[gbufferIndex], filterMode: FilterMode.Point, name: string.Format("GBuffer{0}", gbufferIndex));
+                m_RTs[gbufferIndex] = RTHandles.Alloc(Vector2.one, colorFormat: rtFormat[gbufferIndex], sRGB: sRGBFlags[gbufferIndex], filterMode: FilterMode.Point, name: string.Format("GBuffer{0}", gbufferIndex));
                 m_RTIDs[gbufferIndex] = m_RTs[gbufferIndex].nameID;
                 m_TextureShaderIDs[gbufferIndex] = HDShaderIDs._GBufferTexture[gbufferIndex];
                 m_RTIDsNoShadowMask[gbufferIndex] = HDShaderIDs._GBufferTexture[gbufferIndex];
@@ -38,7 +38,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             if (m_SupportShadowMask)
             {
-                m_RTs[m_GBufferCount] = RTHandle.Alloc(Vector2.one, colorFormat: Builtin.GetShadowMaskBufferFormat(), sRGB: Builtin.GetShadowMaskSRGBFlag(), filterMode: FilterMode.Point, name: "GBufferShadowMask");
+                m_RTs[m_GBufferCount] = RTHandles.Alloc(Vector2.one, colorFormat: Builtin.GetShadowMaskBufferFormat(), sRGB: Builtin.GetShadowMaskSRGBFlag(), filterMode: FilterMode.Point, name: "GBufferShadowMask");
                 m_RTIDs[m_GBufferCount] = new RenderTargetIdentifier(m_RTs[m_GBufferCount]);
                 m_TextureShaderIDs[m_GBufferCount] = HDShaderIDs._ShadowMaskTexture;
             }
@@ -60,7 +60,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public RenderTargetIdentifier[] GetBuffersRTI(bool enableShadowMask)
         {
-            if(!enableShadowMask)
+            if (!enableShadowMask)
             {
                 // nameID can change from one frame to another depending on the msaa flag so so we need to update this array to be sure it's up to date.
                 // Moreover, if we don't have shadow masks we only need to bind the first GBuffers
@@ -70,7 +70,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     m_RTIDsNoShadowMask[i] = m_RTs[i].nameID;
                 }
                 return m_RTIDsNoShadowMask;
-
             }
             else
             {

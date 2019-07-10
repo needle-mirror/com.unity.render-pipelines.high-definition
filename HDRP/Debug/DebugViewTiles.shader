@@ -11,7 +11,7 @@ Shader "Hidden/HDRenderPipeline/DebugViewTiles"
 
             HLSLPROGRAM
             #pragma target 4.5
-            #pragma only_renderers d3d11 ps4 xboxone vulkan metal
+            #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
             #pragma vertex Vert
             #pragma fragment Frag
@@ -76,7 +76,7 @@ Shader "Hidden/HDRenderPipeline/DebugViewTiles"
                 uint2 tileCoord = uint2(tileIndex & 0xFFFF, tileIndex >> 16);
                 uint2 pixelCoord = (tileCoord + uint2((quadVertex+1) & 1, (quadVertex >> 1) & 1)) * tileSize;
 
-                float2 clipCoord = (pixelCoord / _ScreenParams.xy) * 2.0 - 1.0;
+                float2 clipCoord = (pixelCoord * _ScreenSize.zw) * 2.0 - 1.0;
                 clipCoord.y *= -1;
 
                 Varyings output;
@@ -139,8 +139,8 @@ Shader "Hidden/HDRenderPipeline/DebugViewTiles"
             float4 Frag(Varyings input) : SV_Target
             {
                 // positionCS is SV_Position
-                float depth = LOAD_TEXTURE2D(_MainDepthTexture, input.positionCS.xy).x;
-                PositionInputs posInput = GetPositionInput(input.positionCS.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, uint2(input.positionCS.xy) / GetTileSize());
+                float depth = LOAD_TEXTURE2D(_CameraDepthTexture, input.positionCS.xy).x;
+                PositionInputs posInput = GetPositionInput(input.positionCS.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_V, uint2(input.positionCS.xy) / GetTileSize());
 
                 int2 pixelCoord = posInput.positionSS.xy;
                 int2 tileCoord = (float2)pixelCoord / GetTileSize();
@@ -187,8 +187,8 @@ Shader "Hidden/HDRenderPipeline/DebugViewTiles"
                 int maxLights = 32;
                 if (tileCoord.y < LIGHTCATEGORY_COUNT && tileCoord.x < maxLights + 3)
                 {
-                    float depthMouse = LOAD_TEXTURE2D(_MainDepthTexture, _MousePixelCoord.xy).x;
-                    PositionInputs mousePosInput = GetPositionInput(_MousePixelCoord.xy, _ScreenSize.zw, depthMouse, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, mouseTileCoord);
+                    float depthMouse = LOAD_TEXTURE2D(_CameraDepthTexture, _MousePixelCoord.xy).x;
+                    PositionInputs mousePosInput = GetPositionInput(_MousePixelCoord.xy, _ScreenSize.zw, depthMouse, UNITY_MATRIX_I_VP, UNITY_MATRIX_V, mouseTileCoord);
 
                     uint category = (LIGHTCATEGORY_COUNT - 1) - tileCoord.y;
                     uint start;

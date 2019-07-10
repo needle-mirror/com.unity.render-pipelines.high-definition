@@ -61,9 +61,8 @@ struct DirectionalLightData
     float specularScale;
     float3 up;
     float diffuseScale;
-    float2 fadeDistanceScaleAndBias;
-    float unused0;
-    int dynamicShadowCasterOnly;
+    float volumetricDimmer;
+    int nonLightmappedOnly;
     float4 shadowMaskSelector;
 };
 
@@ -84,11 +83,12 @@ struct LightData
     float angleScale;
     float angleOffset;
     float shadowDimmer;
-    int dynamicShadowCasterOnly;
+    int nonLightmappedOnly;
     float4 shadowMaskSelector;
     float2 size;
     int lightType;
     float minRoughness;
+    float volumetricDimmer;
 };
 
 // Generated from UnityEngine.Experimental.Rendering.HDPipeline.EnvLightData
@@ -117,7 +117,6 @@ struct EnvLightData
     float3 boxSideFadeNegative;
     float weight;
     float multiplier;
-    float3 sampleDirectionDiscardWS;
     int envIndex;
 };
 
@@ -126,59 +125,55 @@ struct EnvLightData
 //
 float3 GetPositionWS(DirectionalLightData value)
 {
-	return value.positionWS;
+    return value.positionWS;
 }
 int GetTileCookie(DirectionalLightData value)
 {
-	return value.tileCookie;
+    return value.tileCookie;
 }
 float3 GetColor(DirectionalLightData value)
 {
-	return value.color;
+    return value.color;
 }
 int GetShadowIndex(DirectionalLightData value)
 {
-	return value.shadowIndex;
+    return value.shadowIndex;
 }
 float3 GetForward(DirectionalLightData value)
 {
-	return value.forward;
+    return value.forward;
 }
 int GetCookieIndex(DirectionalLightData value)
 {
-	return value.cookieIndex;
+    return value.cookieIndex;
 }
 float3 GetRight(DirectionalLightData value)
 {
-	return value.right;
+    return value.right;
 }
 float GetSpecularScale(DirectionalLightData value)
 {
-	return value.specularScale;
+    return value.specularScale;
 }
 float3 GetUp(DirectionalLightData value)
 {
-	return value.up;
+    return value.up;
 }
 float GetDiffuseScale(DirectionalLightData value)
 {
-	return value.diffuseScale;
+    return value.diffuseScale;
 }
-float2 GetFadeDistanceScaleAndBias(DirectionalLightData value)
+float GetVolumetricDimmer(DirectionalLightData value)
 {
-	return value.fadeDistanceScaleAndBias;
+    return value.volumetricDimmer;
 }
-float GetUnused0(DirectionalLightData value)
+int GetNonLightmappedOnly(DirectionalLightData value)
 {
-	return value.unused0;
-}
-int GetDynamicShadowCasterOnly(DirectionalLightData value)
-{
-	return value.dynamicShadowCasterOnly;
+    return value.nonLightmappedOnly;
 }
 float4 GetShadowMaskSelector(DirectionalLightData value)
 {
-	return value.shadowMaskSelector;
+    return value.shadowMaskSelector;
 }
 
 //
@@ -186,75 +181,79 @@ float4 GetShadowMaskSelector(DirectionalLightData value)
 //
 float3 GetPositionWS(LightData value)
 {
-	return value.positionWS;
+    return value.positionWS;
 }
 float GetInvSqrAttenuationRadius(LightData value)
 {
-	return value.invSqrAttenuationRadius;
+    return value.invSqrAttenuationRadius;
 }
 float3 GetColor(LightData value)
 {
-	return value.color;
+    return value.color;
 }
 int GetShadowIndex(LightData value)
 {
-	return value.shadowIndex;
+    return value.shadowIndex;
 }
 float3 GetForward(LightData value)
 {
-	return value.forward;
+    return value.forward;
 }
 int GetCookieIndex(LightData value)
 {
-	return value.cookieIndex;
+    return value.cookieIndex;
 }
 float3 GetRight(LightData value)
 {
-	return value.right;
+    return value.right;
 }
 float GetSpecularScale(LightData value)
 {
-	return value.specularScale;
+    return value.specularScale;
 }
 float3 GetUp(LightData value)
 {
-	return value.up;
+    return value.up;
 }
 float GetDiffuseScale(LightData value)
 {
-	return value.diffuseScale;
+    return value.diffuseScale;
 }
 float GetAngleScale(LightData value)
 {
-	return value.angleScale;
+    return value.angleScale;
 }
 float GetAngleOffset(LightData value)
 {
-	return value.angleOffset;
+    return value.angleOffset;
 }
 float GetShadowDimmer(LightData value)
 {
-	return value.shadowDimmer;
+    return value.shadowDimmer;
 }
-int GetDynamicShadowCasterOnly(LightData value)
+int GetNonLightmappedOnly(LightData value)
 {
-	return value.dynamicShadowCasterOnly;
+    return value.nonLightmappedOnly;
 }
 float4 GetShadowMaskSelector(LightData value)
 {
-	return value.shadowMaskSelector;
+    return value.shadowMaskSelector;
 }
 float2 GetSize(LightData value)
 {
-	return value.size;
+    return value.size;
 }
 int GetLightType(LightData value)
 {
-	return value.lightType;
+    return value.lightType;
 }
 float GetMinRoughness(LightData value)
 {
-	return value.minRoughness;
+    return value.minRoughness;
+}
+float GetVolumetricDimmer(LightData value)
+{
+    return value.volumetricDimmer;
 }
 
 //
@@ -262,99 +261,95 @@ float GetMinRoughness(LightData value)
 //
 float3 GetCapturePositionWS(EnvLightData value)
 {
-	return value.capturePositionWS;
+    return value.capturePositionWS;
 }
 int GetInfluenceShapeType(EnvLightData value)
 {
-	return value.influenceShapeType;
+    return value.influenceShapeType;
 }
 float3 GetProxyExtents(EnvLightData value)
 {
-	return value.proxyExtents;
+    return value.proxyExtents;
 }
 float GetMinProjectionDistance(EnvLightData value)
 {
-	return value.minProjectionDistance;
+    return value.minProjectionDistance;
 }
 float3 GetProxyPositionWS(EnvLightData value)
 {
-	return value.proxyPositionWS;
+    return value.proxyPositionWS;
 }
 float3 GetProxyForward(EnvLightData value)
 {
-	return value.proxyForward;
+    return value.proxyForward;
 }
 float3 GetProxyUp(EnvLightData value)
 {
-	return value.proxyUp;
+    return value.proxyUp;
 }
 float3 GetProxyRight(EnvLightData value)
 {
-	return value.proxyRight;
+    return value.proxyRight;
 }
 float3 GetInfluencePositionWS(EnvLightData value)
 {
-	return value.influencePositionWS;
+    return value.influencePositionWS;
 }
 float3 GetInfluenceForward(EnvLightData value)
 {
-	return value.influenceForward;
+    return value.influenceForward;
 }
 float3 GetInfluenceUp(EnvLightData value)
 {
-	return value.influenceUp;
+    return value.influenceUp;
 }
 float3 GetInfluenceRight(EnvLightData value)
 {
-	return value.influenceRight;
+    return value.influenceRight;
 }
 float3 GetInfluenceExtents(EnvLightData value)
 {
-	return value.influenceExtents;
+    return value.influenceExtents;
 }
 float GetUnused00(EnvLightData value)
 {
-	return value.unused00;
+    return value.unused00;
 }
 float3 GetBlendDistancePositive(EnvLightData value)
 {
-	return value.blendDistancePositive;
+    return value.blendDistancePositive;
 }
 float3 GetBlendDistanceNegative(EnvLightData value)
 {
-	return value.blendDistanceNegative;
+    return value.blendDistanceNegative;
 }
 float3 GetBlendNormalDistancePositive(EnvLightData value)
 {
-	return value.blendNormalDistancePositive;
+    return value.blendNormalDistancePositive;
 }
 float3 GetBlendNormalDistanceNegative(EnvLightData value)
 {
-	return value.blendNormalDistanceNegative;
+    return value.blendNormalDistanceNegative;
 }
 float3 GetBoxSideFadePositive(EnvLightData value)
 {
-	return value.boxSideFadePositive;
+    return value.boxSideFadePositive;
 }
 float3 GetBoxSideFadeNegative(EnvLightData value)
 {
-	return value.boxSideFadeNegative;
+    return value.boxSideFadeNegative;
 }
 float GetWeight(EnvLightData value)
 {
-	return value.weight;
+    return value.weight;
 }
 float GetMultiplier(EnvLightData value)
 {
-	return value.multiplier;
-}
-float3 GetSampleDirectionDiscardWS(EnvLightData value)
-{
-	return value.sampleDirectionDiscardWS;
+    return value.multiplier;
 }
 int GetEnvIndex(EnvLightData value)
 {
-	return value.envIndex;
+    return value.envIndex;
 }
 
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
@@ -27,15 +27,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
     public class BuiltinSkyParameters
     {
-        public Matrix4x4        pixelCoordToViewDirMatrix;
-        public Matrix4x4        invViewProjMatrix;
-        public Vector3          cameraPosWS;
-        public Vector4          screenSize;
-        public CommandBuffer    commandBuffer;
-        public Light            sunLight;
-        public RTHandle         colorBuffer;
-        public RTHandle         depthBuffer;
-        public HDCamera         hdCamera;
+        public Matrix4x4                pixelCoordToViewDirMatrix;
+        public Matrix4x4                invViewProjMatrix;
+        public Vector3                  cameraPosWS;
+        public Vector4                  screenSize;
+        public CommandBuffer            commandBuffer;
+        public Light                    sunLight;
+        public RTHandleSystem.RTHandle  colorBuffer;
+        public RTHandleSystem.RTHandle  depthBuffer;
+        public HDCamera                 hdCamera;
+
+        public DebugDisplaySettings debugSettings;
 
         public static RenderTargetIdentifier nullRT = -1;
     }
@@ -137,25 +139,25 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        public void UpdateCurrentSkySettings(HDCamera camera)
+        public void UpdateCurrentSkySettings(HDCamera hdCamera)
         {
             m_VisualSky.skySettings = GetSkySetting(VolumeManager.instance.stack);
 
 #if UNITY_EDITOR
-            if (camera.camera.cameraType == CameraType.Preview)
+            if (HDUtils.IsRegularPreviewCamera(hdCamera.camera))
             {
-                m_VisualSky.skySettings = m_DefaultPreviewSky;
+                m_VisualSky.skySettings = GetDefaultPreviewSkyInstance();
             }
 #endif
 
             m_BakingSky.skySettings = SkyManager.GetBakingSkySettings();
 
             // Update needs to happen before testing if the component is active other internal data structure are not properly updated yet.
-            VolumeManager.instance.Update(m_LightingOverrideVolumeStack, camera.camera.transform, m_LightingOverrideLayerMask);
-            if(VolumeManager.instance.IsComponentActiveInMask<VisualEnvironment>(m_LightingOverrideLayerMask))
+            VolumeManager.instance.Update(m_LightingOverrideVolumeStack, hdCamera.camera.transform, m_LightingOverrideLayerMask);
+            if (VolumeManager.instance.IsComponentActiveInMask<VisualEnvironment>(m_LightingOverrideLayerMask))
             {
                 SkySettings newSkyOverride = GetSkySetting(m_LightingOverrideVolumeStack);
-                if(m_LightingOverrideSky.skySettings != null && newSkyOverride == null)
+                if (m_LightingOverrideSky.skySettings != null && newSkyOverride == null)
                 {
                     // When we switch from override to no override, we need to make sure that the visual sky will actually be properly re-rendered.
                     // Resetting the visual sky hash will ensure that.
@@ -178,6 +180,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             cmd.SetGlobalFloat(HDShaderIDs._SkyTextureMipCount, mipCount);
         }
 
+#if UNITY_EDITOR
+        ProceduralSky GetDefaultPreviewSkyInstance()
+        {
+            if (m_DefaultPreviewSky == null)
+            {
+                m_DefaultPreviewSky = ScriptableObject.CreateInstance<ProceduralSky>();
+            }
+
+            return m_DefaultPreviewSky;
+        }
+
+#endif
+
         public void Build(HDRenderPipelineAsset hdAsset, IBLFilterGGX iblFilterGGX)
         {
             m_BakingSkyRenderingContext = new SkyRenderingContext(iblFilterGGX, (int)hdAsset.renderPipelineSettings.lightLoopSettings.skyReflectionSize, false);
@@ -189,14 +204,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             m_LightingOverrideVolumeStack = VolumeManager.instance.CreateStack();
             m_LightingOverrideLayerMask = hdAsset.renderPipelineSettings.lightLoopSettings.skyLightingOverrideLayerMask;
-
-#if UNITY_EDITOR
-            m_DefaultPreviewSky = ScriptableObject.CreateInstance<ProceduralSky>();
-#endif
         }
 
         public void Cleanup()
         {
+#if UNITY_EDITOR
+            CoreUtils.Destroy(m_DefaultPreviewSky);
+#endif
             CoreUtils.Destroy(m_StandardSkyboxMaterial);
             CoreUtils.Destroy(m_BlitCubemapMaterial);
             CoreUtils.Destroy(m_OpaqueAtmScatteringMaterial);
@@ -209,11 +223,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_SkyRenderingContext.Cleanup();
         }
 
-        public bool IsSkyValid()
+        public bool IsLightingSkyValid()
         {
             return m_VisualSky.IsValid() || m_LightingOverrideSky.IsValid();
         }
 
+        public bool IsVisualSkyValid()
+        {
+            return m_VisualSky.IsValid();
+        }
 
         void BlitCubemap(CommandBuffer cmd, Cubemap source, RenderTexture dest)
         {
@@ -236,7 +254,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             m_UpdateRequired = true;
         }
-
 
         public void UpdateEnvironment(HDCamera camera, Light sunLight, CommandBuffer cmd)
         {
@@ -284,7 +301,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             m_UpdateRequired = false;
 
             SetGlobalSkyTexture(cmd);
-            if (IsSkyValid())
+            if (IsLightingSkyValid())
             {
                 cmd.SetGlobalInt(HDShaderIDs._EnvLightSkyEnabled, 1);
             }
@@ -294,9 +311,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             }
         }
 
-        public void RenderSky(HDCamera camera, Light sunLight, RTHandle colorBuffer, RTHandle depthBuffer, CommandBuffer cmd)
+        public void RenderSky(HDCamera camera, Light sunLight, RTHandleSystem.RTHandle colorBuffer, RTHandleSystem.RTHandle depthBuffer, DebugDisplaySettings debugSettings, CommandBuffer cmd)
         {
-            m_SkyRenderingContext.RenderSky(m_VisualSky, camera, sunLight, colorBuffer, depthBuffer, cmd);
+            m_SkyRenderingContext.RenderSky(m_VisualSky, camera, sunLight, colorBuffer, depthBuffer, debugSettings, cmd);
         }
 
         public void RenderOpaqueAtmosphericScattering(CommandBuffer cmd)

@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEditorInternal;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering;
@@ -11,13 +12,27 @@ namespace UnityEditor.Experimental.Rendering
     [CanEditMultipleObjects]
     partial class HDReflectionProbeEditor : Editor
     {
+        [MenuItem("CONTEXT/ReflectionProbe/Remove HD Reflection Probe", false, 0)]
+        static void RemoveLight(MenuCommand menuCommand)
+        {
+            GameObject go = ((ReflectionProbe)menuCommand.context).gameObject;
+
+            Assert.IsNotNull(go);
+
+            Undo.SetCurrentGroupName("Remove HD Reflection Probe");
+            Undo.DestroyObjectImmediate(go.GetComponent<ReflectionProbe>());
+            Undo.DestroyObjectImmediate(go.GetComponent<HDAdditionalReflectionData>());
+            Undo.DestroyObjectImmediate(go.GetComponent<MeshRenderer>());
+            Undo.DestroyObjectImmediate(go.GetComponent<MeshFilter>());
+        }
+
         static Dictionary<ReflectionProbe, HDReflectionProbeEditor> s_ReflectionProbeEditors = new Dictionary<ReflectionProbe, HDReflectionProbeEditor>();
 
         static HDReflectionProbeEditor GetEditorFor(ReflectionProbe p)
         {
             HDReflectionProbeEditor e;
-            if (s_ReflectionProbeEditors.TryGetValue(p, out e) 
-                && e != null 
+            if (s_ReflectionProbeEditors.TryGetValue(p, out e)
+                && e != null
                 && !e.Equals(null)
                 && ArrayUtility.IndexOf(e.targets, p) != -1)
                 return e;
@@ -90,14 +105,13 @@ namespace UnityEditor.Experimental.Rendering
 
         static void PerformOperations(HDReflectionProbeUI s, SerializedHDReflectionProbe p, HDReflectionProbeEditor o)
         {
-            
         }
 
         void HideAdditionalComponents(bool visible)
         {
             var adds = CoreEditorUtils.GetAdditionalData<HDAdditionalReflectionData>(targets);
             var flags = visible ? HideFlags.None : HideFlags.HideInInspector;
-            for (var i = 0 ; i < targets.Length; ++i)
+            for (var i = 0; i < targets.Length; ++i)
             {
                 var target = targets[i];
                 var addData = adds[i];
@@ -138,8 +152,6 @@ namespace UnityEditor.Experimental.Rendering
                 }
             }
         }
-
-        
 
         static void InspectColorsGUI()
         {

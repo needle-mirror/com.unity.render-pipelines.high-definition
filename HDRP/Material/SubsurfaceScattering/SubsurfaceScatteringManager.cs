@@ -10,7 +10,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         public int sssBufferCount { get { return k_MaxSSSBuffer; } }
 
-        RTHandle[] m_ColorMRTs = new RTHandle[k_MaxSSSBuffer];
+        RTHandleSystem.RTHandle[] m_ColorMRTs = new RTHandleSystem.RTHandle[k_MaxSSSBuffer];
         bool[] m_ExternalBuffer = new bool[k_MaxSSSBuffer];
 
         // Disney SSS Model
@@ -18,7 +18,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         int m_SubsurfaceScatteringKernel;
         Material m_CombineLightingPass;
 
-        RTHandle m_HTile;
+        RTHandleSystem.RTHandle m_HTile;
         // End Disney SSS Model
 
         // Jimenez SSS Model
@@ -27,7 +27,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // End Jimenez SSS Model
 
         // Jimenez need an extra buffer and Disney need one for some platform
-        RTHandle m_CameraFilteringBuffer;
+        RTHandleSystem.RTHandle m_CameraFilteringBuffer;
 
         // This is use to be able to read stencil value in compute shader
         Material m_CopyStencilForSplitLighting;
@@ -39,11 +39,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public void InitSSSBuffers(GBufferManager gbufferManager, RenderPipelineSettings settings)
         {
             // TODO: For MSAA, at least initially, we can only support Jimenez, because we can't create MSAA + UAV render targets.
-            if (settings.supportForwardOnly)
+            if (settings.supportOnlyForward)
             {
                 // In case of full forward we must allocate the render target for forward SSS (or reuse one already existing)
                 // TODO: Provide a way to reuse a render target
-                m_ColorMRTs[0] = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGB32, sRGB: true, name: "SSSBuffer");
+                m_ColorMRTs[0] = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.ARGB32, sRGB: true, name: "SSSBuffer");
                 m_ExternalBuffer[0] = false;
             }
             else
@@ -56,14 +56,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (ShaderConfig.k_UseDisneySSS == 0 || NeedTemporarySubsurfaceBuffer())
             {
                 // Caution: must be same format as m_CameraSssDiffuseLightingBuffer
-                m_CameraFilteringBuffer = RTHandle.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RGB111110Float, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "SSSCameraFiltering"); // Enable UAV
+                m_CameraFilteringBuffer = RTHandles.Alloc(Vector2.one, filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.RGB111110Float, sRGB: false, enableRandomWrite: true, enableMSAA: true, name: "SSSCameraFiltering"); // Enable UAV
             }
 
             // We use 8x8 tiles in order to match the native GCN HTile as closely as possible.
-            m_HTile = RTHandle.Alloc(size => new Vector2Int((size.x + 7) / 8, (size.y + 7) / 8), filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableRandomWrite: true, name: "SSSHtile"); // Enable UAV
+            m_HTile = RTHandles.Alloc(size => new Vector2Int((size.x + 7) / 8, (size.y + 7) / 8), filterMode: FilterMode.Point, colorFormat: RenderTextureFormat.R8, sRGB: false, enableRandomWrite: true, name: "SSSHtile"); // Enable UAV
         }
 
-        public RTHandle GetSSSBuffer(int index)
+        public RTHandleSystem.RTHandle GetSSSBuffer(int index)
         {
             Debug.Assert(index < sssBufferCount);
             return m_ColorMRTs[index];
@@ -105,18 +105,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 if (!m_ExternalBuffer[i])
                 {
-                    RTHandle.Release(m_ColorMRTs[i]);
+                    RTHandles.Release(m_ColorMRTs[i]);
                 }
             }
 
-            RTHandle.Release(m_CameraFilteringBuffer);
-            RTHandle.Release(m_HTile);
+            RTHandles.Release(m_CameraFilteringBuffer);
+            RTHandles.Release(m_HTile);
         }
 
-        public void PushGlobalParams(CommandBuffer cmd, DiffusionProfileSettings sssParameters, FrameSettings frameSettings)
+        public void PushGlobalParams(HDCamera hdCamera, CommandBuffer cmd, DiffusionProfileSettings sssParameters)
         {
             // Broadcast SSS parameters to all shaders.
-            cmd.SetGlobalInt(HDShaderIDs._EnableSubsurfaceScattering, frameSettings.enableSubsurfaceScattering ? 1 : 0);
+            cmd.SetGlobalInt(HDShaderIDs._EnableSubsurfaceScattering, hdCamera.frameSettings.enableSubsurfaceScattering ? 1 : 0);
             unsafe
             {
                 // Warning: Unity is not able to losslessly transfer integers larger than 2^24 to the shader system.
@@ -130,7 +130,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             cmd.SetGlobalVectorArray(HDShaderIDs._ShapeParams, sssParameters.shapeParams);
             cmd.SetGlobalVectorArray(HDShaderIDs._HalfRcpVariancesAndWeights, sssParameters.halfRcpVariancesAndWeights);
             // To disable transmission, we simply nullify the transmissionTint
-            cmd.SetGlobalVectorArray(HDShaderIDs._TransmissionTintsAndFresnel0, frameSettings.enableTransmission ? sssParameters.transmissionTintsAndFresnel0 : sssParameters.disabledTransmissionTintsAndFresnel0);
+            cmd.SetGlobalVectorArray(HDShaderIDs._TransmissionTintsAndFresnel0, hdCamera.frameSettings.enableTransmission ? sssParameters.transmissionTintsAndFresnel0 : sssParameters.disabledTransmissionTintsAndFresnel0);
             cmd.SetGlobalVectorArray(HDShaderIDs._WorldScales, sssParameters.worldScales);
         }
 
@@ -141,15 +141,15 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Most modern GPUs support it. We can avoid performing a costly copy in this case.
             // TODO: test/implement for other platforms.
             return SystemInfo.graphicsDeviceType != GraphicsDeviceType.PlayStation4 &&
-                    SystemInfo.graphicsDeviceType != GraphicsDeviceType.XboxOne &&
-                    SystemInfo.graphicsDeviceType != GraphicsDeviceType.XboxOneD3D12;
+                SystemInfo.graphicsDeviceType != GraphicsDeviceType.XboxOne &&
+                SystemInfo.graphicsDeviceType != GraphicsDeviceType.XboxOneD3D12;
         }
 
         // Combines specular lighting and diffuse lighting with subsurface scattering.
-        public void SubsurfaceScatteringPass(HDCamera hdCamera, CommandBuffer cmd, DiffusionProfileSettings sssParameters, FrameSettings frameSettings,
-                                            RTHandle colorBufferRT, RTHandle diffuseBufferRT, RTHandle depthStencilBufferRT, RTHandle depthTextureRT)
+        public void SubsurfaceScatteringPass(HDCamera hdCamera, CommandBuffer cmd, DiffusionProfileSettings sssParameters,
+            RTHandleSystem.RTHandle colorBufferRT, RTHandleSystem.RTHandle diffuseBufferRT, RTHandleSystem.RTHandle depthStencilBufferRT, RTHandleSystem.RTHandle depthTextureRT)
         {
-            if (sssParameters == null || !frameSettings.enableSubsurfaceScattering)
+            if (sssParameters == null || !hdCamera.frameSettings.enableSubsurfaceScattering)
                 return;
 
             // TODO: For MSAA, at least initially, we can only support Jimenez, because we can't
@@ -173,18 +173,17 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     {
                         // Currently, Unity does not offer a way to access the GCN HTile even on PS4 and Xbox One.
                         // Therefore, it's computed in a pixel shader, and optimized to only contain the SSS bit.
+
+                        // Clear the HTile texture. TODO: move this to ClearBuffers(). Clear operations must be batched!
                         HDUtils.SetRenderTarget(cmd, hdCamera, m_HTile, ClearFlag.Color, CoreUtils.clearColorAllBlack);
 
-                        cmd.SetRandomWriteTarget(1, m_HTile);
+                        HDUtils.SetRenderTarget(cmd, hdCamera, depthStencilBufferRT); // No need for color buffer here
+                        cmd.SetRandomWriteTarget(1, m_HTile); // This need to be done AFTER SetRenderTarget
                         // Generate HTile for the split lighting stencil usage. Don't write into stencil texture (shaderPassId = 2)
                         // Use ShaderPassID 1 => "Pass 2 - Export HTILE for stencilRef to output"
-                        HDUtils.SetRenderTarget(cmd, hdCamera, depthStencilBufferRT); // No need for color buffer here
                         CoreUtils.DrawFullScreen(cmd, m_CopyStencilForSplitLighting, null, 2);
                         cmd.ClearRandomWriteTargets();
                     }
-
-                    // TODO: Remove this once fix, see comment inside the function
-                    hdCamera.SetupComputeShader(m_SubsurfaceScatteringCS, cmd);
 
                     unsafe
                     {

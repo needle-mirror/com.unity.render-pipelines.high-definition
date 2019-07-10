@@ -11,16 +11,21 @@
 CBUFFER_START(UnityDebugDisplay)
 // Set of parameters available when switching to debug shader mode
 int _DebugLightingMode; // Match enum DebugLightingMode
+int _DebugLightingSubMode;
 int _DebugViewMaterial; // Contain the id (define in various materialXXX.cs.hlsl) of the property to display
 int _DebugMipMapMode; // Match enum DebugMipMapMode
+int _DebugStep;
 float4 _DebugLightingAlbedo; // x == bool override, yzw = albedo for diffuse
 float4 _DebugLightingSmoothness; // x == bool override, y == override value
 float4 _DebugLightingNormal; // x == bool override
+float4 _DebugLightingSpecularColor; // x == bool override, yzw = specular color
 float4 _MousePixelCoord;  // xy unorm, zw norm
-float _DebugEnvironmentProxyDepthScale;
+float4 _MouseClickPixelCoord;  // xy unorm, zw norm
+float _DebugExposure;
 CBUFFER_END
 
 TEXTURE2D(_DebugFont); // Debug font to write string in shader
+RWStructuredBuffer<ScreenSpaceTracingDebug> _DebugScreenSpaceTracingData : register(u7); // TODO: Change the register number for PS4
 
 void GetPropertiesDataDebug(uint paramId, inout float3 result, inout bool needLinearToSRGB)
 {
@@ -111,13 +116,13 @@ float3 GetTextureDataDebug(uint paramId, float2 uv, Texture2D tex, float4 texelS
 }
 
 // DebugFont code assume black and white font with texture size 256x128 with bloc of 16x16
-#define DEBUG_FONT_TEXT_WIDTH	16
-#define DEBUG_FONT_TEXT_HEIGHT	16
-#define DEBUG_FONT_TEXT_COUNT_X	16
-#define DEBUG_FONT_TEXT_COUNT_Y	8
+#define DEBUG_FONT_TEXT_WIDTH   16
+#define DEBUG_FONT_TEXT_HEIGHT  16
+#define DEBUG_FONT_TEXT_COUNT_X 16
+#define DEBUG_FONT_TEXT_COUNT_Y 8
 #define DEBUG_FONT_TEXT_ASCII_START 32
 
-#define DEBUG_FONT_TEXT_SCALE_WIDTH	10 // This control the spacing between characters (if a character fill the text block it will overlap).
+#define DEBUG_FONT_TEXT_SCALE_WIDTH 10 // This control the spacing between characters (if a character fill the text block it will overlap).
 
 // Only support ASCII symbol from DEBUG_FONT_TEXT_ASCII_START to 126
 // return black or white depends if we hit font character or not

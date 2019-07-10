@@ -1,4 +1,4 @@
-﻿using UnityEngine.Serialization;
+using UnityEngine.Serialization;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -6,16 +6,13 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [RequireComponent(typeof(Camera))]
     public class HDAdditionalCameraData : MonoBehaviour, ISerializationCallbackReceiver
     {
+        [HideInInspector]
+        public float version = 1.0f;
+
         // The light culling use standard projection matrices (non-oblique)
         // If the user overrides the projection matrix with an oblique one
         // He must also provide a callback to get the equivalent non oblique for the culling
         public delegate Matrix4x4 NonObliqueProjectionGetter(Camera camera);
-
-#pragma warning disable 414 // CS0414 The private field '...' is assigned but its value is never used
-        // We can't rely on Unity for our additional data, we need to version it ourself.
-        [SerializeField]
-        float m_Version = 1.0f;
-#pragma warning restore 414
 
         Camera m_camera;
 
@@ -24,12 +21,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Default is the default rendering path define by the HDRendeRPipelineAsset FrameSettings.
         // Custom allow users to define the FrameSettigns for this path
         // Then enum can contain either preset of FrameSettings or hard coded path
-        // Unlit below is a hard coded path (a path that can't be implemented only with FrameSettings)
+        // FullscreenPassthrough below is a hard coded path (a path that can't be implemented only with FrameSettings)
         public enum RenderingPath
         {
             Default,
             Custom,  // Fine grained
-            Unlit  // Hard coded path
+            FullscreenPassthrough  // Hard coded path
         };
 
         public enum ClearColorMode
@@ -44,9 +41,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public Color backgroundColorHDR = new Color(0.025f, 0.07f, 0.19f, 0.0f);
         public bool clearDepth = true;
 
-        public RenderingPath    renderingPath;
+        public RenderingPath renderingPath;
         [Tooltip("Layer Mask used for the volume interpolation for this camera.")]
-        public LayerMask        volumeLayerMask = -1;
+        public LayerMask volumeLayerMask = -1;
 
         // Physical parameters
         public float aperture = 8f;
@@ -57,7 +54,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // we create a runtime copy (m_ActiveFrameSettings that is used, and any parametrization is done on serialized frameSettings)
         [SerializeField]
         [FormerlySerializedAs("serializedFrameSettings")]
-        FrameSettings    m_FrameSettings = new FrameSettings(); // Serialize frameSettings
+        FrameSettings m_FrameSettings = new FrameSettings(); // Serialize frameSettings
 
         // Not serialized, visible only in the debug windows
         FrameSettings m_FrameSettingsRuntime = new FrameSettings();
@@ -67,8 +64,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Use for debug windows
         // When camera name change we need to update the name in DebugWindows.
         // This is the purpose of this class
-        bool    m_IsDebugRegistered = false;
-        string  m_CameraRegisterName;
+        bool m_IsDebugRegistered = false;
+        string m_CameraRegisterName;
+
+        // When we are a preview, there is no way inside Unity to make a disctinctoin between camera preview and material preview.
+        // This property allow to say that we are an editor camera preview when the type is preview.
+        public bool isEditorCameraPreview { get; set; }
 
         // This is the function use outside to access FrameSettings. It return the current state of FrameSettings for the camera
         // taking into account the customization via the debug menu
@@ -130,6 +131,9 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         void UnRegisterDebug()
         {
+            if (m_camera == null)
+                return;
+
             if (m_IsDebugRegistered)
             {
                 if (m_camera.cameraType != CameraType.Preview && m_camera.cameraType != CameraType.Reflection)
@@ -147,6 +151,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // When LDR, unity render in 8bitSRGB, then do a final shader with sRGB conversion
             // What should be done is just in our Post process we convert to sRGB and store in a linear 10bit, but require C++ change...
             m_camera = GetComponent<Camera>();
+            if (m_camera == null)
+                return;
+
+            m_camera.allowMSAA = false; // We don't use this option in HD (it is legacy MSAA) and it produce a warning in the inspector UI if we let it
             m_camera.allowHDR = false;
 
             //  Tag as dirty so frameSettings are correctly initialize at next HDRenderPipeline.Render() call
@@ -182,6 +190,21 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // When FrameSettings are manipulated or RenderPath change we reset them to reflect the change, discarding all the Debug Windows change.
             // Tag as dirty so frameSettings are correctly initialize at next HDRenderPipeline.Render() call
             m_frameSettingsIsDirty = true;
+        }
+
+        // This is called at the creation of the HD Additional Camera Data, to convert the legacy camera settings to HD
+        public static void InitDefaultHDAdditionalCameraData(HDAdditionalCameraData cameraData)
+        {
+            var camera = cameraData.gameObject.GetComponent<Camera>();
+
+            cameraData.clearDepth = camera.clearFlags != CameraClearFlags.Nothing;
+
+            if (camera.clearFlags == CameraClearFlags.Skybox)
+                cameraData.clearColorMode = ClearColorMode.Sky;
+            else if (camera.clearFlags == CameraClearFlags.SolidColor)
+                cameraData.clearColorMode = ClearColorMode.BackgroundColor;
+            else     // None
+                cameraData.clearColorMode = ClearColorMode.None;
         }
     }
 }

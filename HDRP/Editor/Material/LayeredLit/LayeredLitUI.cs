@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    internal class LayeredLitGUI : LitGUI
+    public class LayeredLitGUI : LitGUI
     {
         public enum VertexColorMode
         {
@@ -262,7 +262,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                                 case ShaderUtil.ShaderPropertyType.TexEnv:
                                 {
                                     material.SetTexture(layerPropertyName, layerMaterial.GetTexture(propertyName));
-                                    if(!excludeUVMappingProperties)
+                                    if (!excludeUVMappingProperties)
                                     {
                                         material.SetTextureOffset(layerPropertyName, layerMaterial.GetTextureOffset(propertyName));
                                         material.SetTextureScale(layerPropertyName, layerMaterial.GetTextureScale(propertyName));
@@ -320,38 +320,41 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             bool mainLayerInfluenceEnable = useMainLayerInfluence.floatValue > 0.0f;
 
-            if(mainLayerInfluenceEnable) // This is the only case where we need this sub category.
+            // Main layer does not have any options but height base blend.
+            if (layerIndex > 0)
             {
                 EditorGUILayout.LabelField(styles.layeringOptionText, EditorStyles.boldLabel);
                 EditorGUI.indentLevel++;
 
-                // Main layer does not have any options but height base blend.
-                if (layerIndex > 0)
-                {
-                    int paramIndex = layerIndex - 1;
+                int paramIndex = layerIndex - 1;
 
-                    m_MaterialEditor.ShaderProperty(opacityAsDensity[layerIndex], styles.opacityAsDensityText);
+                m_MaterialEditor.ShaderProperty(opacityAsDensity[layerIndex], styles.opacityAsDensityText);
 
-                    if (mainLayerInfluenceEnable)
-                    {
-                        m_MaterialEditor.ShaderProperty(inheritBaseColor[paramIndex], styles.inheritBaseColorText);
-                        m_MaterialEditor.ShaderProperty(inheritBaseNormal[paramIndex], styles.inheritBaseNormalText);
-                        // Main height influence is only available if the shader use the heightmap for displacement (per vertex or per level)
-                        // We always display it as it can be tricky to know when per pixel displacement is enabled or not
-                        m_MaterialEditor.ShaderProperty(inheritBaseHeight[paramIndex], styles.inheritBaseHeightText);
-                    }
-                }
-                else
+                if (mainLayerInfluenceEnable)
                 {
-                    if (!useMainLayerInfluence.hasMixedValue && useMainLayerInfluence.floatValue != 0.0f)
-                    {
-                        m_MaterialEditor.TexturePropertySingleLine(styles.layerInfluenceMapMaskText, layerInfluenceMaskMap);
-                    }
+                    m_MaterialEditor.ShaderProperty(inheritBaseColor[paramIndex], styles.inheritBaseColorText);
+                    m_MaterialEditor.ShaderProperty(inheritBaseNormal[paramIndex], styles.inheritBaseNormalText);
+                    // Main height influence is only available if the shader use the heightmap for displacement (per vertex or per level)
+                    // We always display it as it can be tricky to know when per pixel displacement is enabled or not
+                    m_MaterialEditor.ShaderProperty(inheritBaseHeight[paramIndex], styles.inheritBaseHeightText);
                 }
 
                 EditorGUI.indentLevel--;
-                EditorGUILayout.Space();
             }
+            else
+            {
+                if (!useMainLayerInfluence.hasMixedValue && useMainLayerInfluence.floatValue != 0.0f)
+                {
+                    EditorGUILayout.LabelField(styles.layeringOptionText, EditorStyles.boldLabel);
+                    EditorGUI.indentLevel++;
+
+                    m_MaterialEditor.TexturePropertySingleLine(styles.layerInfluenceMapMaskText, layerInfluenceMaskMap);
+
+                    EditorGUI.indentLevel--;
+                }
+            }
+
+            EditorGUILayout.Space();
 
             DoLayerGUI(material, layerIndex, true, m_UseHeightBasedBlend);
 
@@ -360,7 +363,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             return result;
         }
-
 
         void DoLayeringInputGUI()
         {
@@ -501,9 +503,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             return layerChanged;
         }
 
-        protected override bool ShouldEmissionBeEnabled(Material mat)
+        protected override bool ShouldEmissionBeEnabled(Material material)
         {
-            return mat.GetFloat(kEmissiveIntensity) > 0.0f;
+            return (material.GetColor(kEmissiveColor) != Color.black) || material.GetTexture(kEmissiveColorMap);
         }
 
         protected override void SetupMaterialKeywordsAndPassInternal(Material material)
@@ -652,7 +654,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             CoreUtils.SetKeyword(material, "_HEIGHT_BASED_BLEND", useHeightBasedBlend);
 
             bool useDensityModeEnable = false;
-            for (int i = 0; i < material.GetInt(kLayerCount); ++i )
+            for (int i = 0; i < material.GetInt(kLayerCount); ++i)
             {
                 useDensityModeEnable |= material.GetFloat(kOpacityAsDensity + i) != 0.0f;
             }

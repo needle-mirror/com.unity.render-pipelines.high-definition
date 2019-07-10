@@ -150,21 +150,21 @@ FragInputs UnpackVaryingsMeshToFragInputs(PackedVaryingsMeshToPS input)
 #endif
 
 #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
-    float4 tangentWS = float4(input.interpolators2.xyz, input.interpolators2.w > 0.0 ? 1.0 : -1.0);	// must not be normalized (mikkts requirement)
+    float4 tangentWS = float4(input.interpolators2.xyz, input.interpolators2.w > 0.0 ? 1.0 : -1.0); // must not be normalized (mikkts requirement)
 
     // Normalize normalWS vector but keep the renormFactor to apply it to bitangent and tangent
-	float3 unnormalizedNormalWS = input.interpolators1.xyz;
+    float3 unnormalizedNormalWS = input.interpolators1.xyz;
     float renormFactor = 1.0 / length(unnormalizedNormalWS);
 
     // bitangent on the fly option in xnormal to reduce vertex shader outputs.
-	// this is the mikktspace transformation (must use unnormalized attributes)
+    // this is the mikktspace transformation (must use unnormalized attributes)
     float3x3 worldToTangent = CreateWorldToTangent(unnormalizedNormalWS, tangentWS.xyz, tangentWS.w);
 
-	// surface gradient based formulation requires a unit length initial normal. We can maintain compliance with mikkts
-	// by uniformly scaling all 3 vectors since normalization of the perturbed normal will cancel it.
+    // surface gradient based formulation requires a unit length initial normal. We can maintain compliance with mikkts
+    // by uniformly scaling all 3 vectors since normalization of the perturbed normal will cancel it.
     output.worldToTangent[0] = worldToTangent[0] * renormFactor;
     output.worldToTangent[1] = worldToTangent[1] * renormFactor;
-    output.worldToTangent[2] = worldToTangent[2] * renormFactor;		// normalizes the interpolated vertex normal
+    output.worldToTangent[2] = worldToTangent[2] * renormFactor;        // normalizes the interpolated vertex normal
 #endif // VARYINGS_NEED_TANGENT_TO_WORLD
 
 #ifdef VARYINGS_NEED_TEXCOORD0
@@ -187,7 +187,7 @@ FragInputs UnpackVaryingsMeshToFragInputs(PackedVaryingsMeshToPS input)
     output.isFrontFace = IS_FRONT_VFACE(input.cullFace, true, false);
     // Handle handness of the view matrix (In Unity view matrix default to a determinant of -1)
     // when we render a cubemap the view matrix handness is flipped (due to convention used for cubemap) we have a determinant of +1
-    output.isFrontFace = _ViewParam.x <  0.0 ? output.isFrontFace : !output.isFrontFace;
+    output.isFrontFace = _DetViewMatrix < 0.0 ? output.isFrontFace : !output.isFrontFace;
 #endif
 
     return output;

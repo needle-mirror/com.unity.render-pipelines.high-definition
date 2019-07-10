@@ -1,4 +1,4 @@
-﻿// SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
+// SurfaceData is define in Lit.cs which generate Lit.cs.hlsl
 #include "Lit.cs.hlsl"
 #include "../SubsurfaceScattering/SubsurfaceScattering.hlsl"
 #include "CoreRP/ShaderLibrary/VolumeRendering.hlsl"
@@ -13,34 +13,8 @@ TEXTURE2D(_GBufferTexture1);
 TEXTURE2D(_GBufferTexture2);
 TEXTURE2D(_GBufferTexture3);
 
-// Rough refraction texture
-// Color pyramid (width, height, lodcount, Unused)
-TEXTURE2D(_GaussianPyramidColorTexture);
-// Depth pyramid (width, height, lodcount, Unused)
-TEXTURE2D(_PyramidDepthTexture);
-
-CBUFFER_START(UnityGaussianPyramidParameters)
-float4 _GaussianPyramidColorMipSize; // (x,y) = PyramidToScreenScale, z = lodCount
-float4 _PyramidDepthMipSize;
-CBUFFER_END
-
-// Ambient occlusion texture
-TEXTURE2D(_AmbientOcclusionTexture);
-
-CBUFFER_START(UnityAmbientOcclusionParameters)
-float4 _AmbientOcclusionParam; // xyz occlusion color, w directLightStrenght
-CBUFFER_END
-
-// Area light textures
-// TODO: This one should be set into a constant Buffer at pass frequency (with _Screensize)
-TEXTURE2D(_PreIntegratedFGD);
-TEXTURE2D_ARRAY(_LtcData); // We pack the 3 Ltc data inside a texture array
-#define LTC_GGX_MATRIX_INDEX 0 // RGBA
-#define LTC_DISNEY_DIFFUSE_MATRIX_INDEX 1 // RGBA
-#define LTC_MULTI_GGX_FRESNEL_DISNEY_DIFFUSE_INDEX 2 // RGB, A unused
-#define LTC_LUT_SIZE   64
-#define LTC_LUT_SCALE  ((LTC_LUT_SIZE - 1) * rcp(LTC_LUT_SIZE))
-#define LTC_LUT_OFFSET (0.5 * rcp(LTC_LUT_SIZE))
+#include "../LTCAreaLight/LTCAreaLight.hlsl"
+#include "../PreIntegratedFGD/PreIntegratedFGD.hlsl"
 
 //-----------------------------------------------------------------------------
 // Definition
@@ -51,7 +25,7 @@ TEXTURE2D_ARRAY(_LtcData); // We pack the 3 Ltc data inside a texture array
 #define GBufferType2 float4
 #define GBufferType3 float4
 
-#define HAS_REFRACTION (defined(_REFRACTION_PLANE) || defined(_REFRACTION_SPHERE))
+#define HAS_REFRACTION (defined(_REFRACTION_PLANE) || defined(_REFRACTION_SPHERE)) && (defined(_REFRACTION_SSRAY_PROXY) || defined(_REFRACTION_SSRAY_HIZ))
 
 #define DEFAULT_SPECULAR_VALUE 0.04
 
@@ -96,44 +70,48 @@ TEXTURE2D_ARRAY(_LtcData); // We pack the 3 Ltc data inside a texture array
 // If a user do a lighting architecture without material classification, this can be remove
 #include "../../Lighting/LightLoop/LightLoop.cs.hlsl"
 
+// Currently disable SSR until critical editor fix is available
+#undef LIGHTFEATUREFLAGS_SSREFLECTION
+#define LIGHTFEATUREFLAGS_SSREFLECTION 0
+
 // Combination need to be define in increasing "comlexity" order as define by FeatureFlagsToTileVariant
 static const uint kFeatureVariantFlags[NUM_FEATURE_VARIANTS] =
 {
     // Precomputed illumination (no dynamic lights) for all material types
-    /*  0 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_ENV | MATERIAL_FEATURE_MASK_FLAGS,
+    /*  0 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIAL_FEATURE_MASK_FLAGS,
 
     /*  1 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /*  2 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_AREA | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /*  3 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /*  4 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /*  3 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /*  4 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /*  5 */ LIGHT_FEATURE_MASK_FLAGS_OPAQUE | MATERIALFEATUREFLAGS_LIT_STANDARD,
 
     // Standard with SSS and Transmission
     /*  6 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /*  7 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_AREA | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /*  8 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /*  9 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /*  8 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /*  9 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 10 */ LIGHT_FEATURE_MASK_FLAGS_OPAQUE | MATERIALFEATUREFLAGS_LIT_SUBSURFACE_SCATTERING | MATERIALFEATUREFLAGS_LIT_TRANSMISSION | MATERIALFEATUREFLAGS_LIT_STANDARD,
 
     // Anisotropy
     /* 11 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 12 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_AREA | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /* 13 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /* 14 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /* 13 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /* 14 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 15 */ LIGHT_FEATURE_MASK_FLAGS_OPAQUE | MATERIALFEATUREFLAGS_LIT_ANISOTROPY | MATERIALFEATUREFLAGS_LIT_STANDARD,
 
     // Standard with clear coat
     /* 16 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 17 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_AREA | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /* 18 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /* 19 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /* 18 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /* 19 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 20 */ LIGHT_FEATURE_MASK_FLAGS_OPAQUE | MATERIALFEATUREFLAGS_LIT_CLEAR_COAT | MATERIALFEATUREFLAGS_LIT_STANDARD,
 
     // Standard with Iridescence
     /* 21 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 22 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_AREA | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /* 23 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
-    /* 24 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /* 23 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
+    /* 24 */ LIGHTFEATUREFLAGS_SKY | LIGHTFEATUREFLAGS_DIRECTIONAL | LIGHTFEATUREFLAGS_PUNCTUAL | LIGHTFEATUREFLAGS_ENV | LIGHTFEATUREFLAGS_SSREFLECTION | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
     /* 25 */ LIGHT_FEATURE_MASK_FLAGS_OPAQUE | MATERIALFEATUREFLAGS_LIT_IRIDESCENCE | MATERIALFEATUREFLAGS_LIT_STANDARD,
 
     /* 26 */ LIGHT_FEATURE_MASK_FLAGS_OPAQUE | MATERIAL_FEATURE_MASK_FLAGS, // Catch all case with MATERIAL_FEATURE_MASK_FLAGS is needed in case we disable material classification
@@ -142,7 +120,7 @@ static const uint kFeatureVariantFlags[NUM_FEATURE_VARIANTS] =
 // Additional bits set in 'bsdfData.materialFeatures' to save registers and simplify feature tracking.
 #define MATERIAL_FEATURE_FLAGS_SSS_OUTPUT_SPLIT_LIGHTING         ((MATERIAL_FEATURE_MASK_FLAGS + 1) << 0)
 #define MATERIAL_FEATURE_FLAGS_SSS_TEXTURING_MODE_OFFSET FastLog2((MATERIAL_FEATURE_MASK_FLAGS + 1) << 1) // 2 bits
-#define MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_THIN            ((MATERIAL_FEATURE_MASK_FLAGS + 1) << 3)
+#define MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_MIXED_THICKNESS ((MATERIAL_FEATURE_MASK_FLAGS + 1) << 3)
 
 uint FeatureFlagsToTileVariant(uint featureFlags)
 {
@@ -178,54 +156,32 @@ uint TileVariantToFeatureFlags(uint variant, uint tileIndex)
 // Helper functions/variable specific to this material
 //-----------------------------------------------------------------------------
 
+// SSReflection
+#include "HDRP/Lighting/LightDefinition.cs.hlsl"
+#include "HDRP/Lighting/Reflection/VolumeProjection.hlsl"
+
+#define SSRTID Reflection
+#include "HDRP/Lighting/Reflection/ScreenSpaceTracing.hlsl"
+#undef SSRTID
+
 #if HAS_REFRACTION
-# include "CoreRP/ShaderLibrary/Refraction.hlsl"
+    #include "CoreRP/ShaderLibrary/Refraction.hlsl"
+    #define SSRTID Refraction
+    #include "HDRP/Lighting/Reflection/ScreenSpaceTracing.hlsl"
+    #undef SSRTID
 
-# if defined(_REFRACTION_PLANE)
-#  define REFRACTION_MODEL(V, posInputs, bsdfData) RefractionModelPlane(V, posInputs.positionWS, bsdfData.normalWS, bsdfData.ior, bsdfData.thickness)
-# elif defined(_REFRACTION_SPHERE)
-#  define REFRACTION_MODEL(V, posInputs, bsdfData) RefractionModelSphere(V, posInputs.positionWS, bsdfData.normalWS, bsdfData.ior, bsdfData.thickness)
-# endif
+    #if defined(_REFRACTION_PLANE)
+    #define REFRACTION_MODEL(V, posInputs, bsdfData) RefractionModelPlane(V, posInputs.positionWS, bsdfData.normalWS, bsdfData.ior, bsdfData.thickness)
+    #elif defined(_REFRACTION_SPHERE)
+    #define REFRACTION_MODEL(V, posInputs, bsdfData) RefractionModelSphere(V, posInputs.positionWS, bsdfData.normalWS, bsdfData.ior, bsdfData.thickness)
+    #endif
 #endif
-
-float3 EstimateRaycast(float3 V, PositionInputs posInputs, float3 positionWS, float3 rayWS)
-{
-    // For all refraction approximation, to calculate the refracted point in world space,
-    //   we approximate the scene as a plane (back plane) with normal -V at the depth hit point.
-    //   (We avoid to raymarch the depth texture to get the refracted point.)
-
-    uint2 depthSize = uint2(_PyramidDepthMipSize.xy);
-
-    // Get the depth of the approximated back plane
-    float pyramidDepth = LOAD_TEXTURE2D_LOD(_PyramidDepthTexture, posInputs.positionNDC * (depthSize >> 2), 2).r;
-    float depth = LinearEyeDepth(pyramidDepth, _ZBufferParams);
-
-    // Distance from point to the back plane
-    float depthFromPositionInput = depth - posInputs.linearDepth;
-
-    float offset = dot(-V, positionWS - posInputs.positionWS);
-    float depthFromPosition = depthFromPositionInput - offset;
-
-    float hitDistanceFromPosition = depthFromPosition / dot(-V, rayWS);
-
-    return positionWS + rayWS * hitDistanceFromPosition;
-}
 
 // This method allows us to know at compile time what material features should be removed from the code by Tile (Indepenently of the value of material feature flag per pixel).
 // This is only useful for classification during lighting, so it's not needed in EncodeIntoGBuffer and ConvertSurfaceDataToBSDFData (where we always know exactly what the material feature is)
 bool HasFeatureFlag(uint featureFlags, uint flag)
 {
     return ((featureFlags & flag) != 0);
-}
-
-float3 ComputeDiffuseColor(float3 baseColor, float metallic)
-{
-    return baseColor * (1.0 - metallic);
-}
-
-float3 ComputeFresnel0(float3 baseColor, float metallic, float dielectricF0)
-{
-    return lerp(dielectricF0.xxx, baseColor, metallic);
 }
 
 // Assume that bsdfData.diffusionProfile is init
@@ -246,36 +202,34 @@ void FillMaterialTransmission(uint diffusionProfile, float thickness, inout BSDF
 
     bsdfData.thickness = _ThicknessRemaps[diffusionProfile].x + _ThicknessRemaps[diffusionProfile].y * thickness;
 
-#if SHADEROPTIONS_USE_DISNEY_SSS
-    bsdfData.transmittance = ComputeTransmittanceDisney(    _ShapeParams[diffusionProfile].rgb,
-                                                            _TransmissionTintsAndFresnel0[diffusionProfile].rgb,
-                                                            bsdfData.thickness);
-#else
-    bsdfData.transmittance = ComputeTransmittanceJimenez(   _HalfRcpVariancesAndWeights[diffusionProfile][0].rgb,
-                                                            _HalfRcpVariancesAndWeights[diffusionProfile][0].a,
-                                                            _HalfRcpVariancesAndWeights[diffusionProfile][1].rgb,
-                                                            _HalfRcpVariancesAndWeights[diffusionProfile][1].a,
-                                                            _TransmissionTintsAndFresnel0[diffusionProfile].rgb,
-                                                            bsdfData.thickness);
-#endif
-
+    // The difference between the thin and the regular (a.k.a. auto-thickness) modes is the following:
+    // * in the thin object mode, we assume that the geometry is thin enough for us to safely share
+    // the shadowing information between the front and the back faces;
+    // * the thin mode uses baked (textured) thickness for all transmission calculations;
+    // * the thin mode uses wrapped diffuse lighting for the NdotL;
+    // * the auto-thickness mode uses the baked (textured) thickness to compute transmission from
+    // indirect lighting and non-shadow-casting lights; for shadowed lights, it calculates
+    // the thickness using the distance to the closest occluder sampled from the shadow map.
+    // If the distance is large, it may indicate that the closest occluder is not the back face of
+    // the current object. That's not a problem, since large thickness will result in low intensity.
     bool useThinObjectMode = IsBitSet(asuint(_TransmissionFlags), diffusionProfile);
-    bsdfData.materialFeatures |= useThinObjectMode ? MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_THIN : 0;
 
-    if (useThinObjectMode)
-    {
-        // Apply no displacement.
-        bsdfData.thickness = 0;
-    }
-    else
-    {
-        // Compute the thickness in world units along the normal.
-        float thicknessInMeters = bsdfData.thickness * METERS_PER_MILLIMETER;
-        float thicknessInUnits  = thicknessInMeters * _WorldScales[bsdfData.diffusionProfile].y;
+    bsdfData.materialFeatures |= useThinObjectMode ? 0 : MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_MIXED_THICKNESS;
 
-        bsdfData.thickness = thicknessInUnits;
-    }
-
+    // Compute transmittance using baked thickness here. It may be overridden for direct lighting
+    // in the auto-thickness mode (but is always be used for indirect lighting).
+#if SHADEROPTIONS_USE_DISNEY_SSS
+    bsdfData.transmittance = ComputeTransmittanceDisney(_ShapeParams[diffusionProfile].rgb,
+                                                        _TransmissionTintsAndFresnel0[diffusionProfile].rgb,
+                                                        bsdfData.thickness);
+#else
+    bsdfData.transmittance = ComputeTransmittanceJimenez(_HalfRcpVariancesAndWeights[diffusionProfile][0].rgb,
+                                                         _HalfRcpVariancesAndWeights[diffusionProfile][0].a,
+                                                         _HalfRcpVariancesAndWeights[diffusionProfile][1].rgb,
+                                                         _HalfRcpVariancesAndWeights[diffusionProfile][1].a,
+                                                         _TransmissionTintsAndFresnel0[diffusionProfile].rgb,
+                                                         bsdfData.thickness);
+#endif
 }
 
 // Assume bsdfData.normalWS is init
@@ -318,31 +272,6 @@ void FillMaterialTransparencyData(float3 baseColor, float metallic, float ior, f
     bsdfData.thickness = max(thickness, 0.0001);
 }
 
-// For image based lighting, a part of the BSDF is pre-integrated.
-// This is done both for specular and diffuse (in case of DisneyDiffuse)
-void GetPreIntegratedFGD(float NdotV, float perceptualRoughness, float3 fresnel0, out float3 specularFGD, out float diffuseFGD, out float reflectivity)
-{
-    // Pre-integrate GGX FGD
-    // Integral{BSDF * <N,L> dw} =
-    // Integral{(F0 + (1 - F0) * (1 - <V,H>)^5) * (BSDF / F) * <N,L> dw} =
-    // (1 - F0) * Integral{(1 - <V,H>)^5 * (BSDF / F) * <N,L> dw} + F0 * Integral{(BSDF / F) * <N,L> dw}=
-    // (1 - F0) * x + F0 * y = lerp(x, y, F0)
-    // Pre integrate DisneyDiffuse FGD:
-    // z = DisneyDiffuse
-    float3 preFGD = SAMPLE_TEXTURE2D_LOD(_PreIntegratedFGD, s_linear_clamp_sampler, float2(NdotV, perceptualRoughness), 0).xyz;
-
-    specularFGD = lerp(preFGD.xxx, preFGD.yyy, fresnel0);
-
-#ifdef LIT_DIFFUSE_LAMBERT_BRDF
-    diffuseFGD = 1.0;
-#else
-    // Remap from the [0, 1] to the [0.5, 1.5] range.
-    diffuseFGD = preFGD.z + 0.5;
-#endif
-
-    reflectivity = preFGD.y;
-}
-
 // This function is use to help with debugging and must be implemented by any lit material
 // Implementer must take into account what are the current override component and
 // adjust SurfaceData properties accordingdly
@@ -370,6 +299,22 @@ void ApplyDebugToSurfaceData(float3x3 worldToTangent, inout SurfaceData surfaceD
     if (overrideNormal)
     {
         surfaceData.normalWS = worldToTangent[2];
+    }
+#endif
+}
+
+// This function is similar to ApplyDebugToSurfaceData but for BSDFData
+void ApplyDebugToBSDFData(inout BSDFData bsdfData)
+{
+#ifdef DEBUG_DISPLAY
+    // Override value if requested by user
+    // this can be use also in case of debug lighting mode like specular only
+    bool overrideSpecularColor = _DebugLightingSpecularColor.x != 0.0;
+
+    if (overrideSpecularColor)
+    {
+        float3 overrideSpecularColor = _DebugLightingSpecularColor.yzw;
+        bsdfData.fresnel0 = overrideSpecularColor;
     }
 #endif
 }
@@ -454,6 +399,8 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
                                     surfaceData.thickness, surfaceData.transmittanceMask, bsdfData);
 #endif
 
+    ApplyDebugToBSDFData(bsdfData);
+
     return bsdfData;
 }
 
@@ -464,35 +411,35 @@ BSDFData ConvertSurfaceDataToBSDFData(SurfaceData surfaceData)
 // GBuffer layout.
 // GBuffer2 and GBuffer0.a interpretation depends on material feature enabled
 
-//GBuffer0  	RGBA8 sRGB  Gbuffer0 encode baseColor and so is sRGB to save precision. Alpha is not affected.
-//GBuffer1  	RGBA8
-//GBuffer2  	RGBA8
-//GBuffer3  	RGBA8
+//GBuffer0      RGBA8 sRGB  Gbuffer0 encode baseColor and so is sRGB to save precision. Alpha is not affected.
+//GBuffer1      RGBA8
+//GBuffer2      RGBA8
+//GBuffer3      RGBA8
 
 
 //FeatureName   Standard
-//GBuffer0  	baseColor.r,    baseColor.g,    baseColor.b,    specularOcclusion
-//GBuffer1  	normal.xy (1212),   perceptualRoughness
-//GBuffer2  	f0.r,   f0.g,   f0.b,   featureID(3) / coatMask(5)
-//GBuffer3  	bakedDiffuseLighting.rgb
+//GBuffer0      baseColor.r,    baseColor.g,    baseColor.b,    specularOcclusion
+//GBuffer1      normal.xy (1212),   perceptualRoughness
+//GBuffer2      f0.r,   f0.g,   f0.b,   featureID(3) / coatMask(5)
+//GBuffer3      bakedDiffuseLighting.rgb
 
 //FeatureName   Subsurface Scattering + Transmission
-//GBuffer0  	baseColor.r,    baseColor.g,    baseColor.b,   diffusionProfile(4) / subsurfaceMask(4)
-//GBuffer1  	normal.xy (1212),   perceptualRoughness
-//GBuffer2  	specularOcclusion,  thickness,  diffusionProfile(4) / subsurfaceMask(4), featureID(3) / coatMask(5)
-//GBuffer3  	bakedDiffuseLighting.rgb
+//GBuffer0      baseColor.r,    baseColor.g,    baseColor.b,   diffusionProfile(4) / subsurfaceMask(4)
+//GBuffer1      normal.xy (1212),   perceptualRoughness
+//GBuffer2      specularOcclusion,  thickness,  diffusionProfile(4) / subsurfaceMask(4), featureID(3) / coatMask(5)
+//GBuffer3      bakedDiffuseLighting.rgb
 
 //FeatureName   Anisotropic
-//GBuffer0  	baseColor.r,    baseColor.g,    baseColor.b,    specularOcclusion
-//GBuffer1  	normal.xy (1212),   perceptualRoughness
-//GBuffer2  	anisotropy, tangent.x,  tangent.y(3) / metallic(5), featureID(3) / coatMask(5)
-//GBuffer3  	bakedDiffuseLighting.rgb
+//GBuffer0      baseColor.r,    baseColor.g,    baseColor.b,    specularOcclusion
+//GBuffer1      normal.xy (1212),   perceptualRoughness
+//GBuffer2      anisotropy, tangent.x,  tangent.y(3) / metallic(5), featureID(3) / coatMask(5)
+//GBuffer3      bakedDiffuseLighting.rgb
 
 //FeatureName   Irridescence
-//GBuffer0  	baseColor.r,    baseColor.g,    baseColor.b,    specularOcclusion
-//GBuffer1  	normal.xy (1212),   perceptualRoughness
-//GBuffer2  	IOR,    thickness,  unused(3bit) / metallic(5), featureID(3) / coatMask(5)
-//GBuffer3  	bakedDiffuseLighting.rgb
+//GBuffer0      baseColor.r,    baseColor.g,    baseColor.b,    specularOcclusion
+//GBuffer1      normal.xy (1212),   perceptualRoughness
+//GBuffer2      IOR,    thickness,  unused(3bit) / metallic(5), featureID(3) / coatMask(5)
+//GBuffer3      bakedDiffuseLighting.rgb
 
 // Note:
 // For standard we have chose to always encode fresnel0. Even when we use metal/baseColor parametrization. This avoid
@@ -521,10 +468,17 @@ void EncodeIntoGBuffer( SurfaceData surfaceData,
     // Warning: the contents are later overwritten for Standard and SSS!
     outGBuffer0 = float4(surfaceData.baseColor, surfaceData.specularOcclusion);
 
+    // The sign of the Z component of the normal MUST round-trip through the G-Buffer, otherwise
+    // the reconstruction of the tangent frame for anisotropic GGX creates a seam along the Z axis.
+    // The constant was eye-balled to not cause artifacts.
+    // TODO: find a proper solution. E.g. we could re-shuffle the faces of the octahedron
+    // s.t. the sign of the Z component round-trips.
+    const float seamThreshold = 1.0/1024.0;
+    surfaceData.normalWS.z = CopySign(max(seamThreshold, abs(surfaceData.normalWS.z)), surfaceData.normalWS.z);
+
     // RT1 - 8:8:8:8
     // Our tangent encoding is based on our normal.
-    // With octahedral quad packing we get an artifact for reconstructed tangent at the center of this quad. We use rect packing instead to avoid it.
-    float2 octNormalWS = PackNormalOctRectEncode(surfaceData.normalWS);
+    float2 octNormalWS = PackNormalOctQuadEncode(surfaceData.normalWS);
     float3 packNormalWS = PackFloat2To888(saturate(octNormalWS * 0.5 + 0.5));
     // We store perceptualRoughness instead of roughness because it is perceptually linear.
     outGBuffer1 = float4(packNormalWS, PerceptualSmoothnessToPerceptualRoughness(surfaceData.perceptualSmoothness));
@@ -682,12 +636,10 @@ uint DecodeFromGBuffer(uint2 positionSS, uint tileFeatureFlags, out BSDFData bsd
     // Decompress feature-agnostic data from the G-Buffer.
     float3 baseColor = inGBuffer0.rgb;
 
-    bsdfData.specularOcclusion   = inGBuffer0.a; // Later possibly overwritten by SSS
-    bsdfData.perceptualRoughness = inGBuffer1.a;
-
     float3 packNormalWS = inGBuffer1.rgb;
     float2 octNormalWS = Unpack888ToFloat2(packNormalWS);
-    bsdfData.normalWS = UnpackNormalOctRectEncode(octNormalWS * 2.0 - 1.0);
+    bsdfData.normalWS = UnpackNormalOctQuadEncode(octNormalWS * 2.0 - 1.0);
+    bsdfData.perceptualRoughness = inGBuffer1.a;
 
     bakeDiffuseLighting = inGBuffer3.rgb;
 
@@ -739,6 +691,10 @@ uint DecodeFromGBuffer(uint2 positionSS, uint tileFeatureFlags, out BSDFData bsd
         {
             FillMaterialTransmission(sssData.diffusionProfile, inGBuffer2.g, bsdfData);
         }
+    }
+    else
+    {
+        bsdfData.specularOcclusion = inGBuffer0.a;
     }
 
     // Special handling for anisotropy: When anisotropy is present in a tile, the whole tile will use anisotropy to avoid divergent evaluation of GGX that increase the cost
@@ -794,6 +750,8 @@ uint DecodeFromGBuffer(uint2 positionSS, uint tileFeatureFlags, out BSDFData bsd
     // perceptualRoughness is not clamped, and is meant to be used for IBL.
     // perceptualRoughness can be modify by FillMaterialClearCoatData, so ConvertAnisotropyToClampRoughness must be call after
     ConvertAnisotropyToClampRoughness(bsdfData.perceptualRoughness, bsdfData.anisotropy, bsdfData.roughnessT, bsdfData.roughnessB);
+
+    ApplyDebugToBSDFData(bsdfData);
 
     return pixelFeatureFlags;
 }
@@ -887,17 +845,19 @@ struct PreLightData
     float3x3 ltcTransformCoat;       // Inverse transformation for GGX                                 (4x VGPRs)
     float    ltcMagnitudeCoatFresnel;
 
+#if HAS_REFRACTION
     // Refraction
     float3 transparentRefractV;      // refracted view vector after exiting the shape
     float3 transparentPositionWS;    // start of the refracted ray after exiting the shape
     float3 transparentTransmittance; // transmittance due to absorption
     float transparentSSMipLevel;     // mip level of the screen space gaussian pyramid for rough refraction
+#endif
 };
 
 PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData bsdfData)
 {
     PreLightData preLightData;
-    ZERO_INITIALIZE(PreLightData, preLightData);
+    // Don't init to zero to allow to track warning about uninitialized data
 
     float3 N = bsdfData.normalWS;
     preLightData.NdotV = dot(N, V);
@@ -968,15 +928,18 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData b
     // IBL
 
     // Handle IBL +  multiscattering
-    float reflectivity;
-    GetPreIntegratedFGD(NdotV, preLightData.iblPerceptualRoughness, bsdfData.fresnel0, preLightData.specularFGD, preLightData.diffuseFGD, reflectivity);
+    float specularReflectivity;
+    GetPreIntegratedFGDGGXAndDisneyDiffuse(NdotV, preLightData.iblPerceptualRoughness, bsdfData.fresnel0, preLightData.specularFGD, preLightData.diffuseFGD, specularReflectivity);
+#ifdef LIT_DIFFUSE_LAMBERT_BRDF
+    preLightData.diffuseFGD = 1.0;
+#endif
 
     iblR = reflect(-V, iblN);
     // This is a ad-hoc tweak to better match reference of anisotropic GGX.
     // TODO: We need a better hack.
     preLightData.iblPerceptualRoughness *= saturate(1.2 - abs(bsdfData.anisotropy));
     // Corretion of reflected direction for better handling of rough material
-    preLightData.iblR = GetSpecularDominantDir(N, iblR, preLightData.iblPerceptualRoughness, NdotV);
+    preLightData.iblR = iblR;
 
 #ifdef LIT_USE_GGX_ENERGY_COMPENSATION
     // Ref: Practical multiple scattering compensation for microfacet models.
@@ -985,7 +948,7 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData b
     // We deem the intensity difference of a couple of percent for high values of roughness
     // to not be worth the cost of another precomputed table.
     // Note: this formulation bakes the BSDF non-symmetric!
-    preLightData.energyCompensation = 1.0 / reflectivity - 1.0;
+    preLightData.energyCompensation = 1.0 / specularReflectivity - 1.0;
 #else
     preLightData.energyCompensation = 0.0;
 #endif // LIT_USE_GGX_ENERGY_COMPENSATION
@@ -1046,16 +1009,21 @@ PreLightData GetPreLightData(float3 V, PositionInputs posInput, inout BSDFData b
         ltcGGXFresnelMagnitude      = ltcMagnitude.g;
         preLightData.ltcMagnitudeCoatFresnel = (CLEAR_COAT_F0 * ltcGGXFresnelMagnitudeDiff + ltcGGXFresnelMagnitude) * bsdfData.coatMask;
     }
+    else
+    {
+        preLightData.ltcTransformCoat = 0.0;
+        preLightData.ltcMagnitudeCoatFresnel = 0.0;
+    }
 
     // refraction (forward only)
-#ifdef REFRACTION_MODEL
+#if HAS_REFRACTION
     RefractionModelResult refraction = REFRACTION_MODEL(V, posInput, bsdfData);
     preLightData.transparentRefractV = refraction.rayWS;
     preLightData.transparentPositionWS = refraction.positionWS;
     preLightData.transparentTransmittance = exp(-bsdfData.absorptionCoefficient * refraction.dist);
     // Empirical remap to try to match a bit the refraction probe blurring for the fallback
     // Use IblPerceptualRoughness so we can handle approx of clear coat.
-    preLightData.transparentSSMipLevel = sqrt(preLightData.iblPerceptualRoughness) * uint(_GaussianPyramidColorMipSize.z);
+    preLightData.transparentSSMipLevel = pow(preLightData.iblPerceptualRoughness, 1.3) * uint(max(_ColorPyramidScale.z - 1, 0));
 #endif
 
     return preLightData;
@@ -1128,7 +1096,6 @@ bool ShouldOutputSplitLighting(BSDFData bsdfData)
 #endif
 
 #include "../../Lighting/LightEvaluation.hlsl"
-#include "../../Lighting/Reflection/VolumeProjection.hlsl"
 
 //-----------------------------------------------------------------------------
 // Lighting structure for light accumulation
@@ -1259,22 +1226,6 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
     }
 }
 
-// In the "thin object" mode (for cards), we assume that the geometry is very thin.
-// We apply wrapped lighting to compensate for that, and do not modify the shading position.
-// Otherwise, in the "thick object" mode, we can have EITHER reflected (front) lighting
-// OR transmitted (back) lighting, never both at the same time. For transmitted lighting,
-// we need to push the shading position back to avoid self-shadowing problems.
-// Note: 'bsdfData.thickness' is in world units, and already accounts for the transmission mode.
-float3 ComputeThicknessDisplacement(BSDFData bsdfData, float3 L, float NdotL)
-{
-    // Compute the thickness in world units along the light vector.
-    // We need a max(x, 0) here, but the saturate() is free,
-    // and we don't expect the total displacement of over 1 meter.
-    float displacement = saturate(bsdfData.thickness / -NdotL);
-
-    return displacement * L;
-}
-
 // Currently, we only model diffuse transmission. Specular transmission is not yet supported.
 // Transmitted lighting is computed as follows:
 // - we assume that the object is a thick plane (slab);
@@ -1284,26 +1235,21 @@ float3 ComputeThicknessDisplacement(BSDFData bsdfData, float3 L, float NdotL)
 // - we integrate the diffuse reflectance profile w.r.t. the radius (while also accounting
 //   for the thickness) to compute the transmittance;
 // - we multiply the transmitted radiance by the transmittance.
-float3 EvaluateTransmission(BSDFData bsdfData, float NdotL, float NdotV, float attenuation)
+float3 EvaluateTransmission(BSDFData bsdfData, float3 transmittance, float NdotL, float NdotV, float LdotV, float attenuation)
 {
+    // Apply wrapped lighting to better handle thin objects at grazing angles.
     float wrappedNdotL = ComputeWrappedDiffuseLighting(-NdotL, SSS_WRAP_LIGHT);
-    float negatedNdotL = -NdotL;
-
-    // Apply wrapped lighting to better handle thin objects (cards) at grazing angles.
-    bool  useThinObjectMode = HasFeatureFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_THIN);
-    float backNdotL         = useThinObjectMode ? wrappedNdotL : negatedNdotL;
 
     // Apply BSDF-specific diffuse transmission to attenuation. See also: [SSS-NOTE-TRSM]
     // We don't multiply by 'bsdfData.diffuseColor' here. It's done only once in PostEvaluateBSDF().
 #ifdef LIT_DIFFUSE_LAMBERT_BRDF
     attenuation *= Lambert();
 #else
-    attenuation *= INV_PI * F_Transm_Schlick(0, 0.5, NdotV) * F_Transm_Schlick(0, 0.5, abs(backNdotL));
+    attenuation *= DisneyDiffuse(NdotV, max(0, -NdotL), LdotV, bsdfData.perceptualRoughness);
 #endif
 
-    float intensity = max(0, attenuation * backNdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
-
-    return intensity * bsdfData.transmittance;
+    float intensity = attenuation * wrappedNdotL;
+    return intensity * transmittance;
 }
 
 //-----------------------------------------------------------------------------
@@ -1320,13 +1266,9 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
 
     float3 N     = bsdfData.normalWS;
     float3 L     = -lightData.forward; // Lights point backward in Unity
-    float  NdotL = dot(N, L); // Note: Ideally this N here should be vertex normal - use for transmisison
-
-    if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
-    {
-        // Compute displacement for fake thickObject transmission
-        posInput.positionWS += ComputeThicknessDisplacement(bsdfData, L, NdotL);
-    }
+    float  NdotV = ClampNdotV(preLightData.NdotV);
+    float  NdotL = dot(N, L);
+    float  LdotV = dot(L, V);
 
     float3 color;
     float attenuation;
@@ -1343,10 +1285,13 @@ DirectLighting EvaluateBSDF_Directional(LightLoopContext lightLoopContext,
         lighting.specular *= intensity * lightData.specularScale;
     }
 
-    UNITY_BRANCH if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
+    // The mixed thickness mode is not supported by directional lights due to poor quality and high performance impact.
+    bool mixedThicknessMode = HasFeatureFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_MIXED_THICKNESS);
+
+    if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION) && !mixedThicknessMode)
     {
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
-        lighting.diffuse += EvaluateTransmission(bsdfData, NdotL, ClampNdotV(preLightData.NdotV), attenuation * lightData.diffuseScale);
+        lighting.diffuse += EvaluateTransmission(bsdfData, bsdfData.transmittance, NdotL, NdotV, LdotV, attenuation * lightData.diffuseScale);
     }
 
     // Save ALU by applying light and cookie colors only once.
@@ -1399,20 +1344,29 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
     }
 
     float3 N     = bsdfData.normalWS;
+    float  NdotV = ClampNdotV(preLightData.NdotV);
     float  NdotL = dot(N, L);
+    float  LdotV = dot(L, V);
 
-    if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
+    bool mixedThicknessMode = HasFeatureFlag(bsdfData.materialFeatures, MATERIAL_FEATURE_FLAGS_TRANSMISSION_MODE_MIXED_THICKNESS)
+                              && NdotL < 0 && lightData.shadowIndex >= 0;
+
+    // Save the original version for the transmission code below.
+    int originalShadowIndex = lightData.shadowIndex;
+
+    if (mixedThicknessMode)
     {
-        // Compute displacement for fake thickObject transmission
-        // Warning: distances computed above are NOT modified!
-        // This is not correct, of course, but is done for performance reasons.
-        posInput.positionWS += ComputeThicknessDisplacement(bsdfData, L, NdotL);
+        // Make sure we do not sample the shadow map twice.
+        lightData.shadowIndex = -1;
     }
 
     float3 color;
     float attenuation;
     EvaluateLight_Punctual(lightLoopContext, posInput, lightData, bakeLightingData, N, L,
                            lightToSample, distances, color, attenuation);
+
+    // Restore the original shadow index.
+    lightData.shadowIndex = originalShadowIndex;
 
     float intensity = max(0, attenuation * NdotL); // Warning: attenuation can be greater than 1 due to the inverse square attenuation (when position is close to light)
 
@@ -1432,10 +1386,61 @@ DirectLighting EvaluateBSDF_Punctual(LightLoopContext lightLoopContext,
         lighting.specular *= intensity * lightData.specularScale;
     }
 
-    UNITY_BRANCH if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
+    if (HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_TRANSMISSION))
     {
+        float3 transmittance = bsdfData.transmittance;
+
+        if (mixedThicknessMode)
+        {
+            // Recompute transmittance using the thickness value computed from the shadow map.
+
+            // Compute the distance from the light to the back face of the object along the light direction.
+            float distBackFaceToLight = GetPunctualShadowClosestDistance(lightLoopContext.shadowContext, s_linear_clamp_sampler,
+                                                                         posInput.positionWS, lightData.shadowIndex, L, lightData.positionWS);
+
+            // Our subsurface scattering models use the semi-infinite planar slab assumption.
+            // Therefore, we need to find the thickness along the normal.
+            float distFrontFaceToLight   = distances.x;
+            float thicknessInUnits       = (distFrontFaceToLight - distBackFaceToLight) * -NdotL;
+            float thicknessInMeters      = thicknessInUnits * _WorldScales[bsdfData.diffusionProfile].x;
+            float thicknessInMillimeters = thicknessInMeters * MILLIMETERS_PER_METER;
+
+        #if SHADEROPTIONS_USE_DISNEY_SSS
+            // We need to make sure it's not less than the baked thickness to minimize light leaking.
+            float thicknessDelta = max(0, thicknessInMillimeters - bsdfData.thickness);
+
+            float3 S = _ShapeParams[bsdfData.diffusionProfile].rgb;
+
+            // Approximate the decrease of transmittance by e^(-1/3 * dt * S).
+        #if 0
+            float3 expOneThird = exp(((-1.0 / 3.0) * thicknessDelta) * S);
+        #else
+            // Help the compiler.
+            float  k = (-1.0 / 3.0) * LOG2_E;
+            float3 p = (k * thicknessDelta) * S;
+            float3 expOneThird = exp2(p);
+        #endif
+
+            transmittance *= expOneThird;
+
+        #else // SHADEROPTIONS_USE_DISNEY_SSS
+
+            // We need to make sure it's not less than the baked thickness to minimize light leaking.
+            thicknessInMillimeters = max(thicknessInMillimeters, bsdfData.thickness);
+
+            transmittance = ComputeTransmittanceJimenez(_HalfRcpVariancesAndWeights[bsdfData.diffusionProfile][0].rgb,
+                                                        _HalfRcpVariancesAndWeights[bsdfData.diffusionProfile][0].a,
+                                                        _HalfRcpVariancesAndWeights[bsdfData.diffusionProfile][1].rgb,
+                                                        _HalfRcpVariancesAndWeights[bsdfData.diffusionProfile][1].a,
+                                                        _TransmissionTintsAndFresnel0[bsdfData.diffusionProfile].rgb,
+                                                        thicknessInMillimeters);
+        #endif // SHADEROPTIONS_USE_DISNEY_SSS
+        }
+
+        // Note: we do not modify the distance to the light, or the light angle for the back face.
+        // This is a performance-saving optimization which makes sense as long as the thickness is small.
         // We use diffuse lighting for accumulation since it is going to be blurred during the SSS pass.
-        lighting.diffuse += EvaluateTransmission(bsdfData, NdotL, ClampNdotV(preLightData.NdotV), attenuation * lightData.diffuseScale);
+        lighting.diffuse += EvaluateTransmission(bsdfData, transmittance, NdotL, NdotV, LdotV, attenuation * lightData.diffuseScale);
     }
 
     // Save ALU by applying light and cookie colors only once.
@@ -1729,62 +1734,269 @@ DirectLighting EvaluateBSDF_Area(LightLoopContext lightLoopContext,
 IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
                                             float3 V, PositionInputs posInput,
                                             PreLightData preLightData, BSDFData bsdfData,
+                                            EnvLightData envLightData,
                                             int GPUImageBasedLightingType,
                                             inout float hierarchyWeight)
 {
     IndirectLighting lighting;
     ZERO_INITIALIZE(IndirectLighting, lighting);
 
-    switch (GPUImageBasedLightingType)
+    // -------------------------------
+    // Early out
+    // -------------------------------
+#if !HAS_REFRACTION
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
     {
-        case GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION:
-        {
-#if HAS_REFRACTION
-            // Refraction process:
-            //  1. Depending on the shape model, we calculate the refracted point in world space and the optical depth
-            //  2. We calculate the screen space position of the refracted point
-            //  3. If this point is available (ie: in color buffer and point is not in front of the object)
-            //    a. Get the corresponding color depending on the roughness from the gaussian pyramid of the color buffer
-            //    b. Multiply by the transmittance for absorption (depends on the optical depth)
-
-            float3 refractedBackPointWS = EstimateRaycast(V, posInput, preLightData.transparentPositionWS, preLightData.transparentRefractV);
-
-            // Calculate screen space coordinates of refracted point in back plane
-            float2 refractedBackPointNDC = ComputeNormalizedDeviceCoordinates(refractedBackPointWS, UNITY_MATRIX_VP);
-            uint2 depthSize = uint2(_PyramidDepthMipSize.xy);
-            float refractedBackPointDepth = LinearEyeDepth(LOAD_TEXTURE2D_LOD(_PyramidDepthTexture, refractedBackPointNDC * depthSize, 0).r, _ZBufferParams);
-
-            // Exit if texel is out of color buffer
-            // Or if the texel is from an object in front of the object
-            if (refractedBackPointDepth < posInput.linearDepth
-                || any(refractedBackPointNDC < 0.0)
-                || any(refractedBackPointNDC > 1.0))
-            {
-                // Do nothing and don't update the hierarchy weight so we can fall back on refraction probe
-                return lighting;
-            }
-
-            // Map the roughness to the correct mip map level of the color pyramid
-            lighting.specularTransmitted = SAMPLE_TEXTURE2D_LOD(_GaussianPyramidColorTexture, s_trilinear_clamp_sampler, refractedBackPointNDC * _GaussianPyramidColorMipSize.xy, preLightData.transparentSSMipLevel).rgb;
-
-            // Beer-Lamber law for absorption
-            lighting.specularTransmitted *= preLightData.transparentTransmittance;
-
-            float weight = 1.0;
-            UpdateLightingHierarchyWeights(hierarchyWeight, weight); // Shouldn't be needed, but safer in case we decide to change hierarchy priority
-                                                                     // We use specularFGD as an approximation of the fresnel effect (that also handle smoothness), so take the remaining for transmission
-            lighting.specularTransmitted *= (1.0 - preLightData.specularFGD) * weight;
-#else
-            // No refraction, no need to go further
-            hierarchyWeight = 1.0;
-#endif
-            break;
-        }
-        case GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION:
-        {
-            break;
-        }
+         // No refraction, no need to go further
+        hierarchyWeight = 1.0;
+        return lighting;
     }
+#endif
+
+    // -------------------------------
+    // Choose projection model
+    // -------------------------------
+    int projectionModel = PROJECTIONMODEL_NONE;
+#if HAS_REFRACTION
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+    {
+    #if defined(_REFRACTION_SSRAY_HIZ)
+        projectionModel = PROJECTIONMODEL_HI_Z;
+    #elif defined(_REFRACTION_SSRAY_PROXY)
+        projectionModel = PROJECTIONMODEL_PROXY;
+    #endif
+    }
+#else
+    if (_SSReflectionEnabled != 0)
+        projectionModel = _SSReflectionProjectionModel;
+#endif
+
+    if (projectionModel == PROJECTIONMODEL_NONE)
+       return lighting;
+
+    // -------------------------------
+    // Initialize screen space tracing
+    // -------------------------------
+    float3 rayOriginWS              = float3(0, 0, 0);
+    float3 rayDirWS                 = float3(0, 0, 0);
+    float mipLevel                  = 0;
+#if DEBUG_DISPLAY
+    int debugMode                   = 0;
+#endif
+    float invScreenWeightDistance   = 0;
+    float temporalFilteringWeight   = 0.1;
+
+#if HAS_REFRACTION
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+    {
+        // Refraction process:
+        //  1. Depending on the shape model, we calculate the refracted point in world space and the optical depth
+        //  2. We calculate the screen space position of the refracted point
+        //  3. If this point is available (ie: in color buffer and point is not in front of the object)
+        //    a. Get the corresponding color depending on the roughness from the gaussian pyramid of the color buffer
+        //    b. Multiply by the transmittance for absorption (depends on the optical depth)
+
+        rayOriginWS             = preLightData.transparentPositionWS;
+        rayDirWS                = preLightData.transparentRefractV;
+        mipLevel                = preLightData.transparentSSMipLevel;
+        invScreenWeightDistance = _SSRefractionInvScreenWeightDistance;
+#if DEBUG_DISPLAY
+        debugMode               = DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFRACTION;
+#endif
+    }
+    else
+#endif
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+    {
+        rayOriginWS             = posInput.positionWS;
+        rayDirWS                = preLightData.iblR;
+        mipLevel                = PositivePow(preLightData.iblPerceptualRoughness, 0.8) * uint(max(_ColorPyramidScale.z - 1, 0));
+        invScreenWeightDistance = _SSReflectionInvScreenWeightDistance;
+#if DEBUG_DISPLAY
+        debugMode               = DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFLECTION;
+#endif
+    }
+
+#if DEBUG_DISPLAY
+            bool debug              = _DebugLightingMode == debugMode
+                && !any(int2(_MouseClickPixelCoord.xy) - int2(posInput.positionSS));
+#endif
+
+    // -------------------------------
+    // Screen space tracing query
+    // -------------------------------
+    ScreenSpaceRayHit hit;
+    ZERO_INITIALIZE(ScreenSpaceRayHit, hit);
+    bool hitSuccessful = false;
+    float hitWeight = 1;
+
+    // -------------------------------
+    // Proxy raycasting
+    // -------------------------------
+    if (projectionModel == PROJECTIONMODEL_PROXY)
+    {
+        ScreenSpaceProxyRaycastInput ssRayInput;
+        ZERO_INITIALIZE(ScreenSpaceProxyRaycastInput, ssRayInput);
+
+            ssRayInput.rayOriginWS = rayOriginWS;
+            ssRayInput.rayDirWS = rayDirWS;
+#ifdef DEBUG_DISPLAY
+            ssRayInput.debug = debug;
+#endif
+            ssRayInput.proxyData = envLightData;
+
+#if HAS_REFRACTION
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+            hitSuccessful = ScreenSpaceProxyRaycastRefraction(ssRayInput, hit);
+        else
+#endif
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+            hitSuccessful = ScreenSpaceProxyRaycastReflection(ssRayInput, hit);
+    }
+
+    // -------------------------------
+    // HiZ raymarching
+    // -------------------------------
+    else if (projectionModel == PROJECTIONMODEL_HI_Z)
+    {
+        ScreenSpaceRaymarchInput ssRayInput;
+        ZERO_INITIALIZE(ScreenSpaceRaymarchInput, ssRayInput);
+
+        // Jitter the ray origin to trade some noise instead of banding effect
+        ssRayInput.rayOriginWS = rayOriginWS + rayDirWS * SampleBayer4(posInput.positionSS + uint2(_FrameCount, uint(_FrameCount) / 4u)) * 0.1;
+        ssRayInput.rayDirWS = rayDirWS;
+#if DEBUG_DISPLAY
+        ssRayInput.debug = debug;
+#endif
+
+#if HAS_REFRACTION
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+            hitSuccessful = ScreenSpaceHiZRaymarchRefraction(ssRayInput, hit, hitWeight);
+        else
+#endif
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+            hitSuccessful = ScreenSpaceHiZRaymarchReflection(ssRayInput, hit, hitWeight);
+    }
+
+            // Debug screen space tracing
+#ifdef DEBUG_DISPLAY
+    if (_DebugLightingMode == debugMode
+        && _DebugLightingSubMode != DEBUGSCREENSPACETRACING_COLOR
+        && _DebugLightingSubMode != DEBUGSCREENSPACETRACING_LINEAR_SAMPLED_COLOR
+        && _DebugLightingSubMode != DEBUGSCREENSPACETRACING_HI_ZSAMPLED_COLOR
+        )
+    {
+        float weight = 1.0;
+        UpdateLightingHierarchyWeights(hierarchyWeight, weight);
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+            lighting.specularTransmitted = hit.debugOutput;
+        else if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+            lighting.specularReflected = hit.debugOutput;
+        return lighting;
+    }
+#endif
+
+    if (!hitSuccessful)
+        return lighting;
+
+    // -------------------------------
+    // Resolve weight and color
+    // -------------------------------
+    // Fade pixels near the texture buffers' borders
+    float2 weightNDC = clamp(min(hit.positionNDC, 1 - hit.positionNDC) * invScreenWeightDistance, 0, 1);
+            weightNDC = weightNDC * weightNDC * (3 - 2 * weightNDC);
+    // TODO: Fade pixels with normal non facing the ray direction
+    // TODO: Fade pixels marked as foreground in stencil
+    float weight = weightNDC.x * weightNDC.y * hitWeight;
+
+    float hitDeviceDepth = LOAD_TEXTURE2D_LOD(_DepthPyramidTexture, hit.positionSS, 0).r;
+    float hitLinearDepth = LinearEyeDepth(hitDeviceDepth, _ZBufferParams);
+
+    // Exit if texel is discarded
+    if (weight == 0)
+        // Do nothing and don't update the hierarchy weight so we can fall back on refraction probe
+        return lighting;
+
+    UpdateLightingHierarchyWeights(hierarchyWeight, weight); // Shouldn't be needed, but safer in case we decide to change hierarchy priority
+
+    // Reproject color pyramid
+    float4 hitVelocityBuffer = LOAD_TEXTURE2D_LOD(
+        _CameraMotionVectorsTexture,
+        hit.positionSS,
+        0.0
+    );
+
+    float2 hitVelocityNDC;
+    DecodeVelocity(hitVelocityBuffer, hitVelocityNDC);
+
+    float3 preLD = SAMPLE_TEXTURE2D_LOD(
+        _ColorPyramidTexture,
+        s_trilinear_clamp_sampler,
+        // Offset by half a texel to properly interpolate between this pixel and its mips
+        (hit.positionNDC - hitVelocityNDC) * _ColorPyramidScale.xy + _ColorPyramidSize.zw * 0.5,
+        mipLevel
+    ).rgb;
+
+    // With HiZ, we use a temporal filtering to reduce the noise from the ray origin jittering
+    if (projectionModel == PROJECTIONMODEL_HI_Z)
+    {
+        float4 currentVelocityBuffer = LOAD_TEXTURE2D_LOD(
+            _CameraMotionVectorsTexture,
+            posInput.positionSS,
+            0.0
+        );
+
+        float2 currentVelocityNDC;
+        DecodeVelocity(currentVelocityBuffer, currentVelocityNDC);
+
+        float3 currentLD = LOAD_TEXTURE2D_LOD(
+            _ColorPyramidTexture,
+            int2(posInput.positionSS) - int2(currentVelocityNDC * _ScreenSize.xy),
+            0
+        ).rgb;
+        preLD = preLD * (1.0 - temporalFilteringWeight) + currentLD * temporalFilteringWeight;
+    }
+
+    // We use specularFGD as an approximation of the fresnel effect (that also handle smoothness)
+    float3 F = preLightData.specularFGD;
+
+    // -------------------------------
+    // Assign color
+    // -------------------------------
+#if HAS_REFRACTION
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+        lighting.specularTransmitted = (1.0 - F) * preLD.rgb * preLightData.transparentTransmittance * weight;
+    else
+#endif
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+        lighting.specularReflected = F * preLD.rgb * weight;
+
+#ifdef DEBUG_DISPLAY
+    if (debug)
+    {
+        ScreenSpaceTracingDebug debug = _DebugScreenSpaceTracingData[0];
+        debug.lightingSampledColor = preLD;
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+            debug.lightingSpecularFGD = 1.0 - F;
+        else if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+            debug.lightingSpecularFGD = F;
+        debug.lightingWeight = weight;
+        _DebugScreenSpaceTracingData[0] = debug;
+    }
+
+    if (_DebugLightingMode == debugMode
+        && (_DebugLightingSubMode == DEBUGSCREENSPACETRACING_LINEAR_SAMPLED_COLOR
+            || _DebugLightingSubMode == DEBUGSCREENSPACETRACING_HI_ZSAMPLED_COLOR))
+    {
+        float weight = 1.0;
+        UpdateLightingHierarchyWeights(hierarchyWeight, weight);
+        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
+            lighting.specularTransmitted = preLD.rgb;
+        else if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
+            lighting.specularReflected = preLD.rgb;
+        return lighting;
+    }
+#endif
 
     return lighting;
 }
@@ -1827,104 +2039,56 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
 
 #else
 
-    // TODO: factor this code in common, so other material authoring don't require to rewrite everything,
-    // TODO: test the strech from Tomasz
-    // float roughness       = PerceptualRoughnessToRoughness(preLightData.IblPerceptualRoughness);
-    // float shrunkRoughness = AnisotropicStrechAtGrazingAngle(roughness, roughness, NdotV);
-
-    // Guideline for reflection volume: In HDRenderPipeline we separate the projection volume (the proxy of the scene) from the influence volume (what pixel on the screen is affected)
-    // However we add the constrain that the shape of the projection and influence volume is the same (i.e if we have a sphere shape projection volume, we have a shape influence).
-    // It allow to have more coherence for the dynamic if in shader code.
-    // Users can also chose to not have any projection, in this case we use the property minProjectionDistance to minimize code change. minProjectionDistance is set to huge number
-    // that simulate effect of no shape projection
-
     float3 R = preLightData.iblR;
-    float3 coatR = preLightData.coatIblR;
 
+#if HAS_REFRACTION
     if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFRACTION)
     {
         positionWS = preLightData.transparentPositionWS;
         R = preLightData.transparentRefractV;
     }
-
-    // In Unity the cubemaps are capture with the localToWorld transform of the component.
-    // This mean that location and orientation matter. So after intersection of proxy volume we need to convert back to world.
-
-    float3x3 worldToIS = WorldToInfluenceSpace(lightData);
-    float3 positionIS = WorldToInfluencePosition(lightData, worldToIS, positionWS);
-    float3 dirIS = mul(R, worldToIS);
-
-    float3x3 worldToPS = WorldToProxySpace(lightData);
-    float3 positionPS = WorldToProxyPosition(lightData, worldToPS, positionWS);
-    float3 dirPS = mul(R, worldToPS);
-
-    float projectionDistance = 0;
-    // 1. First process the projection
-    // Note: using influenceShapeType and projectionShapeType instead of (lightData|proxyData).shapeType allow to make compiler optimization in case the type is know (like for sky)
-    if (influenceShapeType == ENVSHAPETYPE_SPHERE)
-    {
-        projectionDistance = IntersectSphereProxy(lightData, dirPS, positionPS);
-        // We can reuse dist calculate in LS directly in WS as there is no scaling. Also the offset is already include in lightData.capturePositionWS
-        float3 capturePositionWS = lightData.capturePositionWS;
-        R = (positionWS + projectionDistance * R) - capturePositionWS;
-
-        // Test again for clear coat
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION && HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
-        {
-            dirPS = mul(coatR, worldToPS);
-            projectionDistance = IntersectSphereProxy(lightData, dirPS, positionPS);
-            coatR = (positionWS + projectionDistance * coatR) - capturePositionWS;
-        }
-        weight = InfluenceSphereWeight(lightData, bsdfData, positionWS, positionIS, dirIS);
-    }
-    else if (influenceShapeType == ENVSHAPETYPE_BOX)
-    {
-        projectionDistance = IntersectBoxProxy(lightData, dirPS, positionPS);
-        // No need to normalize for fetching cubemap
-        // We can reuse dist calculate in LS directly in WS as there is no scaling. Also the offset is already include in lightData.capturePositionWS
-        float3 capturePositionWS = lightData.capturePositionWS;
-        R = (positionWS + projectionDistance * R) - capturePositionWS;
-
-        // TODO: add distance based roughness
-
-        // Test again for clear coat
-        if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION && HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
-        {
-            dirPS = mul(coatR, worldToPS);
-            projectionDistance = IntersectBoxProxy(lightData, dirPS, positionPS);
-            coatR = (positionWS + projectionDistance * coatR) - capturePositionWS;
-        }
-        weight = InfluenceBoxWeight(lightData, bsdfData, positionWS, positionIS, dirIS);
-    }
-
-#ifdef DEBUG_DISPLAY
-    float3 radiusToProxy = R;
+    else
 #endif
+    {
+        if ((lightData.envIndex & 1) == ENVCACHETYPE_CUBEMAP)
+        {
+            R = GetSpecularDominantDir(bsdfData.normalWS, R, preLightData.iblPerceptualRoughness, ClampNdotV(preLightData.NdotV));
+            // When we are rough, we tend to see outward shifting of the reflection when at the boundary of the projection volume
+            // Also it appear like more sharp. To avoid these artifact and at the same time get better match to reference we lerp to original unmodified reflection.
+            // Formula is empirical.
+            float roughness = PerceptualRoughnessToRoughness(preLightData.iblPerceptualRoughness);
+            R = lerp(R, preLightData.iblR, saturate(smoothstep(0, 1, roughness * roughness)));
+        }
+    }
 
-    // When we are rough, we tend to see outward shifting of the reflection when at the boundary of the projection volume
-    // Also it appear like more sharp. To avoid these artifact and at the same time get better match to reference we lerp to original unmodified reflection.
-    // Formula is empirical.
-    float roughness = PerceptualRoughnessToRoughness(preLightData.iblPerceptualRoughness);
-    R = lerp(R, preLightData.iblR, saturate(smoothstep(0, 1, roughness * roughness)));
+    // Note: using influenceShapeType and projectionShapeType instead of (lightData|proxyData).shapeType allow to make compiler optimization in case the type is know (like for sky)
+    EvaluateLight_EnvIntersection(positionWS, bsdfData.normalWS, lightData, influenceShapeType, R, weight);
 
-    float3 sampleDirectionDiscardWS = lightData.sampleDirectionDiscardWS;
-    if (dot(sampleDirectionDiscardWS, R) < 0)
-        return lighting;
+    // Don't do clear coating for refraction
+    float3 coatR = preLightData.coatIblR;
+    if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION && HasFeatureFlag(bsdfData.materialFeatures, MATERIALFEATUREFLAGS_LIT_CLEAR_COAT))
+    {
+        float unusedWeight = 0.0;
+        EvaluateLight_EnvIntersection(positionWS, bsdfData.normalWS, lightData, influenceShapeType, coatR, unusedWeight);
+    }
 
     float3 F = preLightData.specularFGD;
-    float iblMipLevel = PerceptualRoughnessToMipmapLevel(preLightData.iblPerceptualRoughness);
 
+    float iblMipLevel;
+    // TODO: We need to match the PerceptualRoughnessToMipmapLevel formula for planar, so we don't do this test (which is specific to our current lightloop)
+    // Specific case for Texture2Ds, their convolution is a gaussian one and not a GGX one - So we use another roughness mip mapping.
+    if (IsEnvIndexTexture2D(lightData.envIndex))
+    {
+        // Empirical remapping
+        iblMipLevel = PositivePow(preLightData.iblPerceptualRoughness, 0.8) * uint(max(_ColorPyramidScale.z - 1, 0));
+    }
+    else
+    {
+        iblMipLevel = PerceptualRoughnessToMipmapLevel(preLightData.iblPerceptualRoughness);
+    }
 
     float4 preLD = SampleEnv(lightLoopContext, lightData.envIndex, R, iblMipLevel);
-    weight *= preLD.a;
-
-#ifdef DEBUG_DISPLAY
-    if (_DebugLightingMode == DEBUGLIGHTINGMODE_ENVIRONMENT_PROXY_VOLUME)
-        preLD = ApplyDebugProjectionVolume(preLD, radiusToProxy, _DebugEnvironmentProxyDepthScale);
-#endif
-
-    // Smooth weighting
-    weight = Smoothstep01(weight);
+    weight *= preLD.a; // Used by planar reflection to discard pixel
 
     if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
     {
@@ -1944,6 +2108,7 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
             // Can't attenuate diffuse lighting here, may try to apply something on bakeLighting in PostEvaluateBSDF
         }
     }
+#if HAS_REFRACTION
     else
     {
         // No clear coat support with refraction
@@ -1952,17 +2117,19 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
         // With refraction, we don't care about the clear coat value, only about the Fresnel, thus why we use 'envLighting ='
         envLighting = (1.0 - F) * preLD.rgb * preLightData.transparentTransmittance;
     }
+#endif
 
 #endif // LIT_DISPLAY_REFERENCE_IBL
 
-    weight *= lightData.weight;
     UpdateLightingHierarchyWeights(hierarchyWeight, weight);
     envLighting *= weight * lightData.multiplier;
 
     if (GPUImageBasedLightingType == GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION)
         lighting.specularReflected = envLighting;
+#if HAS_REFRACTION
     else
         lighting.specularTransmitted = envLighting * preLightData.transparentTransmittance;
+#endif
 
     return lighting;
 }
@@ -1978,47 +2145,20 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
 {
     float3 bakeDiffuseLighting = bakeLightingData.bakeDiffuseLighting;
 
+    AmbientOcclusionFactor aoFactor;
     // Use GTAOMultiBounce approximation for ambient occlusion (allow to get a tint from the baseColor)
-#define GTAO_MULTIBOUNCE_APPROX 1
-
-    // Note: When we ImageLoad outside of texture size, the value returned by Load is 0 (Note: On Metal maybe it clamp to value of texture which is also fine)
-    // We use this property to have a neutral value for AO that doesn't consume a sampler and work also with compute shader (i.e use ImageLoad)
-    // We store inverse AO so neutral is black. So either we sample inside or outside the texture it return 0 in case of neutral
-
-    // Ambient occlusion use for indirect lighting (reflection probe, baked diffuse lighting)
-#ifndef _SURFACE_TYPE_TRANSPARENT
-    float indirectAmbientOcclusion = 1.0 - LOAD_TEXTURE2D(_AmbientOcclusionTexture, posInput.positionSS).x;
-    // Ambient occlusion use for direct lighting (directional, punctual, area)
-    float directAmbientOcclusion = lerp(1.0, indirectAmbientOcclusion, _AmbientOcclusionParam.w);
+#if 0
+    GetScreenSpaceAmbientOcclusion(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, aoFactor);
 #else
-    float indirectAmbientOcclusion = 1.0;
-    float directAmbientOcclusion = 1.0;
+    GetScreenSpaceAmbientOcclusionMultibounce(posInput.positionSS, preLightData.NdotV, bsdfData.perceptualRoughness, 1.0, bsdfData.specularOcclusion, bsdfData.diffuseColor, bsdfData.fresnel0, aoFactor);
 #endif
 
     // Add indirect diffuse + emissive (if any) - Ambient occlusion is multiply by emissive which is wrong but not a big deal
-#if GTAO_MULTIBOUNCE_APPROX
-    bakeDiffuseLighting *= GTAOMultiBounce(indirectAmbientOcclusion, bsdfData.diffuseColor);
-#else
-    bakeDiffuseLighting *= lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), indirectAmbientOcclusion);
-#endif
+    bakeDiffuseLighting                 *= aoFactor.indirectAmbientOcclusion;
+    lighting.indirect.specularReflected *= aoFactor.indirectSpecularOcclusion;
+    lighting.direct.diffuse             *= aoFactor.directAmbientOcclusion;
 
-    float roughness         = PerceptualRoughnessToRoughness(bsdfData.perceptualRoughness);
-    float specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(ClampNdotV(preLightData.NdotV), indirectAmbientOcclusion, roughness);
-    // Try to mimic multibounce with specular color. Not the point of the original formula but ok result.
-    // Take the min of screenspace specular occlusion and visibility cone specular occlusion
-#if GTAO_MULTIBOUNCE_APPROX
-    lighting.indirect.specularReflected *= GTAOMultiBounce(min(bsdfData.specularOcclusion, specularOcclusion), bsdfData.fresnel0);
-#else
-    lighting.indirect.specularReflected *= lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), min(bsdfData.specularOcclusion, specularOcclusion));
-#endif
-
-    lighting.direct.diffuse *=
-#if GTAO_MULTIBOUNCE_APPROX
-                                GTAOMultiBounce(directAmbientOcclusion, bsdfData.diffuseColor);
-#else
-                                lerp(_AmbientOcclusionParam.rgb, float3(1.0, 1.0, 1.0), directAmbientOcclusion);
-#endif
-
+    // Subsurface scattering mdoe
     uint   texturingMode        = (bsdfData.materialFeatures >> MATERIAL_FEATURE_FLAGS_SSS_TEXTURING_MODE_OFFSET) & 3;
     float3 modifiedDiffuseColor = ApplySubsurfaceScatteringTexturingMode(texturingMode, bsdfData.diffuseColor);
 
@@ -2027,7 +2167,7 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
     diffuseLighting = modifiedDiffuseColor * lighting.direct.diffuse + bakeDiffuseLighting;
 
     // If refraction is enable we use the transmittanceMask to lerp between current diffuse lighting and refraction value
-    // Physically speaking, it should be transmittanceMask should be 1, but for artistic reasons, we let the value vary
+    // Physically speaking, transmittanceMask should be 1, but for artistic reasons, we let the value vary
 #if HAS_REFRACTION
     diffuseLighting = lerp(diffuseLighting, lighting.indirect.specularTransmitted, bsdfData.transmittanceMask);
 #endif
@@ -2038,37 +2178,44 @@ void PostEvaluateBSDF(  LightLoopContext lightLoopContext,
 
 #ifdef DEBUG_DISPLAY
 
-    if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
+    if (_DebugLightingMode != 0)
     {
-        diffuseLighting = lighting.direct.diffuse + bakeLightingData.bakeDiffuseLighting;
+        // Caution: _DebugLightingMode is used in other part of the code, don't do anything outside of
+        // current cases
+        switch (_DebugLightingMode)
+        {
+        case DEBUGLIGHTINGMODE_LUX_METER:
+            diffuseLighting = lighting.direct.diffuse + bakeLightingData.bakeDiffuseLighting;
+            specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
+            break;
+
+        case DEBUGLIGHTINGMODE_INDIRECT_DIFFUSE_OCCLUSION:
+            diffuseLighting = aoFactor.indirectAmbientOcclusion;
+            specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
+            break;
+
+        case DEBUGLIGHTINGMODE_INDIRECT_SPECULAR_OCCLUSION:
+            diffuseLighting = aoFactor.indirectSpecularOcclusion;
+            specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
+            break;
+
+        case DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFRACTION:
+            if (_DebugLightingSubMode != DEBUGSCREENSPACETRACING_COLOR)
+                diffuseLighting = lighting.indirect.specularTransmitted;
+            break;
+
+        case DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFLECTION:
+            if (_DebugLightingSubMode != DEBUGSCREENSPACETRACING_COLOR)
+                diffuseLighting = lighting.indirect.specularReflected;
+            break;
+        }
     }
-    else if (_DebugLightingMode == DEBUGLIGHTINGMODE_INDIRECT_DIFFUSE_OCCLUSION_FROM_SSAO)
-    {
-        diffuseLighting = indirectAmbientOcclusion;
-        specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
-    }
-    else if (_DebugLightingMode == DEBUGLIGHTINGMODE_INDIRECT_SPECULAR_OCCLUSION_FROM_SSAO)
-    {
-        diffuseLighting = specularOcclusion;
-        specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
-    }
-    #if GTAO_MULTIBOUNCE_APPROX
-    else if (_DebugLightingMode == DEBUGLIGHTINGMODE_INDIRECT_DIFFUSE_GTAO_FROM_SSAO)
-    {
-        diffuseLighting = GTAOMultiBounce(indirectAmbientOcclusion, bsdfData.diffuseColor);
-        specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
-    }
-    else if (_DebugLightingMode == DEBUGLIGHTINGMODE_INDIRECT_SPECULAR_GTAO_FROM_SSAO)
-    {
-        diffuseLighting = GTAOMultiBounce(specularOcclusion, bsdfData.fresnel0);
-        specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
-    }
-    #endif
     else if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
     {
         diffuseLighting = bsdfData.diffuseColor;
         specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
     }
+
 #endif
 }
 

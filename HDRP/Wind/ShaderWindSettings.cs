@@ -5,7 +5,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [ExecuteInEditMode]
     public class ShaderWindSettings : MonoBehaviour
     {
-
         [Header("General Parameters")]
         [Tooltip("Wind Speed in Kilometers per hour")]
         public float WindSpeed = 30;
@@ -53,8 +52,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
         void ApplySettings()
         {
-            Shader.SetGlobalTexture("WIND_SETTINGS_TexNoise", NoiseTexture);
-            Shader.SetGlobalTexture("WIND_SETTINGS_TexGust", GustMaskTexture);
+            Shader.SetGlobalTexture("_WIND_SETTINGS_TexNoise", NoiseTexture);
+            Shader.SetGlobalTexture("_WIND_SETTINGS_TexGust", GustMaskTexture);
             Shader.SetGlobalVector("WIND_SETTINGS_WorldDirectionAndSpeed", GetDirectionAndSpeed());
             Shader.SetGlobalFloat("WIND_SETTINGS_FlexNoiseScale", 1.0f / Mathf.Max(0.01f, FlexNoiseWorldSize));
             Shader.SetGlobalFloat("WIND_SETTINGS_ShiverNoiseScale", 1.0f / Mathf.Max(0.01f, ShiverNoiseWorldSize));

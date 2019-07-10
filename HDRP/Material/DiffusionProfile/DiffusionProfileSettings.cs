@@ -117,10 +117,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             // Clamp to avoid artifacts.
             shapeParam = new Vector3(
-                1f / Mathf.Max(0.001f, scatteringDistance.r),
-                1f / Mathf.Max(0.001f, scatteringDistance.g),
-                1f / Mathf.Max(0.001f, scatteringDistance.b)
-            );
+                    1f / Mathf.Max(0.001f, scatteringDistance.r),
+                    1f / Mathf.Max(0.001f, scatteringDistance.g),
+                    1f / Mathf.Max(0.001f, scatteringDistance.b)
+                    );
 
             // We importance sample the color channel with the widest scattering distance.
             float s = Mathf.Min(shapeParam.x, shapeParam.y, shapeParam.z);
@@ -206,7 +206,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 // Generate 'u' on (0, 0.5] and (0.5, 1).
                 float u = (i <= kNumSamples / 2) ? 0.5f - i * step // The center and to the left
-                                                 : i * step;       // From the center to the right
+                    : i * step;                                    // From the center to the right
 
                 u = Mathf.Clamp(u, 0.001f, 0.999f);
 
@@ -246,10 +246,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             // Store (1 / (2 * WeightedVariance)) per color channel.
             // Warning: do not use halfRcpWeightedVariances.Set(). It will not work.
             halfRcpWeightedVariances = new Vector4(0.5f / (weightedStdDev.x * weightedStdDev.x),
-                                                   0.5f / (weightedStdDev.y * weightedStdDev.y),
-                                                   0.5f / (weightedStdDev.z * weightedStdDev.z),
-                                                   0.5f / (weightedStdDev.w * weightedStdDev.w));
+                    0.5f / (weightedStdDev.y * weightedStdDev.y),
+                    0.5f / (weightedStdDev.z * weightedStdDev.z),
+                    0.5f / (weightedStdDev.w * weightedStdDev.w));
         }
+
         // <<< Old SSS Model
 
         static float DisneyProfile(float r, float s)
@@ -351,6 +352,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         {
             return Mathf.Lerp(NormalCdfInverse(p, stdDev1), NormalCdfInverse(p, stdDev2), lerpWeight);
         }
+
         // <<< Old SSS Model
     }
 
@@ -415,7 +417,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             ValidateArray(ref halfRcpVariancesAndWeights, DiffusionProfileConstants.DIFFUSION_PROFILE_COUNT * 2);
             ValidateArray(ref filterKernelsBasic,         DiffusionProfileConstants.DIFFUSION_PROFILE_COUNT * DiffusionProfileConstants.SSS_BASIC_N_SAMPLES);
 
-            Debug.Assert(DiffusionProfileConstants.DIFFUSION_PROFILE_NEUTRAL_ID <= 32, "Transmission and Texture flags (32-bit integer) cannot support more than 32 profiles.");
+            Debug.Assert(DiffusionProfileConstants.DIFFUSION_PROFILE_COUNT <= 32, "Transmission and Texture flags (32-bit integer) cannot support more than 32 profiles.");
 
             UpdateCache();
         }
@@ -438,6 +440,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 
             worldScales[neutralId] = Vector4.one;
             shapeParams[neutralId] = Vector4.zero;
+            transmissionTintsAndFresnel0[neutralId].w = 0.04f; // Match DEFAULT_SPECULAR_VALUE defined in Lit.hlsl
 
             for (int j = 0, n = DiffusionProfileConstants.SSS_N_SAMPLES_NEAR_FIELD; j < n; j++)
             {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,27 +20,39 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public IntParameter skyType = new IntParameter(0);
         public FogTypeParameter fogType = new FogTypeParameter(FogType.None);
 
-        public void PushFogShaderParameters(CommandBuffer cmd, FrameSettings frameSettings)
+        public void PushFogShaderParameters(HDCamera hdCamera, CommandBuffer cmd)
         {
+            if (!hdCamera.frameSettings.enableAtmosphericScattering)
+            {
+                AtmosphericScattering.PushNeutralShaderParameters(hdCamera, cmd);
+                return;
+            }
+
             switch (fogType.value)
             {
                 case FogType.None:
-                    {
-                        AtmosphericScattering.PushNeutralShaderParameters(cmd);
-                        break;
-                    }
+                {
+                    AtmosphericScattering.PushNeutralShaderParameters(hdCamera, cmd);
+                    break;
+                }
                 case FogType.Linear:
-                    {
-                        var fogSettings = VolumeManager.instance.stack.GetComponent<LinearFog>();
-                        fogSettings.PushShaderParameters(cmd, frameSettings);
-                        break;
-                    }
+                {
+                    var fogSettings = VolumeManager.instance.stack.GetComponent<LinearFog>();
+                    fogSettings.PushShaderParameters(hdCamera, cmd);
+                    break;
+                }
                 case FogType.Exponential:
-                    {
-                        var fogSettings = VolumeManager.instance.stack.GetComponent<ExponentialFog>();
-                        fogSettings.PushShaderParameters(cmd, frameSettings);
-                        break;
-                    }
+                {
+                    var fogSettings = VolumeManager.instance.stack.GetComponent<ExponentialFog>();
+                    fogSettings.PushShaderParameters(hdCamera, cmd);
+                    break;
+                }
+                case FogType.Volumetric:
+                {
+                    var fogSettings = VolumeManager.instance.stack.GetComponent<VolumetricFog>();
+                    fogSettings.PushShaderParameters(hdCamera, cmd);
+                    break;
+                }
             }
         }
     }

@@ -2,8 +2,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
     public class RenderPipelineResources : ScriptableObject
     {
+        [HideInInspector]
+        public float version = 1.0f;
+
         // Default Material / Shader
         public Material defaultDiffuseMaterial;
+        public Material defaultMirrorMaterial;
         public Material defaultDecalMaterial;
         public Shader defaultShader;
 
@@ -20,6 +24,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public ComputeShader colorPyramidCS;
         public ComputeShader depthPyramidCS;
         public ComputeShader copyChannelCS;
+        public ComputeShader texturePaddingCS;
         public ComputeShader applyDistortionCS;
 
         // Lighting tile pass resources
@@ -32,6 +37,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public ComputeShader buildMaterialFlagsShader;
         public ComputeShader deferredComputeShader;
         public ComputeShader deferredDirectionalShadowComputeShader;
+        public ComputeShader volumeVoxelizationCS;
         public ComputeShader volumetricLightingCS;
 
         public ComputeShader subsurfaceScatteringCS; // Disney SSS
@@ -52,8 +58,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public Shader opaqueAtmosphericScattering;
         public Shader hdriSky;
         public Shader proceduralSky;
-
         public Shader skyboxCubemap;
+
+        // Material
+        public Shader preIntegratedFGD;
 
         // Utilities / Core
         public ComputeShader encodeBC6HCS;

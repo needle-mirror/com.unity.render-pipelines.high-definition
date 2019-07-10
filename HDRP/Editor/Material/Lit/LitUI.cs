@@ -5,7 +5,7 @@ using UnityEngine.Experimental.Rendering.HDPipeline;
 
 namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
-    class LitGUI : BaseLitGUI
+    public class LitGUI : BaseLitGUI
     {
         protected static class Styles
         {
@@ -62,9 +62,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public static GUIContent thicknessRemapText = new GUIContent("Thickness Remap", "Remaps values of the thickness map from [0, 1] to the specified range.");
 
             // Iridescence
-            public static GUIContent iridescenceMaskText = new GUIContent("Iridescence Mask", "Control intensity of the iridescence");
+            public static GUIContent iridescenceMaskText = new GUIContent("Iridescence Mask (R)", "Control intensity of the iridescence");
             public static GUIContent iridescenceThicknessText = new GUIContent("Iridescence Layer Thickness");
-            public static GUIContent iridescenceThicknessMapText = new GUIContent("Iridescence Layer Thickness map");
+            public static GUIContent iridescenceThicknessMapText = new GUIContent("Iridescence Layer Thickness map (R)");
             public static GUIContent iridescenceThicknessRemapText = new GUIContent("Iridescence Layer Thickness remap");
 
             // Clear Coat
@@ -80,14 +80,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             // Emissive
             public static string emissiveLabelText = "Emissive Inputs";
-            public static GUIContent emissiveText = new GUIContent("Emissive Color", "Emissive");
-            public static GUIContent emissiveIntensityText = new GUIContent("Emissive Intensity", "Emissive");
+            public static GUIContent emissiveText = new GUIContent("Emissive Color", "Emissive Color (linear RGB) in nits unit");
             public static GUIContent albedoAffectEmissiveText = new GUIContent("Albedo Affect Emissive", "Specifies whether or not the emissive color is multiplied by the albedo.");
 
             public static GUIContent normalMapSpaceWarning = new GUIContent("Object space normal can't be use with triplanar mapping.");
 
             // Transparency
-            public static string refractionModeText = "Refraction Mode";
+            public static string refractionModelText = "Refraction Model";
+            public static GUIContent refractionProjectionModelText = new GUIContent("SSRay Model", "Screen Space Ray Model");
             public static GUIContent refractionIorText = new GUIContent("Index of refraction", "Index of refraction");
             public static GUIContent refractionThicknessText = new GUIContent("Refraction Thickness", "Thickness for rough refraction");
             public static GUIContent refractionThicknessMultiplierText = new GUIContent("Refraction Thickness multiplier (m)", "Thickness multiplier");
@@ -262,8 +262,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kEmissiveColor = "_EmissiveColor";
         protected MaterialProperty emissiveColorMap = null;
         protected const string kEmissiveColorMap = "_EmissiveColorMap";
-        protected MaterialProperty emissiveIntensity = null;
-        protected const string kEmissiveIntensity = "_EmissiveIntensity";
         protected MaterialProperty albedoAffectEmissive = null;
         protected const string kAlbedoAffectEmissive = "_AlbedoAffectEmissive";
         protected MaterialProperty UVEmissive = null;
@@ -287,12 +285,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         protected const string kATDistance = "_ATDistance";
         protected MaterialProperty thicknessMultiplier = null;
         protected const string kThicknessMultiplier = "_ThicknessMultiplier";
-        protected MaterialProperty refractionMode = null;
-        protected const string kRefractionMode = "_RefractionMode";
+        protected MaterialProperty refractionModel = null;
+        protected const string kRefractionModel = "_RefractionModel";
+        protected MaterialProperty ssrefractionProjectionModel = null;
+        protected const string kSSRefractionProjectionModel = "_SSRefractionProjectionModel";
 
         protected override bool showBlendModePopup
         {
-            get { return refractionMode == null || refractionMode.floatValue == 0f; }
+            get { return refractionModel == null || refractionModel.floatValue == 0f; }
         }
 
         protected void FindMaterialLayerProperties(MaterialProperty[] props)
@@ -356,7 +356,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             emissiveColorMode = FindProperty(kEmissiveColorMode, props);
             emissiveColor = FindProperty(kEmissiveColor, props);
             emissiveColorMap = FindProperty(kEmissiveColorMap, props);
-            emissiveIntensity = FindProperty(kEmissiveIntensity, props);
             albedoAffectEmissive = FindProperty(kAlbedoAffectEmissive, props);
 
             UVEmissive = FindProperty(kUVEmissive, props);
@@ -396,7 +395,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             coatMaskMap = FindProperty(kCoatMaskMap, props);
 
             // Transparency
-            refractionMode = FindProperty(kRefractionMode, props, false);
+            refractionModel = FindProperty(kRefractionModel, props, false);
+            ssrefractionProjectionModel = FindProperty(kSSRefractionProjectionModel, props, false);
             transmittanceColor = FindProperty(kTransmittanceColor, props, false);
             transmittanceColorMap = FindProperty(kTransmittanceColorMap, props, false);
             atDistance = FindProperty(kATDistance, props, false);
@@ -491,13 +491,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
             }
         }
+
         protected void ShaderIridescenceInputGUI()
         {
             m_MaterialEditor.TexturePropertySingleLine(Styles.iridescenceMaskText, iridescenceMaskMap, iridescenceMask);
 
-            m_MaterialEditor.TexturePropertySingleLine(Styles.iridescenceThicknessMapText, iridescenceThicknessMap);
             if (iridescenceThicknessMap.textureValue != null)
             {
+                m_MaterialEditor.TexturePropertySingleLine(Styles.iridescenceThicknessMapText, iridescenceThicknessMap);
                 // Display the remap of texture values.
                 Vector2 remap = iridescenceThicknessRemap.vectorValue;
                 EditorGUI.BeginChangeCheck();
@@ -510,7 +511,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             else
             {
                 // Allow the user to set the constant value of thickness if no thickness map is provided.
-                m_MaterialEditor.ShaderProperty(iridescenceThickness, Styles.iridescenceThicknessText);
+                m_MaterialEditor.TexturePropertySingleLine(Styles.iridescenceThicknessMapText, iridescenceThicknessMap, iridescenceThickness);
             }
         }
 
@@ -535,7 +536,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
         protected override void UpdateDisplacement()
         {
-            for(int i = 0; i < m_LayerCount; ++i)
+            for (int i = 0; i < m_LayerCount; ++i)
             {
                 UpdateDisplacement(i);
             }
@@ -552,7 +553,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             else
             {
                 HeightmapParametrization parametrization = (HeightmapParametrization)heightParametrization[layerIndex].floatValue;
-                if(parametrization == HeightmapParametrization.MinMax)
+                if (parametrization == HeightmapParametrization.MinMax)
                 {
                     float offset = heightOffset[layerIndex].floatValue;
                     float amplitude = (heightMax[layerIndex].floatValue - heightMin[layerIndex].floatValue);
@@ -584,7 +585,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 m_MaterialEditor.ShaderProperty(metallic[layerIndex], Styles.metallicText);
             }
 
-            if(maskMap[layerIndex].textureValue == null)
+            if (maskMap[layerIndex].textureValue == null)
             {
                 m_MaterialEditor.ShaderProperty(smoothness[layerIndex], Styles.smoothnessText);
             }
@@ -637,7 +638,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
 
             DisplacementMode displaceMode = (DisplacementMode)displacementMode.floatValue;
-            if(displaceMode != DisplacementMode.None || showHeightMap)
+            if (displaceMode != DisplacementMode.None || showHeightMap)
             {
                 EditorGUI.BeginChangeCheck();
                 m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap[layerIndex]);
@@ -651,7 +652,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     else
                     {
                         m_MaterialEditor.ShaderProperty(heightParametrization[layerIndex], Styles.heightMapParametrization);
-                        if(!heightParametrization[layerIndex].hasMixedValue)
+                        if (!heightParametrization[layerIndex].hasMixedValue)
                         {
                             HeightmapParametrization parametrization = (HeightmapParametrization)heightParametrization[layerIndex].floatValue;
                             if (parametrization == HeightmapParametrization.MinMax)
@@ -790,21 +791,22 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 
             var surfaceTypeValue = (SurfaceType)surfaceType.floatValue;
             if (surfaceTypeValue == SurfaceType.Transparent
-                && refractionMode != null)
+                && refractionModel != null)
             {
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField(StylesBaseUnlit.TransparencyInputsText, EditorStyles.boldLabel);
                 ++EditorGUI.indentLevel;
 
                 var isPrepass = material.HasProperty(kPreRefractionPass) && material.GetFloat(kPreRefractionPass) > 0.0;
-                if (refractionMode != null
+                if (refractionModel != null
                     // Refraction is not available for pre-refraction objects
                     && !isPrepass)
                 {
-                    m_MaterialEditor.ShaderProperty(refractionMode, Styles.refractionModeText);
-                    var mode = (Lit.RefractionMode)refractionMode.floatValue;
-                    if (mode != Lit.RefractionMode.None)
+                    m_MaterialEditor.ShaderProperty(refractionModel, Styles.refractionModelText);
+                    var mode = (Lit.RefractionModel)refractionModel.floatValue;
+                    if (mode != Lit.RefractionModel.None)
                     {
+                        m_MaterialEditor.ShaderProperty(ssrefractionProjectionModel, Styles.refractionProjectionModelText);
                         m_MaterialEditor.ShaderProperty(ior, Styles.refractionIorText);
 
                         blendMode.floatValue = (float)BlendMode.Alpha;
@@ -867,7 +869,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 EditorGUI.indentLevel--;
             }
 
-            m_MaterialEditor.ShaderProperty(emissiveIntensity, Styles.emissiveIntensityText);
             m_MaterialEditor.ShaderProperty(albedoAffectEmissive, Styles.albedoAffectEmissiveText);
             EditorGUI.indentLevel--;
         }
@@ -884,9 +885,9 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_MaterialEditor.ShaderProperty(enableSpecularOcclusion, Styles.enableSpecularOcclusionText);
         }
 
-        protected override bool ShouldEmissionBeEnabled(Material mat)
+        protected override bool ShouldEmissionBeEnabled(Material material)
         {
-            return mat.GetFloat(kEmissiveIntensity) > 0.0f;
+            return (material.GetColor(kEmissiveColor) != Color.black) || material.GetTexture(kEmissiveColorMap);
         }
 
         protected override void SetupMaterialKeywordsAndPassInternal(Material material)
@@ -967,12 +968,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_IRIDESCENCE", materialId == BaseLitGUI.MaterialId.LitIridescence);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SPECULAR_COLOR", materialId == BaseLitGUI.MaterialId.LitSpecular);
 
-            var refractionModeValue = (Lit.RefractionMode)material.GetFloat(kRefractionMode);
+            var refractionModelValue = (Lit.RefractionModel)material.GetFloat(kRefractionModel);
+            var refractionProjectionModelValue = (Lit.ProjectionModel)material.GetFloat(kSSRefractionProjectionModel);
             // We can't have refraction in pre-refraction queue
             var canHaveRefraction = !material.HasProperty(kPreRefractionPass) || material.GetFloat(kPreRefractionPass) <= 0.0;
-            CoreUtils.SetKeyword(material, "_REFRACTION_PLANE", (refractionModeValue == Lit.RefractionMode.Plane) && canHaveRefraction);
-            CoreUtils.SetKeyword(material, "_REFRACTION_SPHERE", (refractionModeValue == Lit.RefractionMode.Sphere) && canHaveRefraction);
+            CoreUtils.SetKeyword(material, "_REFRACTION_PLANE", (refractionModelValue == Lit.RefractionModel.Plane) && canHaveRefraction);
+            CoreUtils.SetKeyword(material, "_REFRACTION_SPHERE", (refractionModelValue == Lit.RefractionModel.Sphere) && canHaveRefraction);
             CoreUtils.SetKeyword(material, "_TRANSMITTANCECOLORMAP", material.GetTexture(kTransmittanceColorMap) && canHaveRefraction);
+            CoreUtils.SetKeyword(material, "_REFRACTION_SSRAY_PROXY", (refractionProjectionModelValue == Lit.ProjectionModel.Proxy) && canHaveRefraction);
+            CoreUtils.SetKeyword(material, "_REFRACTION_SSRAY_HIZ", (refractionProjectionModelValue == Lit.ProjectionModel.HiZ) && canHaveRefraction);
         }
     }
 } // namespace UnityEditor

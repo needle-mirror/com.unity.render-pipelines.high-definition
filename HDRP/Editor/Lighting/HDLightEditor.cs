@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 
@@ -9,16 +10,31 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     [CustomEditorForRenderPipeline(typeof(Light), typeof(HDRenderPipelineAsset))]
     sealed partial class HDLightEditor : LightEditor
     {
+        [MenuItem("CONTEXT/Light/Remove HD Light", false, 0)]
+        static void RemoveLight(MenuCommand menuCommand)
+        {
+            GameObject go = ((Light)menuCommand.context).gameObject;
+
+            Assert.IsNotNull(go);
+
+            Undo.IncrementCurrentGroup();
+            Undo.DestroyObjectImmediate(go.GetComponent<Light>());
+            Undo.DestroyObjectImmediate(go.GetComponent<HDAdditionalLightData>());
+            Undo.DestroyObjectImmediate(go.GetComponent<AdditionalShadowData>());
+        }
+
         sealed class SerializedLightData
         {
             public SerializedProperty directionalIntensity;
             public SerializedProperty punctualIntensity;
             public SerializedProperty areaIntensity;
+            public SerializedProperty enableSpotReflector;
             public SerializedProperty spotInnerPercent;
             public SerializedProperty lightDimmer;
             public SerializedProperty fadeDistance;
             public SerializedProperty affectDiffuse;
             public SerializedProperty affectSpecular;
+            public SerializedProperty nonLightmappedOnly;
             public SerializedProperty lightTypeExtent;
             public SerializedProperty spotLightShape;
             public SerializedProperty shapeWidth;
@@ -27,6 +43,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public SerializedProperty shapeRadius;
             public SerializedProperty maxSmoothness;
             public SerializedProperty applyRangeAttenuation;
+            public SerializedProperty volumetricDimmer;
 
             // Editor stuff
             public SerializedProperty useOldInspector;
@@ -88,50 +105,53 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             m_SerializedAdditionalShadowData = new SerializedObject(shadowData);
 
             using (var o = new PropertyFetcher<HDAdditionalLightData>(m_SerializedAdditionalLightData))
-            m_AdditionalLightData = new SerializedLightData
-            {
-                directionalIntensity = o.Find(x => x.directionalIntensity),
-                punctualIntensity = o.Find(x => x.punctualIntensity),
-                areaIntensity = o.Find(x => x.areaIntensity),
-                spotInnerPercent = o.Find(x => x.m_InnerSpotPercent),
-                lightDimmer = o.Find(x => x.lightDimmer),
-                fadeDistance = o.Find(x => x.fadeDistance),
-                affectDiffuse = o.Find(x => x.affectDiffuse),
-                affectSpecular = o.Find(x => x.affectSpecular),
-                lightTypeExtent = o.Find(x => x.lightTypeExtent),
-                spotLightShape = o.Find(x => x.spotLightShape),
-                shapeWidth = o.Find(x => x.shapeWidth),
-                shapeHeight = o.Find(x => x.shapeHeight),
-                aspectRatio = o.Find(x => x.aspectRatio),
-                shapeRadius = o.Find(x => x.shapeRadius),
-                maxSmoothness = o.Find(x => x.maxSmoothness),
-                applyRangeAttenuation = o.Find(x => x.applyRangeAttenuation),
+                m_AdditionalLightData = new SerializedLightData
+                {
+                    directionalIntensity = o.Find(x => x.directionalIntensity),
+                    punctualIntensity = o.Find(x => x.punctualIntensity),
+                    areaIntensity = o.Find(x => x.areaIntensity),
+                    enableSpotReflector = o.Find(x => x.enableSpotReflector),
+                    spotInnerPercent = o.Find(x => x.m_InnerSpotPercent),
+                    lightDimmer = o.Find(x => x.lightDimmer),
+                    volumetricDimmer = o.Find(x => x.volumetricDimmer),
+                    fadeDistance = o.Find(x => x.fadeDistance),
+                    affectDiffuse = o.Find(x => x.affectDiffuse),
+                    affectSpecular = o.Find(x => x.affectSpecular),
+                    nonLightmappedOnly = o.Find(x => x.nonLightmappedOnly),
+                    lightTypeExtent = o.Find(x => x.lightTypeExtent),
+                    spotLightShape = o.Find(x => x.spotLightShape),
+                    shapeWidth = o.Find(x => x.shapeWidth),
+                    shapeHeight = o.Find(x => x.shapeHeight),
+                    aspectRatio = o.Find(x => x.aspectRatio),
+                    shapeRadius = o.Find(x => x.shapeRadius),
+                    maxSmoothness = o.Find(x => x.maxSmoothness),
+                    applyRangeAttenuation = o.Find(x => x.applyRangeAttenuation),
 
-                // Editor stuff
-                useOldInspector = o.Find(x => x.useOldInspector),
-                showFeatures = o.Find(x => x.featuresFoldout),
-                showAdditionalSettings = o.Find(x => x.showAdditionalSettings)
-            };
+                    // Editor stuff
+                    useOldInspector = o.Find(x => x.useOldInspector),
+                    showFeatures = o.Find(x => x.featuresFoldout),
+                    showAdditionalSettings = o.Find(x => x.showAdditionalSettings)
+                };
 
             // TODO: Review this once AdditionalShadowData is refactored
             using (var o = new PropertyFetcher<AdditionalShadowData>(m_SerializedAdditionalShadowData))
-            m_AdditionalShadowData = new SerializedShadowData
-            {
-                dimmer = o.Find(x => x.shadowDimmer),
-                fadeDistance = o.Find(x => x.shadowFadeDistance),
-                resolution = o.Find(x => x.shadowResolution),
+                m_AdditionalShadowData = new SerializedShadowData
+                {
+                    dimmer = o.Find(x => x.shadowDimmer),
+                    fadeDistance = o.Find(x => x.shadowFadeDistance),
+                    resolution = o.Find(x => x.shadowResolution),
 
-                viewBiasMin = o.Find(x => x.viewBiasMin),
-                viewBiasMax = o.Find(x => x.viewBiasMax),
-                viewBiasScale = o.Find(x => x.viewBiasScale),
-                normalBiasMin = o.Find(x => x.normalBiasMin),
-                normalBiasMax = o.Find(x => x.normalBiasMax),
-                normalBiasScale = o.Find(x => x.normalBiasScale),
-                sampleBiasScale = o.Find(x => x.sampleBiasScale),
-                edgeLeakFixup = o.Find(x => x.edgeLeakFixup),
-                edgeToleranceNormal = o.Find(x => x.edgeToleranceNormal),
-                edgeTolerance = o.Find(x => x.edgeTolerance)
-            };
+                    viewBiasMin = o.Find(x => x.viewBiasMin),
+                    viewBiasMax = o.Find(x => x.viewBiasMax),
+                    viewBiasScale = o.Find(x => x.viewBiasScale),
+                    normalBiasMin = o.Find(x => x.normalBiasMin),
+                    normalBiasMax = o.Find(x => x.normalBiasMax),
+                    normalBiasScale = o.Find(x => x.normalBiasScale),
+                    sampleBiasScale = o.Find(x => x.sampleBiasScale),
+                    edgeLeakFixup = o.Find(x => x.edgeLeakFixup),
+                    edgeToleranceNormal = o.Find(x => x.edgeToleranceNormal),
+                    edgeTolerance = o.Find(x => x.edgeTolerance)
+                };
         }
 
         public override void OnInspectorGUI()
@@ -311,6 +331,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // Caution: this function must match the one in HDAdditionalLightData.ConvertPhysicalLightIntensityToLightIntensity - any change need to be replicated
         void UpdateLightIntensity()
         {
+            // Clamp negative values.
+            m_AdditionalLightData.directionalIntensity.floatValue = Mathf.Max(0, m_AdditionalLightData.directionalIntensity.floatValue);
+            m_AdditionalLightData.punctualIntensity.floatValue    = Mathf.Max(0, m_AdditionalLightData.punctualIntensity.floatValue);
+            m_AdditionalLightData.areaIntensity.floatValue        = Mathf.Max(0, m_AdditionalLightData.areaIntensity.floatValue);
+
             switch (m_LightShape)
             {
                 case LightShape.Directional:
@@ -324,9 +349,32 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 case LightShape.Spot:
                     // Spot should used conversion which take into account the angle, and thus the intensity vary with angle.
                     // This is not easy to manipulate for lighter, so we simply consider any spot light as just occluded point light. So reuse the same code.
-                    settings.intensity.floatValue = LightUtils.ConvertPointLightIntensity(m_AdditionalLightData.punctualIntensity.floatValue);
-                    // TODO: What to do with box shape ?
-                    // var spotLightShape = (SpotLightShape)m_AdditionalLightData.spotLightShape.enumValueIndex;
+
+                    var spotLightShape = (SpotLightShape)m_AdditionalLightData.spotLightShape.enumValueIndex;
+
+                    if (m_AdditionalLightData.enableSpotReflector.boolValue)
+                    {
+                        if (spotLightShape == SpotLightShape.Cone)
+                        {
+                            settings.intensity.floatValue = LightUtils.ConvertSpotLightIntensity(m_AdditionalLightData.punctualIntensity.floatValue, settings.spotAngle.floatValue * Mathf.Deg2Rad, true);
+                        }
+                        else if (spotLightShape == SpotLightShape.Pyramid)
+                        {
+                            float angleA, angleB;
+                            LightUtils.CalculateAnglesForPyramid(m_AdditionalLightData.aspectRatio.floatValue, settings.spotAngle.floatValue,
+                                out angleA, out angleB);
+
+                            settings.intensity.floatValue = LightUtils.ConvertFrustrumLightIntensity(m_AdditionalLightData.punctualIntensity.floatValue, angleA, angleB);
+                        }
+                        else // Box shape, fallback to punctual light.
+                        {
+                            settings.intensity.floatValue = LightUtils.ConvertPointLightIntensity(m_AdditionalLightData.punctualIntensity.floatValue);
+                        }
+                    }
+                    else // Reflector disabled, fallback to punctual light.
+                    {
+                        settings.intensity.floatValue = LightUtils.ConvertPointLightIntensity(m_AdditionalLightData.punctualIntensity.floatValue);
+                    }
                     break;
 
                 case LightShape.Rectangle:
@@ -354,6 +402,14 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 case LightShape.Point:
                 case LightShape.Spot:
                     EditorGUILayout.PropertyField(m_AdditionalLightData.punctualIntensity, s_Styles.punctualIntensity);
+
+                    // Only display reflector option if it make sense
+                    if (m_LightShape == LightShape.Spot)
+                    {
+                        var spotLightShape = (SpotLightShape)m_AdditionalLightData.spotLightShape.enumValueIndex;
+                        if (spotLightShape == SpotLightShape.Cone || spotLightShape == SpotLightShape.Pyramid)
+                            EditorGUILayout.PropertyField(m_AdditionalLightData.enableSpotReflector, s_Styles.enableSpotReflector);
+                    }
                     break;
 
                 case LightShape.Rectangle:
@@ -395,9 +451,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 EditorGUI.indentLevel++;
                 EditorGUILayout.PropertyField(m_AdditionalLightData.affectDiffuse, s_Styles.affectDiffuse);
                 EditorGUILayout.PropertyField(m_AdditionalLightData.affectSpecular, s_Styles.affectSpecular);
-                EditorGUILayout.PropertyField(m_AdditionalLightData.fadeDistance, s_Styles.fadeDistance);
+                if (m_LightShape != LightShape.Directional)
+                    EditorGUILayout.PropertyField(m_AdditionalLightData.fadeDistance, s_Styles.fadeDistance);
                 EditorGUILayout.PropertyField(m_AdditionalLightData.lightDimmer, s_Styles.lightDimmer);
-                EditorGUILayout.PropertyField(m_AdditionalLightData.applyRangeAttenuation, s_Styles.applyRangeAttenuation);
+                EditorGUILayout.PropertyField(m_AdditionalLightData.volumetricDimmer, s_Styles.volumetricDimmer);
+                if (m_LightShape != LightShape.Directional)
+                    EditorGUILayout.PropertyField(m_AdditionalLightData.applyRangeAttenuation, s_Styles.applyRangeAttenuation);
                 EditorGUI.indentLevel--;
             }
 
@@ -419,6 +478,19 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 case LightType.Point:
                     EditorGUILayout.PropertyField(settings.bakedShadowRadiusProp, s_Styles.bakedShadowRadius);
                     break;
+            }
+
+
+            if (settings.isMixed)
+            {
+                EditorGUI.BeginChangeCheck();
+
+                EditorGUILayout.PropertyField(m_AdditionalLightData.nonLightmappedOnly, s_Styles.nonLightmappedOnly);
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    ((Light)target).lightShadowCasterMode = m_AdditionalLightData.nonLightmappedOnly.boolValue ? LightShadowCasterMode.NonLightmappedOnly : LightShadowCasterMode.Everything;
+                }
             }
         }
 
@@ -479,7 +551,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         // Internal utilities
         void ApplyAdditionalComponentsVisibility(bool hide)
         {
-            var flags = hide ? HideFlags.HideInInspector : HideFlags.None;
+            // UX team decided thta we should always show component in inspector.
+            // However already authored scene save this settings, so force the component to be visible
+            // var flags = hide ? HideFlags.HideInInspector : HideFlags.None;
+            var flags = HideFlags.None;
 
             foreach (var t in m_SerializedAdditionalLightData.targetObjects)
                 ((HDAdditionalLightData)t).hideFlags = flags;

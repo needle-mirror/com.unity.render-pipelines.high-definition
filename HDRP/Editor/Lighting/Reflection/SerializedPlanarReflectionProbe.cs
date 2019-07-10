@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering;
@@ -81,13 +81,17 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             }
 
             reflectionProxyVolume = objs.Count > 0
-                    ? new SerializedReflectionProxyVolumeComponent(new SerializedObject(objs.ToArray()))
-                    : null;
+                ? new SerializedReflectionProxyVolumeComponent(new SerializedObject(objs.ToArray()))
+                : null;
         }
 
         public void Update()
         {
             serializedObject.Update();
+
+            mode.enumValueIndex = (int)ReflectionProbeMode.Realtime;
+            refreshMode.enumValueIndex = (int)ReflectionProbeRefreshMode.EveryFrame;
+            capturePositionMode.enumValueIndex = (int)PlanarReflectionProbe.CapturePositionMode.MirrorCamera;
 
             var updateProxyVolume = reflectionProxyVolume != null
                 && serializedObject.targetObjects.Length != reflectionProxyVolume.serializedObject.targetObjects.Length;

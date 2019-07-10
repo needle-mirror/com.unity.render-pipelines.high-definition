@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.HDPipeline;
 using UnityEngine.Rendering.PostProcessing;
@@ -10,6 +11,18 @@ namespace UnityEditor.Experimental.Rendering
     [CanEditMultipleObjects]
     partial class HDCameraEditor : Editor
     {
+        [MenuItem("CONTEXT/Camera/Remove HD Camera", false, 0)]
+        static void RemoveLight(MenuCommand menuCommand)
+        {
+            GameObject go = ((Camera)menuCommand.context).gameObject;
+
+            Assert.IsNotNull(go);
+
+            Undo.SetCurrentGroupName("Remove HD Camera");
+            Undo.DestroyObjectImmediate(go.GetComponent<Camera>());
+            Undo.DestroyObjectImmediate(go.GetComponent<HDAdditionalCameraData>());
+        }
+
         SerializedHDCamera m_SerializedCamera;
         HDCameraUI m_UIState = new HDCameraUI();
 
@@ -17,7 +30,6 @@ namespace UnityEditor.Experimental.Rendering
         Camera m_PreviewCamera;
         HDAdditionalCameraData m_PreviewAdditionalCameraData;
         PostProcessLayer m_PreviewPostProcessLayer;
-        HDCamera m_PreviewHDCamera;
 
         void OnEnable()
         {
@@ -28,9 +40,9 @@ namespace UnityEditor.Experimental.Rendering
             m_PreviewCamera.enabled = false;
             m_PreviewCamera.cameraType = CameraType.Preview; // Must be init before adding HDAdditionalCameraData
             m_PreviewAdditionalCameraData = m_PreviewCamera.gameObject.AddComponent<HDAdditionalCameraData>();
+            // Say that we are a camera editor preview and not just a regular preview
+            m_PreviewAdditionalCameraData.isEditorCameraPreview = true;
             m_PreviewPostProcessLayer = m_PreviewCamera.gameObject.AddComponent<PostProcessLayer>();
-            m_PreviewHDCamera = new HDCamera(m_PreviewCamera);
-            m_PreviewHDCamera.Update(m_PreviewPostProcessLayer, m_PreviewAdditionalCameraData.GetFrameSettings());
         }
 
         void OnDisable()

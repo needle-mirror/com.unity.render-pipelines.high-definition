@@ -84,7 +84,7 @@
 #include "../../Debug/DebugDisplay.hlsl"
 #include "../../Lighting/Lighting.hlsl" // This include Material.hlsl
 
-#pragma only_renderers d3d11 ps4 xboxone vulkan metal
+#pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
 //-------------------------------------------------------------------------------------
 // variable declaration
@@ -98,7 +98,7 @@ RWTexture2D<float3> diffuseLightingUAV;
 RWTexture2D<float4> specularLightingUAV;
 
 CBUFFER_START(UnityDeferredCompute)
-	uint g_TileListOffset;
+    uint g_TileListOffset;
 CBUFFER_END
 
 #ifdef USE_INDIRECT
@@ -123,14 +123,14 @@ void SHADE_OPAQUE_ENTRY(uint2 dispatchThreadId : SV_DispatchThreadID, uint2 grou
 {
     uint2 tileCoord    = (TILE_SIZE_FPTL * groupId) / GetTileSize();
     uint2 pixelCoord   = dispatchThreadId;
-	uint  featureFlags = UINT_MAX;
+    uint  featureFlags = UINT_MAX;
 
 #endif
 
     // This need to stay in sync with deferred.shader
 
-    float depth = LOAD_TEXTURE2D(_MainDepthTexture, pixelCoord.xy).x;
-    PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_VP, tileCoord);
+    float depth = LOAD_TEXTURE2D(_CameraDepthTexture, pixelCoord.xy).x;
+    PositionInputs posInput = GetPositionInput(pixelCoord.xy, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, UNITY_MATRIX_V, tileCoord);
 
     // For indirect case: we can still overlap inside a tile with the sky/background, reject it
     // Can't rely on stencil as we are in compute shader
@@ -165,4 +165,3 @@ void SHADE_OPAQUE_ENTRY(uint2 dispatchThreadId : SV_DispatchThreadID, uint2 grou
         specularLightingUAV[pixelCoord] = float4(diffuseLighting + specularLighting, 1.0);
     }
 }
-

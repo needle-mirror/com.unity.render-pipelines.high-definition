@@ -13,7 +13,7 @@ uint _NumTileFtplY;
 // these uniforms are only needed for when OPAQUES_ONLY is NOT defined
 // but there's a problem with our front-end compilation of compute shaders with multiple kernels causing it to error
 //#ifdef USE_CLUSTERED_LIGHTLIST
-float4x4 g_mInvScrProjection;
+float4x4 g_mInvScrProjection; // TODO: remove, unused in HDRP
 
 float g_fClustScale;
 float g_fClustBase;
@@ -53,6 +53,7 @@ TEXTURECUBE_ARRAY_ABSTRACT(_EnvCubemapTextures);
 TEXTURE2D_ARRAY(_Env2DTextures);
 float4x4 _Env2DCaptureVP[MAX_ENV2D_LIGHT];
 
+// XRTODO: Need to stereo-ize access
 TEXTURE2D(_DeferredShadowTexture);
 
 CBUFFER_START(UnityPerLightLoop)
@@ -105,14 +106,35 @@ float3 SampleCookieCube(LightLoopContext lightLoopContext, float3 coord, int ind
 #define SINGLE_PASS_CONTEXT_SAMPLE_REFLECTION_PROBES 0
 #define SINGLE_PASS_CONTEXT_SAMPLE_SKY 1
 
-#ifdef DEBUG_DISPLAY
-float4 ApplyDebugProjectionVolume(float4 color, float3 radiusToProxy, float scale)
+// The EnvLightData of the sky light contains a bunch of compile-time constants.
+// This function sets them directly to allow the compiler to propagate them and optimize the code.
+EnvLightData InitSkyEnvLightData(int envIndex)
 {
-    float l = length(radiusToProxy);
-    l = pow(l / (1 + l), scale);
-    return float4(l.xxx * 0.7 + color.rgb * 0.3, color.a);
+    EnvLightData output;
+    ZERO_INITIALIZE(EnvLightData, output);
+    output.influenceShapeType = ENVSHAPETYPE_SKY;
+    // 31 bit index, 1 bit cache type
+    output.envIndex = ENVCACHETYPE_CUBEMAP | (envIndex << 1);
+
+    output.influenceForward = float3(0.0, 0.0, 1.0);
+    output.influenceUp = float3(0.0, 1.0, 0.0);
+    output.influenceRight = float3(1.0, 0.0, 0.0);
+    output.influencePositionWS = float3(0.0, 0.0, 0.0);
+
+    output.weight = 1.0;
+    output.multiplier = 1.0;
+
+    // proxy
+    output.proxyForward = float3(0.0, 0.0, 1.0);
+    output.proxyUp = float3(0.0, 1.0, 0.0);
+    output.proxyRight = float3(1.0, 0.0, 0.0);
+    output.minProjectionDistance = 65504.0f;
+
+    return output;
 }
-#endif
+
+bool IsEnvIndexCubemap(int index)   { return (index & 1) == ENVCACHETYPE_CUBEMAP; }
+bool IsEnvIndexTexture2D(int index) { return (index & 1) == ENVCACHETYPE_TEXTURE2D; }
 
 // Note: index is whatever the lighting architecture want, it can contain information like in which texture to sample (in case we have a compressed BC6H texture and an uncompressed for real time reflection ?)
 // EnvIndex can also be use to fetch in another array of struct (to  atlas information etc...).
@@ -134,22 +156,12 @@ float4 SampleEnv(LightLoopContext lightLoopContext, int index, float3 texCoord, 
             //_Env2DCaptureVP is in capture space
             float3 ndc = ComputeNormalizedDeviceCoordinatesWithZ(texCoord, _Env2DCaptureVP[index]);
 
-            color.rgb = SAMPLE_TEXTURE2D_ARRAY_LOD(_Env2DTextures, s_trilinear_clamp_sampler, ndc.xy, index, 0).rgb;
+            color.rgb = SAMPLE_TEXTURE2D_ARRAY_LOD(_Env2DTextures, s_trilinear_clamp_sampler, ndc.xy, index, lod).rgb;
             color.a = any(ndc.xyz < 0) || any(ndc.xyz > 1) ? 0.0 : 1.0;
-            
-#ifdef DEBUG_DISPLAY
-            if (_DebugLightingMode == DEBUGLIGHTINGMODE_ENVIRONMENT_SAMPLE_COORDINATES)
-                color = float4(ndc.xy, 0, color.a);
-#endif
         }
         else if (cacheType == ENVCACHETYPE_CUBEMAP)
         {
             color.rgb = SAMPLE_TEXTURECUBE_ARRAY_LOD_ABSTRACT(_EnvCubemapTextures, s_trilinear_clamp_sampler, texCoord, index, lod).rgb;
-
-#ifdef DEBUG_DISPLAY
-            if (_DebugLightingMode == DEBUGLIGHTINGMODE_ENVIRONMENT_SAMPLE_COORDINATES)
-                color = float4(texCoord.xyz * 0.5 + 0.5, color.a);
-#endif
         }
     }
     else // SINGLE_PASS_SAMPLE_SKY
@@ -215,6 +227,7 @@ float GetLightClusterMinLinearDepth(uint2 tileIndex, uint clusterIndex)
     float logBase = g_fClustBase;
     if (g_isLogBaseBufferEnabled)
     {
+        // XRTODO: Stereo-ize access to g_logBaseBuffer
         logBase = g_logBaseBuffer[tileIndex.y * _NumTileClusteredX + tileIndex.x];
     }
 
@@ -226,7 +239,8 @@ uint GetLightClusterIndex(uint2 tileIndex, float linearDepth)
     float logBase = g_fClustBase;
     if (g_isLogBaseBufferEnabled)
     {
-        logBase = g_logBaseBuffer[tileIndex.y * _NumTileClusteredX + tileIndex.x];
+        const uint logBaseIndex = GenerateLogBaseBufferIndex(tileIndex, _NumTileClusteredX, _NumTileClusteredY, unity_StereoEyeIndex);
+        logBase = g_logBaseBuffer[logBaseIndex];
     }
 
     return SnapToClusterIdxFlex(linearDepth, logBase, g_isLogBaseBufferEnabled != 0);
@@ -235,7 +249,9 @@ uint GetLightClusterIndex(uint2 tileIndex, float linearDepth)
 void GetCountAndStartCluster(uint2 tileIndex, uint clusterIndex, uint lightCategory, out uint start, out uint lightCount)
 {
     int nrClusters = (1 << g_iLog2NumClusters);
-    const int idx = ((lightCategory * nrClusters + clusterIndex) * _NumTileClusteredY + tileIndex.y) * _NumTileClusteredX + tileIndex.x;
+
+    const int idx = GenerateLayeredOffsetBufferIndex(lightCategory, tileIndex, clusterIndex, _NumTileClusteredX, _NumTileClusteredY, nrClusters, unity_StereoEyeIndex);
+
     uint dataPair = g_vLayeredOffsetsBuffer[idx];
     start = dataPair & 0x7ffffff;
     lightCount = (dataPair >> 27) & 31;
@@ -243,6 +259,9 @@ void GetCountAndStartCluster(uint2 tileIndex, uint clusterIndex, uint lightCateg
 
 void GetCountAndStartCluster(PositionInputs posInput, uint lightCategory, out uint start, out uint lightCount)
 {
+    // Note: XR depends on unity_StereoEyeIndex already being defined,
+    // which means ShaderVariables.hlsl needs to be defined ahead of this!
+
     uint2 tileIndex    = posInput.tileCoord;
     uint  clusterIndex = GetLightClusterIndex(tileIndex, posInput.linearDepth);
 
@@ -268,14 +287,35 @@ uint GetTileSize()
     return 1;
 }
 
+uint FetchIndex(uint globalOffset, uint lightIndex)
+{
+    return globalOffset + lightIndex;
+}
+
 #endif // LIGHTLOOP_TILE_PASS
+
+uint FetchIndexWithBoundsCheck(uint start, uint count, uint i)
+{
+    if (i < count)
+    {
+        return FetchIndex(start, i);
+    }
+    else
+    {
+        return UINT_MAX;
+    }
+}
 
 LightData FetchLight(uint start, uint i)
 {
-#ifdef LIGHTLOOP_TILE_PASS
     int j = FetchIndex(start, i);
-#else
-    int j = start + i;
-#endif
+
     return _LightDatas[j];
+}
+
+EnvLightData FetchEnvLight(uint start, uint i)
+{
+    int j = FetchIndex(start, i);
+
+    return _EnvLightDatas[j];
 }

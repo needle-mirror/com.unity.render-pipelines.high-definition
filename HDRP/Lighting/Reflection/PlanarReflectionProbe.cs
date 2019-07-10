@@ -1,4 +1,4 @@
-﻿using UnityEngine.Serialization;
+using UnityEngine.Serialization;
 using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
@@ -15,7 +15,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [SerializeField]
         ReflectionProxyVolumeComponent m_ProxyVolumeReference;
         [SerializeField]
-        InfluenceVolume m_InfluenceVolume;
+        InfluenceVolume m_InfluenceVolume = new InfluenceVolume();
         [SerializeField]
         Vector3 m_CaptureLocalPosition;
         [SerializeField]
@@ -43,7 +43,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [SerializeField]
         Vector3 m_CaptureMirrorPlaneLocalPosition;
         [SerializeField]
-        Vector3 m_CaptureMirrorPlaneLocalNormal = Vector3.forward;
+        Vector3 m_CaptureMirrorPlaneLocalNormal = Vector3.up;
         [SerializeField]
         bool m_OverrideFieldOfView = false;
         [SerializeField]
@@ -66,12 +66,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 switch (m_Mode)
                 {
                     default:
-                        case ReflectionProbeMode.Baked:
-                            return bakedTexture;
-                        case ReflectionProbeMode.Custom:
-                            return customTexture;
-                        case ReflectionProbeMode.Realtime:
-                            return realtimeTexture;
+                    case ReflectionProbeMode.Baked:
+                        return bakedTexture;
+                    case ReflectionProbeMode.Custom:
+                        return customTexture;
+                    case ReflectionProbeMode.Realtime:
+                        return realtimeTexture;
                 }
             }
         }
@@ -90,7 +90,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                     influencePosition,
                     tr.rotation,
                     Vector3.one
-                );
+                    );
             }
         }
         public Texture customTexture { get { return m_CustomTexture; } set { m_CustomTexture = value; } }
@@ -138,7 +138,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             get
             {
                 return m_ProxyVolumeReference != null
-                    ? m_ProxyVolumeReference.proxyVolume.boxSize * 0.5f
+                    ? m_ProxyVolumeReference.proxyVolume.extents
                     : influenceVolume.boxBaseSize;
             }
         }

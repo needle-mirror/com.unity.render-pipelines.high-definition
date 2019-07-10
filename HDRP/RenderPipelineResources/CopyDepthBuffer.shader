@@ -9,7 +9,7 @@ Shader "Hidden/HDRenderPipeline/CopyDepthBuffer"
     SubShader
     {
         Tags{ "RenderPipeline" = "HDRenderPipeline" }
-        
+
         Pass
         {
             Name "Copy Depth"
@@ -18,10 +18,11 @@ Shader "Hidden/HDRenderPipeline/CopyDepthBuffer"
             ZTest  Always
             ZWrite On
             Blend  Off
+            ColorMask 0
 
             HLSLPROGRAM
             #pragma target 4.5
-            #pragma only_renderers d3d11 ps4 xboxone vulkan metal
+            #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
             #pragma fragment Frag
             #pragma vertex Vert
             // #pragma enable_d3d11_debug_symbols

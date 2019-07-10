@@ -10,7 +10,7 @@ float GetScaleFromBase(float base)
 
 float LogBase(float x, float b)
 {
-	return log2(x) / log2(b);
+    return log2(x) / log2(b);
 }
 
 int SnapToClusterIdxFlex(float z_in, float suggestedBase, bool logBasePerTile)
@@ -29,8 +29,8 @@ int SnapToClusterIdxFlex(float z_in, float suggestedBase, bool logBasePerTile)
     //const float dist = max(0, z - g_fNearPlane);
     //return (int)clamp(log2(dist * userscale * (suggestedBase - 1.0f) + 1) / log2(suggestedBase), 0.0, (float)((1 << g_iLog2NumClusters) - 1));
 
-	const int C = 1 << g_iLog2NumClusters;
-	const float rangeFittedDistance = max(0, z - g_fNearPlane) / (g_fFarPlane - g_fNearPlane);
+    const int C = 1 << g_iLog2NumClusters;
+    const float rangeFittedDistance = max(0, z - g_fNearPlane) / (g_fFarPlane - g_fNearPlane);
     return (int)clamp( LogBase( lerp(1.0, PositivePow(suggestedBase, (float) C), rangeFittedDistance), suggestedBase), 0.0, (float)(C - 1));
 }
 
@@ -56,9 +56,9 @@ float ClusterIdxToZFlex(int k, float suggestedBase, bool logBasePerTile)
     //float dist = (PositivePow(suggestedBase, (float)k) - 1.0) / (userscale * (suggestedBase - 1.0f));
     //res = dist + g_fNearPlane;
 
-	const float C = (float)(1 << g_iLog2NumClusters);
-	float rangeFittedDistance = (PositivePow(suggestedBase, (float)k) - 1.0) / (PositivePow(suggestedBase, C) - 1.0);
-	res = lerp(g_fNearPlane, g_fFarPlane, rangeFittedDistance);
+    const float C = (float)(1 << g_iLog2NumClusters);
+    float rangeFittedDistance = (PositivePow(suggestedBase, (float)k) - 1.0) / (PositivePow(suggestedBase, C) - 1.0);
+    res = lerp(g_fNearPlane, g_fFarPlane, rangeFittedDistance);
 
 
 #if USE_LEFT_HAND_CAMERA_SPACE
@@ -95,6 +95,22 @@ float SuggestLogBase25(float tileFarPlane)
     float rangeFittedDistance = clamp((tileFarPlane - g_fNearPlane) / (g_fFarPlane - g_fNearPlane), FLT_EPS, 1.0);
     float suggested_base = pow((1 / 2.3) * max(0.0, (0.8 / rangeFittedDistance) - 1), 4.0 / (C * 2));     // approximate inverse of d*x^4 + (-x) + (1-d) = 0       - d is normalized distance
     return max(g_fClustBase, suggested_base);
+}
+
+uint GenerateLogBaseBufferIndex(uint2 tileIndex, uint numTilesX, uint numTilesY, uint eyeIndex)
+{
+    uint eyeOffset = eyeIndex * numTilesX * numTilesY;
+    return (eyeOffset + (tileIndex.y * numTilesX) + tileIndex.x);
+}
+
+uint GenerateLayeredOffsetBufferIndex(uint lightCategory, uint2 tileIndex, uint clusterIndex, uint numTilesX, uint numTilesY, int numClusters, uint eyeIndex)
+{
+    // Each eye is split into category, cluster, x, y
+
+    uint eyeOffset = eyeIndex * LIGHTCATEGORY_COUNT * numClusters * numTilesX * numTilesY;
+    int lightOffset = ((lightCategory * numClusters + clusterIndex) * numTilesY + tileIndex.y) * numTilesX + tileIndex.x;
+
+    return (eyeOffset + lightOffset);
 }
 
 #endif

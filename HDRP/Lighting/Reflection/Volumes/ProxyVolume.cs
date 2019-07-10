@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace UnityEngine.Experimental.Rendering.HDPipeline
 {
@@ -34,6 +34,19 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float sphereRadius { get { return m_SphereRadius; } set { m_SphereRadius = value; } }
         public Vector3 sphereOffset { get { return m_SphereOffset; } set { m_SphereOffset = value; } }
         public bool sphereInfiniteProjection { get { return m_SphereInfiniteProjection; } }
+
+        public Vector3 extents
+        {
+            get
+            {
+                switch (shapeType)
+                {
+                    case ShapeType.Box: return m_BoxSize * 0.5f;
+                    case ShapeType.Sphere: return Vector3.one * m_SphereRadius;
+                    default: return Vector3.one;
+                }
+            }
+        }
 
         public bool infiniteProjection
         {
