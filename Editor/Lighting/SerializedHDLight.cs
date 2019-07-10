@@ -36,12 +36,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public SerializedProperty blockerSampleCount;
             public SerializedProperty filterSampleCount;
             public SerializedProperty minFilterSize;
-            public SerializedProperty sunDiskSize;
-            public SerializedProperty sunHaloSize;
             public SerializedProperty areaLightCookie;   // We can't use default light cookies because the cookie gets reset by some safety measure on C++ side... :/
             public SerializedProperty areaLightShadowCone;
+            public SerializedProperty useScreenSpaceShadows;
 #if ENABLE_RAYTRACING
             public SerializedProperty useRayTracedShadows;
+            public SerializedProperty numRayTracingSamples;
+            public SerializedProperty filterTracedShadow;
+            public SerializedProperty filterSizeTraced;
+            public SerializedProperty sunLightConeAngle;
 #endif
             public SerializedProperty evsmExponent;
             public SerializedProperty evsmLightLeakBias;
@@ -58,6 +61,10 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public SerializedProperty showFeatures;
             public SerializedProperty showAdditionalSettings;
             public SerializedProperty useVolumetric;
+
+            // Layers
+            public SerializedProperty linkLightLayers;
+            public SerializedProperty lightlayersMask;
         }
 
         public sealed class SerializedShadowData
@@ -67,6 +74,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             public SerializedProperty fadeDistance;
             public SerializedProperty resolution;
             public SerializedProperty contactShadows;
+            public SerializedProperty shadowTint;            
 
             // Bias control
             public SerializedProperty viewBiasMin;
@@ -129,12 +137,15 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     blockerSampleCount = o.Find(x => x.blockerSampleCount),
                     filterSampleCount = o.Find(x => x.filterSampleCount),
                     minFilterSize = o.Find(x => x.minFilterSize),
-                    sunDiskSize = o.Find(x => x.sunDiskSize),
-                    sunHaloSize = o.Find(x => x.sunHaloSize),
                     areaLightCookie = o.Find(x => x.areaLightCookie),
                     areaLightShadowCone = o.Find(x => x.areaLightShadowCone),
+                    useScreenSpaceShadows = o.Find(x => x.useScreenSpaceShadows),
 #if ENABLE_RAYTRACING
                     useRayTracedShadows = o.Find(x => x.useRayTracedShadows),
+                    numRayTracingSamples = o.Find(x => x.numRayTracingSamples),
+                    filterTracedShadow = o.Find(x => x.filterTracedShadow),
+                    filterSizeTraced = o.Find(x => x.filterSizeTraced),
+                    sunLightConeAngle = o.Find(x => x.sunLightConeAngle),
 #endif
                     evsmExponent = o.Find(x => x.evsmExponent),
                     evsmVarianceBias = o.Find(x => x.evsmVarianceBias),
@@ -151,7 +162,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     showFeatures = o.Find(x => x.featuresFoldout),
                     showAdditionalSettings = o.Find(x => x.showAdditionalSettings),
                     useVolumetric = o.Find(x => x.useVolumetric),
-                    renderingLayerMask = settings.renderingLayerMask
+                    renderingLayerMask = settings.renderingLayerMask,
+
+                    // Layers
+                    linkLightLayers = o.Find(x => x.linkShadowLayers),
+                    lightlayersMask = o.Find(x => x.lightlayersMask)
                 };
 
             // TODO: Review this once AdditionalShadowData is refactored
@@ -163,6 +178,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     fadeDistance = o.Find(x => x.shadowFadeDistance),
                     resolution = o.Find(x => x.shadowResolution),
                     contactShadows = o.Find(x => x.contactShadows),
+                    shadowTint = o.Find(x => x.shadowTint),                    
 
                     viewBiasMin = o.Find(x => x.viewBiasMin),
                     viewBiasMax = o.Find(x => x.viewBiasMax),

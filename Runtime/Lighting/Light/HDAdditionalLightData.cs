@@ -71,7 +71,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // TODO: Use proper migration toolkit
         // 3. Added ShadowNearPlane to HDRP additional light data, we don't use Light.shadowNearPlane anymore
         // 4. Migrate HDAdditionalLightData.lightLayer to Light.renderingLayerMask
-        private const int currentVersion = 4;
+        // 5. Added the ShadowLayer
+        private const int currentVersion = 5;
 
         [HideInInspector, SerializeField]
         [FormerlySerializedAs("m_Version")]
@@ -127,10 +128,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Used internally to convert any light unit input into light intensity
         public LightUnit lightUnit = LightUnit.Lumen;
 
-        // Directional light only.
-        public float sunDiskSize = 1.0f;
-        public float sunHaloSize = 0.1f;
-
         // Not used for directional lights.
         public float fadeDistance = 10000.0f;
 
@@ -183,8 +180,18 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Range(0.0f, 179.0f)]
         public float areaLightShadowCone = 120.0f;
 
+        // Flag that tells us if the shadow should be screen space
+        public bool useScreenSpaceShadows = false;
+
 #if ENABLE_RAYTRACING
         public bool useRayTracedShadows = false;
+        [Range(1, 32)]
+        public int numRayTracingSamples = 4;
+        public bool filterTracedShadow = true;
+        [Range(1, 32)]
+        public int filterSizeTraced = 16;
+        [Range(0.0f, 2.0f)]
+        public float sunLightConeAngle = 0.5f;
 #endif
 
         [Range(0.0f, 42.0f)]
@@ -202,10 +209,14 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         [Obsolete("Use Light.renderingLayerMask instead")]
         public LightLayerEnum lightLayers = LightLayerEnum.LightLayerDefault;
 
+        // Now the renderingLayerMask is used for shadow layers and not light layers
+        public LightLayerEnum lightlayersMask = LightLayerEnum.LightLayerDefault;
+        public bool linkShadowLayers = true;
+
         // This function return a mask of light layers as uint and handle the case of Everything as being 0xFF and not -1
         public uint GetLightLayers()
         {
-            int value = legacyLight.renderingLayerMask;
+            int value = (int)lightlayersMask;
             return value < 0 ? (uint)LightLayerEnum.Everything : (uint)value;
         }
 
@@ -231,7 +242,11 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public float maxDepthBias = 0.001f;
 
         HDShadowRequest[]   shadowRequests;
-        bool                m_WillRenderShadows;
+        bool                m_WillRenderShadowMap;
+        bool                m_WillRenderScreenSpaceShadow;
+#if ENABLE_RAYTRACING
+        bool                m_WillRenderRayTracedShadow;
+#endif
         int[]               m_ShadowRequestIndices;
 
         [System.NonSerialized]
@@ -269,25 +284,50 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             return (legacyLight.type == LightType.Point && lightTypeExtent == LightTypeExtent.Punctual) ? 6 : (legacyLight.type == LightType.Directional) ? m_ShadowSettings.cascadeShadowSplitCount.value : 1;
         }
 
-        public void ReserveShadows(Camera camera, HDShadowManager shadowManager, HDShadowInitParameters initParameters, CullingResults cullResults, FrameSettings frameSettings, int lightIndex)
+        public void EvaluateShadowState(HDCamera hdCamera, CullingResults cullResults, FrameSettings frameSettings, int lightIndex)
         {
             Bounds bounds;
-            float cameraDistance = Vector3.Distance(camera.transform.position, transform.position);
+            float cameraDistance = Vector3.Distance(hdCamera.camera.transform.position, transform.position);
 
-            m_WillRenderShadows = legacyLight.shadows != LightShadows.None && frameSettings.IsEnabled(FrameSettingsField.Shadow);
+            m_WillRenderShadowMap = legacyLight.shadows != LightShadows.None && frameSettings.IsEnabled(FrameSettingsField.Shadow);
 
-            m_WillRenderShadows &= cullResults.GetShadowCasterBounds(lightIndex, out bounds);
+            m_WillRenderShadowMap &= cullResults.GetShadowCasterBounds(lightIndex, out bounds);
             // When creating a new light, at the first frame, there is no AdditionalShadowData so we can't really render shadows
-            m_WillRenderShadows &= m_ShadowData != null && m_ShadowData.shadowDimmer > 0;
+            m_WillRenderShadowMap &= m_ShadowData != null && m_ShadowData.shadowDimmer > 0;
             // If the shadow is too far away, we don't render it
             if (m_ShadowData != null)
-                m_WillRenderShadows &= legacyLight.type == LightType.Directional || cameraDistance < (m_ShadowData.shadowFadeDistance);
+                m_WillRenderShadowMap &= legacyLight.type == LightType.Directional || cameraDistance < (m_ShadowData.shadowFadeDistance);
 
+            // First we reset the ray tracing and screen space sahdow data
+            m_WillRenderScreenSpaceShadow = false;
 #if ENABLE_RAYTRACING
-            m_WillRenderShadows &= !(lightTypeExtent == LightTypeExtent.Rectangle && useRayTracedShadows);
+            m_WillRenderRayTracedShadow = false;
 #endif
 
-            if (!m_WillRenderShadows)
+            // If this camera does not allow screen space shadows we are done, set the target parameters to false and leave the function
+            if (!hdCamera.frameSettings.IsEnabled(FrameSettingsField.ScreenSpaceShadows) || !m_WillRenderShadowMap)
+                return;
+
+#if ENABLE_RAYTRACING
+            // We render screen space shadows if we are a ray traced rectangle area light or a screen space directional light shadow
+            if ((useRayTracedShadows && lightTypeExtent == LightTypeExtent.Rectangle)
+                || (useScreenSpaceShadows && legacyLight.type == LightType.Directional))
+            {
+                m_WillRenderScreenSpaceShadow = true;
+            }
+
+            // We will evaluate a ray traced shadow if we a ray traced area shadow
+            if ((useRayTracedShadows && lightTypeExtent == LightTypeExtent.Rectangle)
+                || (useRayTracedShadows && legacyLight.type == LightType.Directional))
+            {
+                m_WillRenderRayTracedShadow = true;
+            }
+#endif
+        }
+
+        public void ReserveShadowMap(Camera camera, HDShadowManager shadowManager, HDShadowInitParameters initParameters, Rect screenRect)
+        {
+            if (!m_WillRenderShadowMap)
                 return;
 
             // Create shadow requests array using the light type
@@ -316,9 +356,8 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (viewPortRescaling)
             {
                 // resize viewport size by the normalized size of the light on screen
-                // When we will have access to the non screen clamped bounding sphere light size, we could use it to scale the shadow map resolution
-                // For the moment, this will be enough
-                viewportSize *= Mathf.Lerp(64f / viewportSize.x, 1f, legacyLight.range / (camera.transform.position - transform.position).magnitude);
+                float screenArea = screenRect.width * screenRect.height;
+                viewportSize *= Mathf.Lerp(64f / viewportSize.x, 1f, screenArea);
                 viewportSize = Vector2.Max(new Vector2(64f, 64f) / viewportSize, viewportSize);
 
                 // Prevent flickering caused by the floating size of the viewport
@@ -326,7 +365,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 viewportSize.y = Mathf.Round(viewportSize.y);
             }
 
-            viewportSize = Vector2.Max(viewportSize, new Vector2(16, 16));
+            viewportSize = Vector2.Max(viewportSize, new Vector2(HDShadowManager.k_MinShadowMapResolution, HDShadowManager.k_MinShadowMapResolution));
 
             // Update the directional shadow atlas size
             if (legacyLight.type == LightType.Directional)
@@ -337,10 +376,22 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
                 m_ShadowRequestIndices[index] = shadowManager.ReserveShadowResolutions(viewportSize, shadowMapType);
         }
 
-        public bool WillRenderShadows()
+        public bool WillRenderShadowMap()
         {
-            return m_WillRenderShadows;
+            return m_WillRenderShadowMap;
         }
+
+        public bool WillRenderScreenSpaceShadow()
+        {
+            return m_WillRenderScreenSpaceShadow;
+        }
+
+#if ENABLE_RAYTRACING
+        public bool WillRenderRayTracedShadow()
+        {
+            return m_WillRenderRayTracedShadow;
+        }
+#endif
 
         // This offset shift the position of the spotlight used to approximate the area light shadows. The offset is the minimum such that the full
         // area light shape is included in the cone spanned by the spot light. 
@@ -1035,6 +1086,12 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             if (m_Version <= 3)
             {
                 legacyLight.renderingLayerMask = LightLayerToRenderingLayerMask((int)lightLayers, legacyLight.renderingLayerMask);
+            }
+            if (m_Version <= 4)
+            {
+                // When we upgrade the option to decouple light and shadow layers will be disabled
+                // so we can sync the shadow layer mask (from the legacyLight) and the new light layer mask
+                lightlayersMask = (LightLayerEnum)RenderingLayerMaskToLightLayer(legacyLight.renderingLayerMask);
             }
 
             m_Version = currentVersion;

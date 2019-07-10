@@ -4,13 +4,81 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [6.7.1-preview] - 2019-05-20
+## [6.9.0] - 2019-07-05
 
-### Version Updated
-The version number for this package has increased due to a version update of a related graphics package.
+### Added
+- Shader Graphs that use time-dependent vertex modification now generate correct motion vectors.
 
-## [6.7.0-preview] - 2019-05-16
+### Fixed
+- Fixed issue with Low resolution transparency on PS4
+- Fixed The Parallax Occlusion Mappping node in shader graph and it's UV input slot
+- Fixed lighting with XR single-pass instancing by disabling deferred tiles
+- Fixed camera flickering when using TAA and selecting the camera in the editor
 
+### Changed
+- Remove all obsolete wind code from shader
+- Enlighten now uses inverse squared falloff instead of the built-in falloff.
+- Enlighten is now deprecated. Use the CPU or GPU Lightmapper instead.
+
+## [6.8.0] - 2019-06-12
+
+### Added
+- `Fixed`, `Viewer`, and `Automatic` modes to compute the FOV used when rendering a `PlanarReflectionProbe`
+- A checkbox to toggle the chrome gizmo of `ReflectionProbe`and `PlanarReflectionProbe`
+- Added a Light layer in shadows that allow for objects to cast shadows without being affected by light (and vice versa).
+- You can now access ShaderGraph blend states from the Material UI (for example, **Surface Type**, **Sorting Priority**, and **Blending Mode**). This change may break Materials that use a ShaderGraph, to fix them, select **Edit > Render Pipeline > Reset all ShaderGraph Scene Materials BlendStates**. This syncs the blendstates of you ShaderGraph master nodes with the Material properties.
+- You can now control ZTest, ZWrite, and CullMode for transparent Materials.
+- Materials that use Unlit Shaders or Unlit Master Node Shaders now cast shadows.
+- Added an option to enable the ztest on **After Post Process** materials when TAA is disabled.
+- Added a new SSAO (based on Ground Truth Ambient Occlusion algorithm) to replace the previous one. 
+- Added support for shadow tint on light
+- BeginCameraRendering and EndCameraRendering callbacks are now called with probes
+
+### Fixed
+- The correct preview is displayed when selecting multiple `PlanarReflectionProbe`s
+- Fixed volumetric rendering with camera-relative code and XR stereo instancing
+- Fixed issue with flashing cyan due to async compilation of shader when selecting a mesh
+- Fixed texture type mismatch when the contact shadow are disabled (causing errors on IOS devices)
+- Fixed Generate Shader Includes while in package
+- Fixed issue when texture where deleted in ShadowCascadeGUI
+- Fixed issue in FrameSettingsHistory when disabling a camera several time without enabling it in between.
+- Fixed volumetric reprojection with camera-relative code and XR stereo instancing
+- Added custom BaseShaderPreprocessor in HDEditorUtils.GetBaseShaderPreprocessorList()
+- Fixed compile issue when USE_XR_SDK is not defined
+- Fixed procedural sky sun disk intensity for high directional light intensities
+- Fixed Decal mip level when using texture mip map streaming to avoid dropping to lowest permitted mip (now loading all mips)
+- Fixed deferred shading for XR single-pass instancing after lightloop refactor
+- Fixed cluster and material classification debug (material classification now works with compute as pixel shader lighting)
+- Fixed IOS Nan by adding a maximun epsilon definition REAL_EPS that uses HALF_EPS when fp16 are used
+- Removed unnecessary GC allocation in motion blur code
+- Fixed locked UI with advanded influence volume inspector for probes
+- Fixed invalid capture direction when rendering planar reflection probes
+- Fixed Decal HTILE optimization with platform not supporting texture atomatic (Disable it)
+- Fixed a crash in the build when the contact shadows are disabled
+- Fixed camera rendering callbacks order (endCameraRendering was being called before the actual rendering)
+- Fixed issue with wrong opaque blending settings for After Postprocess
+- Fixed issue with single shadow debug view and volumetrics
+
+### Changed
+- Removed ScriptRuntimeVersion check in wizard.
+- Optimization: Reduce the group size of the deferred lighting pass from 16x16 to 8x8
+- Replaced HDCamera.computePassCount by viewCount
+- Removed xrInstancing flag in RTHandles (replaced by TextureXR.slices and TextureXR.dimensions)
+- Refactor the HDRenderPipeline and lightloop code to preprare for high level rendergraph
+- Removed the **Back Then Front Rendering** option in the fabric Master Node settings. Enabling this option previously did nothing.
+- Shader type Real translates to FP16 precision on Nintendo Switch.
+- Shader framework refactor: Introduce CBSDF, EvaluateBSDF, IsNonZeroBSDF to replace BSDF functions
+- Shader framework refactor:  GetBSDFAngles, LightEvaluation and SurfaceShading functions
+- Replace ComputeMicroShadowing by GetAmbientOcclusionForMicroShadowing
+- Rename WorldToTangent to TangentToWorld as it was incorrectly named
+- Remove SunDisk and Sun Halo size from directional light
+- Remove the name in the diffusion profile UI
+- Changed how shadow map resolution scaling with distance is computed. Now it uses screen space area rather than light range.
+
+
+## [6.7.0-preview] - 2019-05-21
+
+### Added
 - Added ViewConstants StructuredBuffer to simplify XR rendering
 - Added API to render specific settings during a frame
 - Added stadia to the supported platforms (2019.3)
