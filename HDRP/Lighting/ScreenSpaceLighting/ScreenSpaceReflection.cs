@@ -12,7 +12,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     [Serializable]
     public class ScreenSpaceReflection : ScreenSpaceLighting
     {
-        // Values must be in sync with Lit.ProjectionModel
+        // Values must be in sync with ScreenSpaceLighting.ProjectionModel
         public enum AvailableProjectionModel
         {
             None = 0,
