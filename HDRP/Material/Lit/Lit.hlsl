@@ -1131,14 +1131,8 @@ void BSDF(  float3 V, float3 L, float NdotL, float3 positionWS, PreLightData pre
             out float3 diffuseLighting,
             out float3 specularLighting)
 {
-    float3 N = bsdfData.normalWS;
-
-    // Optimized math. Ref: PBR Diffuse Lighting for GGX + Smith Microsurfaces (slide 114).
-    float LdotV    = dot(L, V);
-    float invLenLV = rsqrt(max(2.0 * LdotV + 2.0, FLT_EPS));            // invLenLV = rcp(length(L + V)), clamp to avoid rsqrt(0) = NaN
-    float NdotH    = saturate((NdotL + preLightData.NdotV) * invLenLV); // Do not clamp NdotV here
-    float LdotH    = saturate(invLenLV * LdotV + invLenLV);
-    float NdotV    = ClampNdotV(preLightData.NdotV);
+    float LdotV, NdotH, LdotH, NdotV, invLenLV;
+    GetBSDFAngle(V, L, NdotL, preLightData.NdotV, LdotV, NdotH, LdotH, NdotV, invLenLV);
 
     float3 F = F_Schlick(bsdfData.fresnel0, LdotH);
     // Remark: Fresnel must be use with LdotH angle. But Fresnel for iridescence is expensive to compute at each light.
@@ -1769,7 +1763,7 @@ IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
     float3 rayOriginWS              = float3(0, 0, 0);
     float3 rayDirWS                 = float3(0, 0, 0);
     float mipLevel                  = 0;
-#if DEBUG_DISPLAY
+#ifdef DEBUG_DISPLAY
     int debugMode                   = 0;
 #endif
     float invScreenWeightDistance   = 0;
@@ -1789,7 +1783,7 @@ IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
         rayDirWS                = preLightData.transparentRefractV;
         mipLevel                = preLightData.transparentSSMipLevel;
         invScreenWeightDistance = _SSRefractionInvScreenWeightDistance;
-#if DEBUG_DISPLAY
+#ifdef DEBUG_DISPLAY
         debugMode               = DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFRACTION;
 #endif
     }
@@ -1801,12 +1795,12 @@ IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
         rayDirWS                = preLightData.iblR;
         mipLevel                = PositivePow(preLightData.iblPerceptualRoughness, 0.8) * uint(max(_ColorPyramidScale.z - 1, 0));
         invScreenWeightDistance = _SSReflectionInvScreenWeightDistance;
-#if DEBUG_DISPLAY
+#ifdef DEBUG_DISPLAY
         debugMode               = DEBUGLIGHTINGMODE_SCREEN_SPACE_TRACING_REFLECTION;
 #endif
     }
 
-#if DEBUG_DISPLAY
+#ifdef DEBUG_DISPLAY
             bool debug              = _DebugLightingMode == debugMode
                 && !any(int2(_MouseClickPixelCoord.xy) - int2(posInput.positionSS));
 #endif
@@ -1854,7 +1848,7 @@ IndirectLighting EvaluateBSDF_SSLighting(LightLoopContext lightLoopContext,
         // Jitter the ray origin to trade some noise instead of banding effect
         ssRayInput.rayOriginWS = rayOriginWS + rayDirWS * SampleBayer4(posInput.positionSS + uint2(_FrameCount, uint(_FrameCount) / 4u)) * 0.1;
         ssRayInput.rayDirWS = rayDirWS;
-#if DEBUG_DISPLAY
+#ifdef DEBUG_DISPLAY
         ssRayInput.debug = debug;
 #endif
 
@@ -2075,12 +2069,14 @@ IndirectLighting EvaluateBSDF_Env(  LightLoopContext lightLoopContext,
     float iblMipLevel;
     // TODO: We need to match the PerceptualRoughnessToMipmapLevel formula for planar, so we don't do this test (which is specific to our current lightloop)
     // Specific case for Texture2Ds, their convolution is a gaussian one and not a GGX one - So we use another roughness mip mapping.
+#if !defined(SHADER_API_METAL)
     if (IsEnvIndexTexture2D(lightData.envIndex))
     {
         // Empirical remapping
         iblMipLevel = PositivePow(preLightData.iblPerceptualRoughness, 0.8) * uint(max(_ColorPyramidScale.z - 1, 0));
     }
     else
+#endif
     {
         iblMipLevel = PerceptualRoughnessToMipmapLevel(preLightData.iblPerceptualRoughness);
     }
