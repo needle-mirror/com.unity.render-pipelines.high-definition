@@ -1,14 +1,16 @@
 using System;
-using UnityEngine.Rendering;
+using UnityEngine.Experimental.Rendering;
 
-namespace UnityEngine.Experimental.Rendering.HDPipeline
+namespace UnityEngine.Rendering.HighDefinition
 {
     public partial class HDRenderPipelineRayTracingResources : ScriptableObject
     {
 #if ENABLE_RAYTRACING
         // Reflection
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/RaytracingReflections.raytrace")]
-        public RayTracingShader reflectionRaytracing;
+        public RayTracingShader reflectionRaytracingRT;
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Reflections/RaytracingReflections.compute")]
+        public ComputeShader reflectionRaytracingCS;
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/RaytracingReflectionFilter.compute")]
         public ComputeShader reflectionBilateralFilterCS;
 
@@ -33,10 +35,10 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         public ComputeShader lightClusterDebugCS;
 
         // Indirect Diffuse
-        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/RaytracingIndirectDiffuse.raytrace")]
-        public RayTracingShader indirectDiffuseRaytracing;
-        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/IndirectDiffuseAccumulation.compute")]
-        public ComputeShader indirectDiffuseAccumulation;
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/IndirectDiffuse/RaytracingIndirectDiffuse.raytrace")]
+        public RayTracingShader indirectDiffuseRaytracingRT;
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/IndirectDiffuse/RaytracingIndirectDiffuse.compute")]
+        public ComputeShader indirectDiffuseRaytracingCS;
 
         // Ambient Occlusion
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/RaytracingAmbientOcclusion.raytrace")]
@@ -45,6 +47,16 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
         // Denoising
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/SimpleDenoiser.compute")]
         public ComputeShader simpleDenoiserCS;
+
+        // Deferred Lighting
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Deferred/RaytracingGBuffer.raytrace")]
+        public RayTracingShader gBufferRaytracingRT;
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Deferred/RaytracingDeferred.compute")]
+        public ComputeShader deferredRaytracingCS;
+
+        // Ray Binning
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Common/RayBinning.compute")]
+        public ComputeShader rayBinningCS;
 
         // Ray count
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/CountTracedRays.compute")]

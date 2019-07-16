@@ -1,7 +1,7 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/LightLoop.cs.hlsl"
 
 // SCREEN_SPACE_SHADOWS needs to be defined in all cases in which they need to run. IMPORTANT: If this is activated, the light loop function WillRenderScreenSpaceShadows on C# MUST return true.
-#if SHADEROPTIONS_RAYTRACING
+#if SHADEROPTIONS_RAYTRACING && (SHADERPASS != SHADERPASS_RAYTRACING_INDIRECT)
 // TODO: This will need to be a multi_compile when we'll have them on compute shaders.
 #define SCREEN_SPACE_SHADOWS 1
 #endif
@@ -17,8 +17,8 @@ struct LightLoopContext
     HDShadowContext shadowContext;
     
     uint contactShadow;         // a bit mask of 24 bits that tell if the pixel is in a contact shadow or not
-    float contactShadowFade;    // combined fade factor of all contact shadows 
-    float shadowValue;          // Stores the value of the cascade shadow map
+    real contactShadowFade;    // combined fade factor of all contact shadows 
+    real shadowValue;          // Stores the value of the cascade shadow map
 };
 
 //-----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ EnvLightData InitSkyEnvLightData(int envIndex)
     output.influencePositionRWS = float3(0.0, 0.0, 0.0);
 
     output.weight = 1.0;
-    output.multiplier = ReplaceDiffuseForReflectionPass(float3(1.0, 1.0, 1.0)) ? 0.0 : 1.0;
+    output.multiplier = _EnableSkyLighting.x != 0 ? 1.0 : 0.0;
 
     // proxy
     output.proxyForward = float3(0.0, 0.0, 1.0);

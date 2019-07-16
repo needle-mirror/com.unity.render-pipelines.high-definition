@@ -4,23 +4,7 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [6.9.0] - 2019-07-05
-
-### Added
-- Shader Graphs that use time-dependent vertex modification now generate correct motion vectors.
-
-### Fixed
-- Fixed issue with Low resolution transparency on PS4
-- Fixed The Parallax Occlusion Mappping node in shader graph and it's UV input slot
-- Fixed lighting with XR single-pass instancing by disabling deferred tiles
-- Fixed camera flickering when using TAA and selecting the camera in the editor
-
-### Changed
-- Remove all obsolete wind code from shader
-- Enlighten now uses inverse squared falloff instead of the built-in falloff.
-- Enlighten is now deprecated. Use the CPU or GPU Lightmapper instead.
-
-## [6.8.0] - 2019-06-12
+## [7.0.0] - 2019-07-17
 
 ### Added
 - `Fixed`, `Viewer`, and `Automatic` modes to compute the FOV used when rendering a `PlanarReflectionProbe`
@@ -33,12 +17,28 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added a new SSAO (based on Ground Truth Ambient Occlusion algorithm) to replace the previous one. 
 - Added support for shadow tint on light
 - BeginCameraRendering and EndCameraRendering callbacks are now called with probes
+- Adding option to update shadow maps only On Enable and On Demand. 
+- Shader Graphs that use time-dependent vertex modification now generate correct motion vectors.
+- Added option to allow a custom spot angle for spot light shadow maps. 
+- Added frame settings for individual post-processing effects
+- Added dither transition between cascades for Low and Medium quality settings
+- Added single-pass instancing support with XR SDK
+- Added occlusion mesh support with XR SDK
+- Added support of Alembic velocity to various shaders
+- Added support for more than 2 views for single-pass instancing
+- Added support for per punctual/directional light min roughness in StackLit
+- Added mirror view support with XR SDK
+- Added VR verification in HDRPWizard
+- Added DXR verification in HDRPWizard
+- Added feedbacks in UI of Volume regarding skies
+- Cube LUT support in Tonemapping. Cube LUT helpers for external grading are available in the Post-processing Sample package.
 
 ### Fixed
+- Fixed an issue with history buffers causing effects like TAA or auto exposure to flicker when more than one camera was visible in the editor
 - The correct preview is displayed when selecting multiple `PlanarReflectionProbe`s
 - Fixed volumetric rendering with camera-relative code and XR stereo instancing
 - Fixed issue with flashing cyan due to async compilation of shader when selecting a mesh
-- Fixed texture type mismatch when the contact shadow are disabled (causing errors on IOS devices)
+- Fix texture type mismatch when the contact shadow are disabled (causing errors on IOS devices)
 - Fixed Generate Shader Includes while in package
 - Fixed issue when texture where deleted in ShadowCascadeGUI
 - Fixed issue in FrameSettingsHistory when disabling a camera several time without enabling it in between.
@@ -57,10 +57,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed a crash in the build when the contact shadows are disabled
 - Fixed camera rendering callbacks order (endCameraRendering was being called before the actual rendering)
 - Fixed issue with wrong opaque blending settings for After Postprocess
+- Fixed issue with Low resolution transparency on PS4
+- Fixed a memory leak on volume profiles
+- Fixed The Parallax Occlusion Mappping node in shader graph and it's UV input slot
+- Fixed lighting with XR single-pass instancing by disabling deferred tiles
+- Fixed the Bloom prefiltering pass
+- Fixed post-processing effect relying on Unity's random number generator
+- Fixed camera flickering when using TAA and selecting the camera in the editor
 - Fixed issue with single shadow debug view and volumetrics
+- Fixed most of the problems with light animation and timeline
+- Fixed indirect deferred compute with XR single-pass instancing
+- Fixed a slight omission in anisotropy calculations derived from HazeMapping in StackLit
+- Improved stack computation numerical stability in StackLit
+- Fix PBR master node always opaque (wrong blend modes for forward pass)
+- Fixed TAA with XR single-pass instancing (missing macros)
+- Fixed an issue causing Scene View selection wire gizmo to not appear when using HDRP Shader Graphs.
+- Fixed wireframe rendering mode (case 1083989)
+- Fixed the renderqueue not updated when the alpha clip is modified in the material UI.
+- Fixed the PBR master node preview
+- Remove the ReadOnly flag on Reflection Probe's cubemap assets during bake when there are no VCS active.
+- Fixed an issue where setting a material debug view would not reset the other exclusive modes
+- Spot light shapes are now correctly taken into account when baking
+- Now the static lighting sky will correctly take the default values for non-overridden properties
+- Fixed material albedo affecting the lux meter
 
 ### Changed
-- Removed ScriptRuntimeVersion check in wizard.
 - Optimization: Reduce the group size of the deferred lighting pass from 16x16 to 8x8
 - Replaced HDCamera.computePassCount by viewCount
 - Removed xrInstancing flag in RTHandles (replaced by TextureXR.slices and TextureXR.dimensions)
@@ -72,11 +93,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Replace ComputeMicroShadowing by GetAmbientOcclusionForMicroShadowing
 - Rename WorldToTangent to TangentToWorld as it was incorrectly named
 - Remove SunDisk and Sun Halo size from directional light
+- Remove all obsolete wind code from shader
+- Renamed DecalProjectorComponent into DecalProjector for API alignment.
+- Improved the Volume UI and made them Global by default
+- Remove very high quality shadow option
+- Change default for shadow quality in Deferred to Medium
+- Enlighten now use inverse squared falloff (before was using builtin falloff)
+- Enlighten is now deprecated. Please use CPU or GPU lightmaper instead.
 - Remove the name in the diffusion profile UI
 - Changed how shadow map resolution scaling with distance is computed. Now it uses screen space area rather than light range.
+- Updated MoreOptions display in UI
+- Moved Display Area Light Emissive Mesh script API functions in the editor namespace
+- direct strenght properties in ambient occlusion now affect direct specular as well
+- Removed advanced Specular Occlusion control in StackLit: SSAO based SO control is hidden and fixed to behave like Lit, SPTD is the only HQ technique shown for baked SO.
+- Shader framework refactor: Changed ClampRoughness signature to include PreLightData access.
+- HDRPWizard window is now in Window > General > HD Render Pipeline Wizard
+- Moved StaticLightingSky to LightingWindow
+- Removes the current "Scene Settings" and replace them with "Sky & Fog Settings" (with Physically Based Sky and Volumetric Fog).
 
-
-## [6.7.0-preview] - 2019-05-21
+## [6.7.0-preview] - 2019-05-16
 
 ### Added
 - Added ViewConstants StructuredBuffer to simplify XR rendering
@@ -140,7 +175,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed a bug with uninitialized values in light explorer
 - Fixed issue with LOD transition
 - Fixed shader warnings related to raytracing and TEXTURE2D_X
-- Fixed an issue with history buffers causing effects like TAA or auto exposure to flicker when more than one camera was visible in the editor
 
 ### Changed
 - Refactor PixelCoordToViewDirWS to be VR compatible and to compute it only once per frame
@@ -160,6 +194,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Apply decal projector fade factor correctly on all attribut and for shader graph decal
 - Move RenderTransparentDepthPostpass after all transparent
 - Update exposure prepass to interleave XR single-pass instancing views in a checkerboard pattern
+- Removed ScriptRuntimeVersion check in wizard.
 
 ## [6.6.0-preview] - 2019-04-01
 
