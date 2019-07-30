@@ -4,7 +4,22 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [6.9.0] - 2019-07-05
+## [6.9.1] - 2019-07-29
+
+### Fixed
+- Fixed PBR master node always opaque (wrong blend modes for forward pass)
+- Fixed alphaClip option in materials not updating the renderqueue.
+- Fixed PBR master node preview
+- Now the static lighting sky will correctly take the default values for non-overridden properties
+- Fix shadergraph material pass setup not called
+- Fix property sync in shadergraph with the current material in the inspector
+- Fixed an issue causing Scene View selection wire gizmo to not appear when using HDRP Shader Graphs.
+
+### Changed
+- direct strenght properties in ambient occlusion now affect direct specular as well
+- Added a warning in the material UI when the diffusion profile assigned is not in the HDRP asset
+
+## [6.9.0] - 2019-07-02
 
 ### Added
 - Shader Graphs that use time-dependent vertex modification now generate correct motion vectors.
