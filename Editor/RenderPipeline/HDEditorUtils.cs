@@ -12,6 +12,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
 {
     public class HDEditorUtils
     {
+        internal const string HDRPAssetBuildLabel = "HDRP:IncludeInBuild";
+
         static readonly Action<SerializedProperty, GUIContent> k_DefaultDrawer = (p, l) => EditorGUILayout.PropertyField(p, l);
 
         delegate void MaterialResetter(Material material);
@@ -91,17 +93,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
         /// <returns>The list of shader preprocessor</returns>
         public static List<BaseShaderPreprocessor> GetBaseShaderPreprocessorList()
         {
-            var baseType = typeof(BaseShaderPreprocessor);
-            var assembly = baseType.Assembly;
-
-            var types = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes()
-                    .Where(t => t.IsSubclassOf(baseType))
-                    .Select(Activator.CreateInstance)
-                    .Cast<BaseShaderPreprocessor>()
-                ).ToList();
-
-            return types;
+            return UnityEngine.Rendering.CoreUtils.GetAllTypesDerivedFrom<BaseShaderPreprocessor>().Select(Activator.CreateInstance).Cast<BaseShaderPreprocessor>().OrderByDescending(spp => spp.Priority).ToList();
         }
 
         static readonly GUIContent s_OverrideTooltip = EditorGUIUtility.TrTextContent("", "Override this setting in component.");

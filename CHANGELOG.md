@@ -4,6 +4,48 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [6.9.2] - 2019-10-04
+
+### Fixed
+- Fixed issue with Ambient Occlusion flickering
+- Fixed with compute shader error about too many threads in threadgroup on low GPU
+- Fixed invalid contact shadow shaders being created on metal
+- Fixed a bug where if Assembly.GetTypes throws an exception due to mis-versioned dlls, then no preprocessors are used in the shader stripper
+- Fixed issue with Matcap view and AxF shader
+- Fixed compilation issue with stacklit and direct specular Occlusion
+- Fixed typo in AXF decal property preventing to compile
+- Fixed ShaderGraph material synchronization issues
+- Fix/workaround a probable graphics driver bug in the GTAO shader.
+- Fixed Hair and PBR shader graphs double sided modes
+- Fixed issue that caused decals not to modify the roughness in the normal buffer, causing SSR to not behave correctly (case 1178336)
+- Fixed issue of spotlight breaking when minimizing the cone angle via the gizmo (case 1178279)
+- Fix a potential NaN source with iridescence (case 1183216)
+- Fixed issue that prevented decals from modifying specular occlusion (case 1178272).
+- Fixed ShaderGraph time in main preview
+- Fixed an error caused by turning off Volumetrics, fog and other effects via the editor toggle when AO is active. 
+- Fixed NPE when using light module in Shuriken particle systems (1173348).
+- Fixed an issue where SSAO (that needs temporal reprojection) was still being rendered when Motion Vectors were not available (case 1184998)
+- Fixed a nullref when modifying the height parameters inside the layered lit shader UI.
+- Fix error first time a preview is created for planar
+- Fixed an issue where SSR would use an incorrect roughness value on ForwardOnly (StackLit, AxF, Fabric, etc.) materials when the pipeline is configured to also allow deferred Lit.
+- Fix for issue that caused gizmos to render in render textures (case 1174395)
+- Fixed refresh of baked cubemap by incrementing updateCount at the end of the bake (case 1158677).
+- Fixed decals not affecting lightmap/lightprobe
+- Fixed issue with rectangular area light when seen from the back
+- Fixed fov to 0 in planar probe breaking the projection matrix (case 1182014)
+- Fixed issue causing wrong shading when normal map mode is Object space, no normal map is set, but a detail map is present (case 1143352)
+- Fixed an issue with shader stripper and asset dependencies search that was taking a long time with big projects
+- Fixed an issue with Realtime GI not working on upgraded projects. 
+
+### Changed
+- Added Alembic velocity support to various Shaders.
+- Allow in ShaderGraph to enable pre/post pass when the alpha clip is disabled
+- Call the End/Begin camera rendering callbacks for camera with customRender enabled
+- Replace hidden specular lighting control on framesettings by EnableSkyLighting and ReplaceFresnel0Diffuse.
+- Increase max limit of area light and reflection probe to 128
+- Change default texture for detailmap to grey
+- Improve build time of shader (reduce shader stripper overhead)
+
 ## [6.9.1] - 2019-07-29
 
 ### Fixed

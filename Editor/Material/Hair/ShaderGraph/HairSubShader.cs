@@ -126,6 +126,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             MaterialName = "Hair",
             ShaderPassName = "SHADERPASS_DEPTH_ONLY",
             ZWriteOverride = "ZWrite On",
+            CullOverride = HDSubShaderUtilities.defaultCullMode,
 
             ExtraDefines = HDSubShaderUtilities.s_ExtraDefinesForwardMaterialDepthOrMotion,
 
@@ -518,6 +519,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             {
                 activeFields.Add("DisableSSR");
             }
+       
+            if (masterNode.addPrecomputedVelocity.isOn)
+            {
+                activeFields.Add("AddPrecomputedVelocity");
+            }
 
             if (masterNode.specularAA.isOn && pass.PixelShaderUsesSlot(HairMasterNode.SpecularAAThresholdSlotId) && pass.PixelShaderUsesSlot(HairMasterNode.SpecularAAScreenSpaceVarianceSlotId))
             {
@@ -639,8 +645,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 bool transparent = !opaque;
 
                 bool transparentBackfaceActive = transparent && masterNode.backThenFrontRendering.isOn;
-                bool transparentDepthPrepassActive = transparent && masterNode.alphaTest.isOn && masterNode.alphaTestDepthPrepass.isOn;
-                bool transparentDepthPostpassActive = transparent && masterNode.alphaTest.isOn && masterNode.alphaTestDepthPostpass.isOn;
+                bool transparentDepthPrepassActive = transparent && masterNode.alphaTestDepthPrepass.isOn;
+                bool transparentDepthPostpassActive = transparent && masterNode.alphaTestDepthPostpass.isOn;
 
                 GenerateShaderPassHair(masterNode, m_PassShadowCaster, mode, subShader, sourceAssetDependencyPaths);
                 GenerateShaderPassHair(masterNode, m_PassMETA, mode, subShader, sourceAssetDependencyPaths);

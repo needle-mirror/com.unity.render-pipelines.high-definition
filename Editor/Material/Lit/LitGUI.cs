@@ -131,8 +131,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
                 else // Object space
                 {
-                    // With details map, we always use a normal map but in case of objects space there is no good default, so the result will be weird until users fix it
-                    CoreUtils.SetKeyword(material, "_NORMALMAP", material.GetTexture(kNormalMapOS) || material.GetTexture(kDetailMap));
+                    CoreUtils.SetKeyword(material, "_NORMALMAP", material.GetTexture(kNormalMapOS));
                     CoreUtils.SetKeyword(material, "_TANGENTMAP", material.GetTexture(kTangentMapOS));
                     CoreUtils.SetKeyword(material, "_BENTNORMALMAP", material.GetTexture(kBentNormalMapOS));
                 }
@@ -208,6 +207,11 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 CoreUtils.SetKeyword(material, "_REFRACTION_PLANE", (refractionModelValue == ScreenSpaceRefraction.RefractionModel.Box) && canHaveRefraction);
                 CoreUtils.SetKeyword(material, "_REFRACTION_SPHERE", (refractionModelValue == ScreenSpaceRefraction.RefractionModel.Sphere) && canHaveRefraction);
                 CoreUtils.SetKeyword(material, "_TRANSMITTANCECOLORMAP", material.GetTexture(kTransmittanceColorMap) && canHaveRefraction);
+            }
+
+            if (material.HasProperty(kAddPrecomputedVelocity))
+            {
+                CoreUtils.SetKeyword(material, "_ADD_PRECOMPUTED_VELOCITY", material.GetInt(kAddPrecomputedVelocity) != 0);
             }
         }
     }

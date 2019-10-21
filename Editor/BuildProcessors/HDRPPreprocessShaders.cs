@@ -12,6 +12,8 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
     // The common shader stripper function 
     public class CommonShaderPreprocessor : BaseShaderPreprocessor
     {
+        public override int Priority => 100;
+
         public CommonShaderPreprocessor() { }
 
         public override bool ShadersStripper(HDRenderPipelineAsset hdrpAsset, Shader shader, ShaderSnippetData snippet, ShaderCompilerData inputData)
@@ -41,23 +43,22 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             // Here we can't strip based on opaque or transparent but we will strip based on HDRP Asset configuration.
 
             bool isMotionPass = snippet.passName == "MotionVectors";
-            bool isTransparentPrepass = snippet.passName == "TransparentDepthPrepass";
-            bool isTransparentPostpass = snippet.passName == "TransparentDepthPostpass";
-            bool isTransparentBackface = snippet.passName == "TransparentBackface";
-            bool isDistortionPass = snippet.passName == "DistortionVectors";
-
             if (isMotionPass && !hdrpAsset.currentPlatformRenderPipelineSettings.supportMotionVectors)
                 return true;
 
+            bool isDistortionPass = snippet.passName == "DistortionVectors";
             if (isDistortionPass && !hdrpAsset.currentPlatformRenderPipelineSettings.supportDistortion)
                 return true;
 
+            bool isTransparentBackface = snippet.passName == "TransparentBackface";
             if (isTransparentBackface && !hdrpAsset.currentPlatformRenderPipelineSettings.supportTransparentBackface)
                 return true;
 
+            bool isTransparentPrepass = snippet.passName == "TransparentDepthPrepass";
             if (isTransparentPrepass && !hdrpAsset.currentPlatformRenderPipelineSettings.supportTransparentDepthPrepass)
                 return true;
 
+            bool isTransparentPostpass = snippet.passName == "TransparentDepthPostpass";
             if (isTransparentPostpass && !hdrpAsset.currentPlatformRenderPipelineSettings.supportTransparentDepthPostpass)
                 return true;
 
@@ -180,8 +181,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 return;
 
             int inputShaderVariantCount = inputData.Count;
-
-            for (int i = 0; i < inputData.Count; ++i)
+            for (int i = 0; i < inputShaderVariantCount; )
             {
                 ShaderCompilerData input = inputData[i];
 
@@ -190,7 +190,7 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 
                 foreach (var hdAsset in hdPipelineAssets)
                 {
-                    var stripedByPreprocessor = false;
+                    var strippedByPreprocessor  = false;
                     
                     // Call list of strippers
                     // Note that all strippers cumulate each other, so be aware of any conflict here
@@ -198,12 +198,12 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                     {
                         if ( shaderPreprocessor.ShadersStripper(hdAsset, shader, snippet, input) )
                         {
-                            stripedByPreprocessor = true;
+                            strippedByPreprocessor  = true;
                             break;
                         }
                     }
 
-                    if (!stripedByPreprocessor)
+                    if (!strippedByPreprocessor )
                     {
                         removeInput = false;
                         break;
@@ -211,11 +211,16 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 }
 
                 if (removeInput)
-                {
-                    inputData.RemoveAt(i);
-                    i--;
-                }
+                    inputData[i] = inputData[--inputShaderVariantCount];
+                else
+                    ++i;
             }
+
+            if (inputData is List<ShaderCompilerData> inputDataList)
+                inputDataList.RemoveRange(inputShaderVariantCount, inputDataList.Count - inputShaderVariantCount);
+            else
+                for (int i = inputData.Count - 1; i >= inputShaderVariantCount; --i)
+                    inputData.RemoveAt(i);
 
             foreach (var hdAsset in hdPipelineAssets)
             {
@@ -258,23 +263,33 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
                 .Select(s => s.path);
 
             // Find all HDRP assets that are dependencies of the scenes.
-            _hdrpAssets = scenesPaths.Aggregate( new List<HDRenderPipelineAsset>(),
-                (list, scene) =>
+            var depsArray = AssetDatabase.GetDependencies(scenesPaths.ToArray());
+            HashSet<string> depsHash = new HashSet<string>(depsArray);
+
+            var guidRenderPipelineAssets = AssetDatabase.FindAssets("t:HDRenderPipelineAsset");
+
+            for (int i = 0; i < guidRenderPipelineAssets.Length; ++i)
+            {
+                var curGUID = guidRenderPipelineAssets[i];
+                var curPath = AssetDatabase.GUIDToAssetPath(curGUID);
+                if(depsHash.Contains(curPath))
                 {
-                    list.AddRange(
-                        AssetDatabase.GetDependencies(scene)
-                            .Select(AssetDatabase.LoadAssetAtPath<HDRenderPipelineAsset>)
-                            .Where( a => a != null && !list.Contains(a) )
-                        );
-                    return list;
-                });
+                    _hdrpAssets.Add(AssetDatabase.LoadAssetAtPath<HDRenderPipelineAsset>(curPath));
+                }
+            }
 
             // Add the HDRP assets that are in the Resources folders.
             _hdrpAssets.AddRange(
                 Resources.FindObjectsOfTypeAll<HDRenderPipelineAsset>()
                 .Where( a => !_hdrpAssets.Contains(a) )
                 );
-            
+
+            // Add the HDRP assets that are labeled to be included
+            _hdrpAssets.AddRange(
+                AssetDatabase.FindAssets("t:HDRenderPipelineAsset l:" + HDEditorUtils.HDRPAssetBuildLabel)
+                    .Select(s => AssetDatabase.LoadAssetAtPath<HDRenderPipelineAsset>(AssetDatabase.GUIDToAssetPath(s)))
+                );
+
             // Prompt a warning if we find 0 HDRP Assets.
             if (_hdrpAssets.Count == 0)
                 if (EditorUtility.DisplayDialog("HDRP Asset missing", "No HDRP Asset has been set in the Graphic Settings, and no potential used in the build HDRP Asset has been found. If you want to continue compiling, this might lead no VERY long compilation time.", "Ok", "Cancel"))

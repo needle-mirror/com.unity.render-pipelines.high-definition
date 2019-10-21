@@ -108,9 +108,6 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             {
                 case ProbeSettings.ProbeType.ReflectionProbe:
                     cameraSettings.customRenderingSettings = true;
-                    // Disable specular lighting for reflection probes, they must not have view dependent information when baking
-                    cameraSettings.renderingPathCustomFrameSettings.SetEnabled(FrameSettingsField.SpecularLighting, false);
-                    cameraSettings.renderingPathCustomFrameSettingsOverrideMask.mask[(int)FrameSettingsField.SpecularLighting] = true;
                     break;
             }
         }
@@ -209,7 +206,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             );
 
             var sourceProjection = Matrix4x4.Perspective(
-                cameraSettings.frustum.fieldOfView,
+                HDUtils.ClampFOV(cameraSettings.frustum.fieldOfView),
                 cameraSettings.frustum.aspect,
                 cameraSettings.frustum.nearClipPlane,
                 cameraSettings.frustum.farClipPlane
