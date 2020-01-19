@@ -4,6 +4,15 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [7.1.8] - 2020-01-20
+
+### Fixed
+- Fixed white and dark flashes on scenes with very high or very low exposure when Automatic Exposure is being used.
+- Fixed memory leak in Sky when in matcap mode.
+	
+### Changed
+- On Xbox and PS4 you will also need to download the com.unity.render-pipeline.platform (ps4 or xboxone) package from the appropriate platform developer forum
+
 ## [7.1.7] - 2019-12-11
 
 ### Added
@@ -48,6 +57,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed a bug in dxr due to depth history begin overriden too soon
 - Fixed CustomPassSampleCameraColor scale issue when called from Before Transparent injection point.
 - Fixed corruption of AO in baked probes.
+- Fixed issue with upgrade of projects that still had Very High as shadow filtering quality.
+- Removed shadow near plane from the Directional Light Shadow UI.
+- Fixed performance issue with performances of custom pass culling.
 
 ## [7.1.6] - 2019-11-22
 
