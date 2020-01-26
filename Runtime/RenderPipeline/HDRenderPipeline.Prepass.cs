@@ -122,6 +122,7 @@ namespace UnityEngine.Rendering.HighDefinition
 #if UNITY_2020_2_OR_NEWER
                 , fastMemoryDesc = fastMemDesc
 #endif
+                , fallBackToBlackTexture = true
             };
             return renderGraph.CreateTexture(normalDesc);
         }
@@ -258,8 +259,9 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 // Only on consoles is safe to read and write from/to the depth atlas
                 bool mip1FromDownsampleForLowResTrans = SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation4 ||
-                                                        SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
-                                                        SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12;
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation5 ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12;
                 mip1FromDownsampleForLowResTrans = mip1FromDownsampleForLowResTrans && hdCamera.frameSettings.IsEnabled(FrameSettingsField.LowResTransparent);
 
                 DownsampleDepthForLowResTransparency(renderGraph, hdCamera, mip1FromDownsampleForLowResTrans, ref result);
@@ -431,9 +433,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 builder.SetRenderFunc(
                 (ObjectMotionVectorsPassData data, RenderGraphContext context) =>
                 {
-                    // Disable write to normal buffer for unlit shader (the normal buffer binding change when using MSAA)
-                    context.cmd.SetGlobalInt(HDShaderIDs._ColorMaskNormal, data.frameSettings.IsEnabled(FrameSettingsField.MSAA) ? (int)ColorWriteMask.All : 0);
-
                     DrawOpaqueRendererList(context, data.frameSettings, data.rendererList);
                 });
             }
@@ -814,8 +813,9 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 
             bool canReadBoundDepthBuffer = SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation4 ||
-                                            SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
-                                            SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12;
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation5 ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12;
 
             if (!canReadBoundDepthBuffer)
             {
