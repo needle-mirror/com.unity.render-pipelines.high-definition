@@ -4,12 +4,63 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [10.3.2] - 2021-02-18
+## [10.4.0] - 2020-01-26
 
-Version Updated
-The version number for this package has increased due to a version update of a related graphics package.
+### Added
+- Added support for XboxSeries platform.
+- Added an additional check in the "check scene for ray tracing" (case 1314963).
+- Added shader graph unit test for IsFrontFace node
 
-## [10.3.1] - 2021-01-26
+### Fixed
+- Fixed model import by adding additional data if needed.
+- Fixed an exception when opening the color picker in the material UI (case 1307143).
+- Fixed lights shadow frustum near and far planes.
+- Fixed various issues with non-temporal SSAO and rendergraph.
+- Fixed white flashes on camera cuts on volumetric fog.
+- Fixed light layer issue when performing editing on multiple lights.
+- Fixed an issue where selection in a debug panel would reset when cycling through enum items.
+- Fixed material keywords with fbx importer.
+- Fixed lightmaps not working properly with shader graphs in ray traced reflections (case 1305335).
+- Fixed skybox for ortho cameras.
+- Fixed screen being over-exposed when changing very different skies.
+- Fixed incorrect debug wireframe overlay on tessellated geometry (using littessellation), caused by the picking pass using an incorrect camera matrix.
+- Fixed nullref in layered lit shader editor.
+- Fixed issue with Depth of Field CoC debug view.
+- Fixed an issue where first frame of SSAO could exhibit ghosting artefacts.
+- Fixed an issue with the mipmap generation internal format after rendering format change.
+- Fix crash on VolumeComponentWithQualityEditor when the current Pipeline is not HDRP
+- Fixed performance issue with ShaderGraph and Alpha Test
+- Fixed error when increasing the maximum planar reflection limit (case 1306530).
+- Fixed alpha output in debug view and AOVs when using shadow matte (case 1311830).
+- Fixed an issue with transparent meshes writing their depths and recursive rendering (case 1314409).
+- Fixed issue with compositor custom pass hooks added/removed repeatedly (case 1315971).
+- Fixed: SSR with transparent (case 1311088)
+- Fixed decals in material debug display.
+- Fixed nullref when adding a volume component in a Volume profile asset (case 1317156).
+- Fixed decal normal for double sided materials (case 1312065).
+- Fixed multiple HDRP Frame Settings panel issues: missing "Refraction" Frame Setting. Fixing ordering of Rough Distortion, it should now be under the Distortion setting.
+- Fixed issue with automatic exposure settings not updating scene view.
+- Fixed issue with velocity rejection in post-DoF TAA. Fixing this reduces ghosting (case 1304381).
+- Fixed missing option to use POM on emissive for tessellated shaders.
+- Fixed resize IES when already baked in the Atlas 1299233
+- Fixed an issue in the planar reflection probe convolution.
+- Fixed Rough Distortion frame setting not greyed out when Distortion is disabled in HDRP Asset
+- Fixed ability to override AlphaToMask FrameSetting while camera in deferred lit shader mode
+- Fixed issue with physically-based DoF computation and transparent materials with depth-writes ON.
+- Fixed issue of accessing default frame setting stored in current HDRPAsset instead fo the default HDRPAsset
+- Fixed SSGI frame setting not greyed out while SSGI is disabled in HDRP Asset
+- Fixed HDRP material being constantly dirty.
+- Fixed issue in path tracing, where objects would cast shadows even if not present in the path traced layers (case 1318857).
+- Fixed SRP batcher not compatible with Decal (case 1311586)
+- Fixed issue with different shadow atlas stomping on each other when they have same resolution.
+
+### Changed
+- Updated the tooltip for the Decal Angle Fade property (requires to enable Decal Layers in both HDRP asset and Frame settings) (case 1308048).
+- Tidy up of platform abstraction code for shader optimization.
+- Display a warning help box when decal atlas is out of size.
+- Avoid unnecessary RenderGraphBuilder.ReadTexture in the "Set Final Target" pass
+
+## [10.3.1] - 2020-01-26
 
 Version Updated
 The version number for this package has increased due to a version update of a related graphics package.
@@ -96,6 +147,8 @@ The version number for this package has increased due to a version update of a r
 - Fixed Quality Level set to the last one of the list after a Build (case 1307450)
 - Fixed XR depth copy (case 1286908).
 - Fixed Warnings about "SceneIdMap" missing script in eye material sample scene
+- Fixed wizard checking FrameSettings not in HDRP Default Settings
+- Fixed error when opening the default composition graph in the Graphics Compositor (case 1318933).
 
 ### Changed
 - Now reflection probes cannot have SSAO, SSGI, SSR, ray tracing effects or volumetric reprojection.
@@ -113,6 +166,7 @@ The version number for this package has increased due to a version update of a r
 - Transparent materials created by the Model Importer are set to not cast shadows. ( case 1295747)
 - Change some light unit slider value ranges to better reflect the lighting scenario.
 - Change the tooltip for color shadows and semi-transparent shadows (case 1307704).
+- Cached the base types of Volume Manager to improve memory and cpu usage.
 
 ## [10.2.1] - 2020-11-30
 

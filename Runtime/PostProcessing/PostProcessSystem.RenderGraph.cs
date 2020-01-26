@@ -507,8 +507,8 @@ namespace UnityEngine.Rendering.HighDefinition
                             passData.farCoC = TextureHandle.nullHandle;
                         }
 
-                        passData.fullresCoC = builder.CreateTransientTexture(new TextureDesc(Vector2.one, true, true)
-                        { colorFormat = k_CoCFormat, enableRandomWrite = true, name = "Full res CoC" });
+                        passData.fullresCoC = builder.ReadWriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
+                            { colorFormat = k_CoCFormat, enableRandomWrite = true, name = "Full res CoC" }));
 
                         GetDoFResolutionScale(passData.parameters, out float unused, out float resolutionScale);
                         float actualNearMaxBlur = passData.parameters.nearMaxBlur * resolutionScale;
@@ -561,22 +561,25 @@ namespace UnityEngine.Rendering.HighDefinition
 
                         source = passData.destination;
 
+
+                        m_HDInstance.PushFullScreenDebugTexture(renderGraph, passData.fullresCoC, FullScreenDebugMode.DepthOfFieldCoc);
                     }
                     else
                     {
-                        passData.fullresCoC = builder.CreateTransientTexture(new TextureDesc(Vector2.one, true, true)
-                        { colorFormat = k_CoCFormat, enableRandomWrite = true, useMipMap = true, name = "Full res CoC" });
+                        passData.fullresCoC = builder.ReadWriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
+                            { colorFormat = k_CoCFormat, enableRandomWrite = true, useMipMap = true, name = "Full res CoC" }));
 
                         passData.pingFarRGB = builder.CreateTransientTexture(new TextureDesc(Vector2.one, true, true)
                         { colorFormat = m_ColorFormat, useMipMap = true, enableRandomWrite = true, name = "DoF Source Pyramid" });
 
                         builder.SetRenderFunc(
-                        (DepthofFieldData data, RenderGraphContext ctx) =>
-                        {
-                            DoPhysicallyBasedDepthOfField(data.parameters, ctx.cmd, data.source, data.destination, data.fullresCoC, data.prevCoC, data.nextCoC, data.motionVecTexture, data.pingFarRGB, data.taaEnabled);
-                        });
+                            (DepthofFieldData data, RenderGraphContext ctx) =>
+                            {
+                                DoPhysicallyBasedDepthOfField(data.parameters, ctx.cmd, data.source, data.destination, data.fullresCoC, data.prevCoC, data.nextCoC, data.motionVecTexture, data.pingFarRGB, data.depthBuffer, data.taaEnabled);
+                            });
 
                         source = passData.destination;
+                        m_HDInstance.PushFullScreenDebugTexture(renderGraph, passData.fullresCoC, FullScreenDebugMode.DepthOfFieldCoc);
                     }
                 }
             }

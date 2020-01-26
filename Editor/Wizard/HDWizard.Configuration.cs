@@ -577,7 +577,7 @@ namespace UnityEditor.Rendering.HighDefinition
             => PlayerSettings.SetUseDefaultGraphicsAPIs(CalculateSelectedBuildTarget(), false);
 
         bool IsDXRDirect3D12Correct()
-            => PlayerSettings.GetGraphicsAPIs(CalculateSelectedBuildTarget()).FirstOrDefault() == GraphicsDeviceType.Direct3D12 && !HDProjectSettings.wizardNeedRestartAfterChangingToDX12;
+            => (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12) && !HDProjectSettings.wizardNeedRestartAfterChangingToDX12;
         void FixDXRDirect3D12(bool fromAsyncUnused)
         {
             if (GetSupportedGraphicsAPIs(CalculateSelectedBuildTarget()).Contains(GraphicsDeviceType.Direct3D12))
@@ -660,7 +660,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         bool IsDXRScreenSpaceShadowFSCorrect()
         {
-            HDRenderPipelineAsset hdrpAsset = HDRenderPipeline.currentAsset;
+            HDRenderPipelineAsset hdrpAsset = GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset; // Default FrameSettings is a global quality independent parameter
             if (hdrpAsset != null)
             {
                 FrameSettings defaultCameraFS = hdrpAsset.GetDefaultFrameSettings(FrameSettingsRenderType.Camera);
@@ -676,7 +676,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         bool IsDXRReflectionsFSCorrect()
         {
-            HDRenderPipelineAsset hdrpAsset = HDRenderPipeline.currentAsset;
+            HDRenderPipelineAsset hdrpAsset = GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset; // Default FrameSettings is a global quality independent parameter
             if (hdrpAsset != null)
             {
                 FrameSettings defaultCameraFS = hdrpAsset.GetDefaultFrameSettings(FrameSettingsRenderType.Camera);
@@ -692,7 +692,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         bool IsDXRTransparentReflectionsFSCorrect()
         {
-            HDRenderPipelineAsset hdrpAsset = HDRenderPipeline.currentAsset;
+            HDRenderPipelineAsset hdrpAsset = GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset; // Default FrameSettings is a global quality independent parameter
             if (hdrpAsset != null)
             {
                 FrameSettings defaultCameraFS = hdrpAsset.GetDefaultFrameSettings(FrameSettingsRenderType.Camera);
@@ -708,7 +708,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         bool IsDXRGIFSCorrect()
         {
-            HDRenderPipelineAsset hdrpAsset = HDRenderPipeline.currentAsset;
+            HDRenderPipelineAsset hdrpAsset = GraphicsSettings.renderPipelineAsset as HDRenderPipelineAsset; // Default FrameSettings is a global quality independent parameter
             if (hdrpAsset != null)
             {
                 FrameSettings defaultCameraFS = hdrpAsset.GetDefaultFrameSettings(FrameSettingsRenderType.Camera);
