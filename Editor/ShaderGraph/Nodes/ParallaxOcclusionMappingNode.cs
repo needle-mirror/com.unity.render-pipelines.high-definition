@@ -78,11 +78,12 @@ namespace UnityEditor.Rendering.HighDefinition
             return $"Unity_HDRP_ParallaxOcclusionMapping_{concretePrecision.ToShaderString()}";
         }
 
-        public override void Setup()
+        public override void ValidateNode()
         {
-            base.Setup();
             var textureSlot = FindInputSlot<Texture2DInputMaterialSlot>(kHeightmapSlotId);
             textureSlot.defaultType = Texture2DShaderProperty.DefaultType.Black;
+
+            base.ValidateNode();
         }
 
         public void GenerateNodeFunction(FunctionRegistry registry, GenerationMode generationMode)
@@ -122,7 +123,7 @@ return objectScale;");
                             heightmap,
                             edgesSampler.Any() ? GetSlotValue(kHeightmapSamplerSlotId, generationMode) : "sampler" + heightmap);
                     }
-                    s.AppendLine(perPixelDisplacementInclude);
+                    s.Append(perPixelDisplacementInclude);
                 });
         }
 

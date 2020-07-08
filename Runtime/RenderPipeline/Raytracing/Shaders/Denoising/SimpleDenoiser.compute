@@ -63,7 +63,7 @@ void TEMPORAL_ACCUMULATION_SINGLE(uint3 dispatchThreadId : SV_DispatchThreadID, 
     float depth = LOAD_TEXTURE2D_X(_DepthTexture, centerCoord).r;
     PositionInputs posInputs = GetPositionInput(centerCoord, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, GetWorldToViewMatrix());
 
-    float2 closest = GetClosestFragmentCompute(posInputs.positionSS);
+    float2 closest = GetClosestFragment(posInputs.positionSS);
 
     float2 velocity;
     DecodeMotionVector(LOAD_TEXTURE2D_X(_CameraMotionVectorsTexture, closest), velocity);
@@ -85,11 +85,11 @@ void TEMPORAL_ACCUMULATION_SINGLE(uint3 dispatchThreadId : SV_DispatchThreadID, 
 
     color = clamp(color, 0.0, CLAMP_MAX);
 
-    float average = FastTonemapPerChannel((corners + color) / 7.0);
+    float average = MapPerChannel((corners + color) / 7.0);
 
-    topLeft = FastTonemapPerChannel(topLeft);
-    bottomRight = FastTonemapPerChannel(bottomRight);
-    color = FastTonemapPerChannel(color);
+    topLeft = MapPerChannel(topLeft);
+    bottomRight = MapPerChannel(bottomRight);
+    color = MapPerChannel(color);
 
     float colorLuma = color;
     float averageLuma = average;
@@ -98,7 +98,7 @@ void TEMPORAL_ACCUMULATION_SINGLE(uint3 dispatchThreadId : SV_DispatchThreadID, 
     float minimum = min(bottomRight, topLeft) - nudge;
     float maximum = max(topLeft, bottomRight) + nudge;
 
-    history = FastTonemapPerChannel(history);
+    history = MapPerChannel(history);
 
     // Clip history samples
     history = clamp(history, minimum, maximum);
@@ -108,11 +108,9 @@ void TEMPORAL_ACCUMULATION_SINGLE(uint3 dispatchThreadId : SV_DispatchThreadID, 
     float historyLuma = history;
     float diff = abs(colorLuma - historyLuma) / Max3(colorLuma, historyLuma, 0.2);
     float weight = 1.0 - diff;
-    const float feedbackMin = 0.96;
-    const float feedbackMax = 0.91;
-    float feedback = lerp(feedbackMin, feedbackMax, weight * weight);
+    float feedback = lerp(FEEDBACK_MIN, FEEDBACK_MAX, weight * weight);
 
-    color = FastTonemapPerChannelInvert(lerp(color, history, feedback));
+    color = UnmapPerChannel(lerp(color, history, feedback));
     color = clamp(color, 0.0, CLAMP_MAX);
 
 #ifdef HISTORY_IS_ARRAY
@@ -135,7 +133,7 @@ void TEMPORAL_ACCUMULATION_COLOR(uint3 dispatchThreadId : SV_DispatchThreadID, u
     float depth = LOAD_TEXTURE2D_X(_DepthTexture, centerCoord).r;
     PositionInputs posInputs = GetPositionInput(centerCoord, _ScreenSize.zw, depth, UNITY_MATRIX_I_VP, GetWorldToViewMatrix());
 
-    float2 closest = GetClosestFragmentCompute(posInputs.positionSS);
+    float2 closest = GetClosestFragment(posInputs.positionSS);
 
     float2 velocity;
     DecodeMotionVector(LOAD_TEXTURE2D_X(_CameraMotionVectorsTexture, closest), velocity);
@@ -152,11 +150,11 @@ void TEMPORAL_ACCUMULATION_COLOR(uint3 dispatchThreadId : SV_DispatchThreadID, u
 
     color = clamp(color, 0.0, CLAMP_MAX);
 
-    float3 average = FastTonemap((corners + color) / 7.0);
+    float3 average = Map((corners + color) / 7.0);
 
-    topLeft = FastTonemap(topLeft);
-    bottomRight = FastTonemap(bottomRight);
-    color = FastTonemap(color);
+    topLeft = Map(topLeft);
+    bottomRight = Map(bottomRight);
+    color = Map(color);
 
     float colorLuma = Luminance(color);
     float averageLuma = Luminance(average);
@@ -165,22 +163,19 @@ void TEMPORAL_ACCUMULATION_COLOR(uint3 dispatchThreadId : SV_DispatchThreadID, u
     float3 minimum = min(bottomRight, topLeft) - nudge;
     float3 maximum = max(topLeft, bottomRight) + nudge;
 
-    history = FastTonemap(history);
+    history = Map(history);
 
     // Clip history samples
-    history = DirectClipToAABB(history, minimum, maximum);
+    history = ClipToAABB(history, minimum, maximum);
 
     // Blend color & history
     // Feedback weight from unbiased luminance diff (Timothy Lottes)
     float historyLuma = Luminance(history);
     float diff = abs(colorLuma - historyLuma) / Max3(colorLuma, historyLuma, 0.2);
     float weight = 1.0 - diff;
-    const float feedbackMin = 0.96;
-    const float feedbackMax = 0.91;
-    float feedback = lerp(feedbackMin, feedbackMax, weight * weight);
+    float feedback = lerp(FEEDBACK_MIN, FEEDBACK_MAX, weight * weight);
 
-
-    color = FastTonemapInvert(lerp(color, history, feedback));
+    color = Unmap(lerp(color, history, feedback));
     color = clamp(color, 0.0, CLAMP_MAX);
 
     _DenoiseOutputTextureRW[COORD_TEXTURE2D_X(centerCoord)] = float4(color, LOAD_TEXTURE2D_X(_DenoiseInputTexture, centerCoord).w);

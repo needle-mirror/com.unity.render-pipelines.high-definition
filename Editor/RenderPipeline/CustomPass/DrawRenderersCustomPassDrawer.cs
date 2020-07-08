@@ -161,7 +161,8 @@ namespace UnityEditor.Rendering.HighDefinition
 #endif
 
                 // TODO: remove all this code when the fix for SerializedReference lands
-                EditorGUI.PropertyField(rect, m_SortingCriteria, Styles.sortingCriteria);
+                m_SortingCriteria.intValue = (int)(SortingCriteria)EditorGUI.EnumFlagsField(rect, Styles.sortingCriteria, (SortingCriteria)m_SortingCriteria.intValue);
+                // EditorGUI.PropertyField(rect, m_SortingCriteria, Styles.sortingCriteria);
                 rect.y += Styles.defaultLineSpace;
 
                 EditorGUI.indentLevel--;
@@ -172,7 +173,7 @@ namespace UnityEditor.Rendering.HighDefinition
         bool ShowOpaqueObjectWarning()
         {
             // Only opaque objects are concerned
-            RenderQueueRange currentRange = CustomPassUtils.GetRenderQueueRangeFromRenderQueueType((CustomPass.RenderQueueType)m_RenderQueue.intValue);
+            RenderQueueRange currentRange = CustomPass.GetRenderQueueRangeFromRenderQueueType((CustomPass.RenderQueueType)m_RenderQueue.intValue);
             var allOpaque = HDRenderQueue.k_RenderQueue_AllOpaque;
             bool customPassQueueContainsOpaqueObjects = currentRange.upperBound >= allOpaque.lowerBound && currentRange.lowerBound <= allOpaque.upperBound;
             if (!customPassQueueContainsOpaqueObjects)

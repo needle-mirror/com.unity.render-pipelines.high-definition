@@ -24,7 +24,6 @@ Shader "Hidden/HDRP/DrawDiffusionProfile"
 
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/DiffusionProfile/DiffusionProfile.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/EditorShaderVariables.hlsl"
 
             //-------------------------------------------------------------------------------------
@@ -60,16 +59,15 @@ Shader "Hidden/HDRP/DrawDiffusionProfile"
 
             float4 Frag(Varyings input) : SV_Target
             {
-
                 // Profile display does not use premultiplied S.
-                float  r = _MaxRadius * 0.5 * length(input.texcoord - 0.5); // (-0.25 * R, 0.25 * R)
+                float  r = (2 * length(input.texcoord - 0.5)) * _MaxRadius;
                 float3 S = _ShapeParam.rgb;
-                float3 M;
+                float3 M = S * (exp(-r * S) + exp(-r * S * (1.0 / 3.0))) / (8 * PI * r);
+                float3 A = _MaxRadius / S;
 
-                // Gamma in previews is weird...
-                S = S * S;
-                M = EvalBurleyDiffusionProfile(r, S) / r; // Divide by 'r' since we are not integrating in polar coords
-                return float4(sqrt(M), 1);
+                // N.b.: we multiply by the surface albedo of the actual geometry during shading.
+                // Apply gamma for visualization only. Do not apply gamma to the color.
+                return float4(sqrt(M) * A, 1);
             }
             ENDHLSL
         }

@@ -21,9 +21,6 @@ namespace UnityEngine.Rendering.HighDefinition
             [SurfaceDataAttributes("Opacity", precision = FieldPrecision.Real)]
             public float opacity;
 
-            [SurfaceDataAttributes("AlphaClipTreshold", precision = FieldPrecision.Real)]
-            public float alphaClipTreshold;
-
             // These are lighting data.
             // We would prefer to split lighting and material information but for performance reasons,
             // those lighting information are fill
@@ -63,9 +60,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             [SurfaceDataAttributes("Depth Offset")]
             public float depthOffset; // define the depth in unity unit to add in Z forward direction
-
-            [SurfaceDataAttributes("VT Packed Feedback", precision = FieldPrecision.Real)]
-            public Vector4 vtPackedFeedback;
         };
 
         //-----------------------------------------------------------------------------

@@ -61,7 +61,6 @@ namespace UnityEditor.Rendering.HighDefinition
         public SerializedProperty lightShadowRadius;
         public SerializedProperty semiTransparentShadow;
         public SerializedProperty colorShadow;
-        public SerializedProperty distanceBasedFiltering;
         public SerializedProperty evsmExponent;
         public SerializedProperty evsmLightLeakBias;
         public SerializedProperty evsmVarianceBias;
@@ -371,7 +370,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 lightShadowRadius = o.Find("m_LightShadowRadius");
                 semiTransparentShadow = o.Find("m_SemiTransparentShadow");
                 colorShadow = o.Find("m_ColorShadow");
-                distanceBasedFiltering = o.Find("m_DistanceBasedFiltering");
                 evsmExponent = o.Find("m_EvsmExponent");
                 evsmVarianceBias = o.Find("m_EvsmVarianceBias");
                 evsmLightLeakBias = o.Find("m_EvsmLightLeakBias");
@@ -466,8 +464,10 @@ namespace UnityEditor.Rendering.HighDefinition
             settings.Update();
 
             lightGameObject.Update();
-            deportedAreaLightEmissiveMeshMotionVector?.serializedObject.Update();
-            deportedAreaLightEmissiveMeshLayer?.serializedObject.Update();
+            if (deportedAreaLightEmissiveMeshMotionVector.IsTargetAlive())
+                deportedAreaLightEmissiveMeshMotionVector?.serializedObject.Update();
+            if (deportedAreaLightEmissiveMeshLayer.IsTargetAlive())
+                deportedAreaLightEmissiveMeshLayer?.serializedObject.Update();
         }
 
         void ApplyInternal(bool withDeportedEmissiveMeshData)
@@ -476,8 +476,10 @@ namespace UnityEditor.Rendering.HighDefinition
             settings.ApplyModifiedProperties();
             if (withDeportedEmissiveMeshData)
             {
-                deportedAreaLightEmissiveMeshMotionVector?.serializedObject.ApplyModifiedProperties();
-                deportedAreaLightEmissiveMeshLayer?.serializedObject.ApplyModifiedProperties();
+                if (deportedAreaLightEmissiveMeshMotionVector.IsTargetAlive())
+                    deportedAreaLightEmissiveMeshMotionVector?.serializedObject.ApplyModifiedProperties();
+                if (deportedAreaLightEmissiveMeshLayer.IsTargetAlive())
+                    deportedAreaLightEmissiveMeshLayer?.serializedObject.ApplyModifiedProperties();
             }
         }
 

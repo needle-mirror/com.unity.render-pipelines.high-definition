@@ -128,10 +128,10 @@ namespace UnityEngine.Rendering.HighDefinition
         class RenderOcclusionMeshesPassData
         {
             public HDCamera hdCamera;
-            public TextureHandle depthBuffer;
+            public RenderGraphMutableResource depthBuffer;
         }
 
-        void RenderXROcclusionMeshes(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle depthBuffer)
+        void RenderXROcclusionMeshes(RenderGraph renderGraph, HDCamera hdCamera, RenderGraphMutableResource depthBuffer)
         {
             if (hdCamera.xr.enabled && m_Asset.currentPlatformRenderPipelineSettings.xrSettings.occlusionMesh)
             {

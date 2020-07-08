@@ -1,7 +1,6 @@
-using UnityEditor;
 using UnityEditor.ShaderGraph;
 using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
+using UnityEditor;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
@@ -25,8 +24,6 @@ namespace UnityEditor.Rendering.HighDefinition
             // In case the shader is not HDRP
             if (!(saveContext is HDSaveContext hdSaveContext))
                 return;
-
-            HDRenderPipeline.currentPipeline?.ResetPathTracing();
 
             if (!hdSaveContext.updateMaterials)
                 return;

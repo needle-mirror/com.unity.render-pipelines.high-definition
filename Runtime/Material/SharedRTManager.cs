@@ -100,6 +100,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 CoreUtils.SetKeyword(m_DepthResolveMaterial, "_HAS_MOTION_VECTORS", m_MotionVectorsSupport);
             }
 
+            AllocateCoarseStencilBuffer(RTHandles.maxWidth, RTHandles.maxHeight, TextureXR.slices);
+
             // If we are in the forward only mode
             if (!m_ReuseGBufferMemory)
             {
@@ -128,8 +130,8 @@ namespace UnityEngine.Rendering.HighDefinition
             if (frameSettings.IsEnabled(FrameSettingsField.MSAA))
             {
                 Debug.Assert(m_MSAASupported);
-                m_RTIDs2[0] = m_DepthAsColorMSAART.nameID;
-                m_RTIDs2[1] = m_NormalMSAART.nameID;
+                m_RTIDs2[0] = m_NormalMSAART.nameID;
+                m_RTIDs2[1] = m_DepthAsColorMSAART.nameID;
                 return m_RTIDs2;
             }
             else
@@ -146,9 +148,9 @@ namespace UnityEngine.Rendering.HighDefinition
             if (frameSettings.IsEnabled(FrameSettingsField.MSAA))
             {
                 Debug.Assert(m_MSAASupported);
-                m_RTIDs3[0] = m_DepthAsColorMSAART.nameID;
-                m_RTIDs3[1] = m_MotionVectorsMSAART.nameID;
-                m_RTIDs3[2] = m_NormalMSAART.nameID;
+                m_RTIDs3[0] = m_MotionVectorsMSAART.nameID;
+                m_RTIDs3[1] = m_NormalMSAART.nameID;
+                m_RTIDs3[2] = m_DepthAsColorMSAART.nameID;
                 return m_RTIDs3;
             }
             else
@@ -296,6 +298,7 @@ namespace UnityEngine.Rendering.HighDefinition
             RTHandles.Release(m_CameraDepthStencilBuffer);
             RTHandles.Release(m_CameraDepthBufferMipChain);
             RTHandles.Release(m_CameraHalfResDepthBuffer);
+            DisposeCoarseStencilBuffer();
 
             if (m_MSAASupported)
             {

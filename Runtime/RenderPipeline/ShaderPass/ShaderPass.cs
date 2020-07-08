@@ -16,6 +16,7 @@ namespace UnityEngine.Rendering.HighDefinition
         LightTransport,
         Shadows,
         SubsurfaceScattering,
+        VolumeVoxelization,
         VolumetricLighting,
         DbufferProjector,
         DbufferMesh,
@@ -28,6 +29,5 @@ namespace UnityEngine.Rendering.HighDefinition
         RaytracingGBuffer,
         RaytracingSubSurface,
         PathTracing,
-        Constant
     }
 }

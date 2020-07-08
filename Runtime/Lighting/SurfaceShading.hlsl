@@ -132,18 +132,24 @@ float3 EvaluateTransmittance_Punctual(LightLoopContext lightLoopContext,
     // Note: based on the artist's input, dependence on the NdotL has been disabled.
     float distFrontFaceToLight   = distances.x;
     float thicknessInUnits       = (distFrontFaceToLight - distBackFaceToLight) /* * -NdotL */;
-    float metersPerUnit          = _WorldScalesAndFilterRadiiAndThicknessRemaps[bsdfData.diffusionProfileIndex].x;
-    float thicknessInMeters      = thicknessInUnits * metersPerUnit;
+    float thicknessInMeters      = thicknessInUnits * _WorldScales[bsdfData.diffusionProfileIndex].x;
     float thicknessInMillimeters = thicknessInMeters * MILLIMETERS_PER_METER;
 
     // We need to make sure it's not less than the baked thickness to minimize light leaking.
-    float dt = max(0, thicknessInMillimeters - bsdfData.thickness);
-    float3 S = _ShapeParamsAndMaxScatterDists[bsdfData.diffusionProfileIndex].rgb;
+    float thicknessDelta = max(0, thicknessInMillimeters - bsdfData.thickness);
 
-    float3 exp_13 = exp2(((LOG2_E * (-1.0/3.0)) * dt) * S); // Exp[-S * dt / 3]
+    float3 S = _ShapeParams[bsdfData.diffusionProfileIndex].rgb;
+
+#if 0
+    float3 expOneThird = exp(((-1.0 / 3.0) * thicknessDelta) * S);
+#else
+    // Help the compiler. S is premultiplied by ((-1.0 / 3.0) * LOG2_E) on the CPU.
+    float3 p = thicknessDelta * S;
+    float3 expOneThird = exp2(p);
+#endif
 
     // Approximate the decrease of transmittance by e^(-1/3 * dt * S).
-    return bsdfData.transmittance * exp_13;
+    return bsdfData.transmittance * expOneThird;
 }
 #endif
 
@@ -199,5 +205,3 @@ DirectLighting ShadeSurface_Punctual(LightLoopContext lightLoopContext,
 
     return lighting;
 }
-
-

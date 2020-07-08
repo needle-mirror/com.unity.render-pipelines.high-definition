@@ -1,6 +1,5 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingFragInputs.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingSampling.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/RayTracing/Shaders/Common/AtmosphericScatteringRayTracing.hlsl"
 
 // Generic function that handles the reflection code
 [shader("closesthit")]
@@ -34,15 +33,14 @@ void ClosestHitMain(inout RayIntersection rayIntersection : SV_RayPayload, Attri
     GetSurfaceAndBuiltinData(fragInput, viewWS, posInput, surfaceData, builtinData, currentVertex, rayIntersection.cone, isVisible);
 
     // Compute the bsdf data
-    BSDFData bsdfData = ConvertSurfaceDataToBSDFData(posInput.positionSS, surfaceData);
+    BSDFData bsdfData =  ConvertSurfaceDataToBSDFData(posInput.positionSS, surfaceData);
 
 #ifdef HAS_LIGHTLOOP
     // We do not want to use the diffuse when we compute the indirect diffuse
-    if (_RayTracingDiffuseLightingOnly)
-    {
-        builtinData.bakeDiffuseLighting = float3(0.0, 0.0, 0.0);
-        builtinData.backBakeDiffuseLighting = float3(0.0, 0.0, 0.0);
-    }
+    #ifdef DIFFUSE_LIGHTING_ONLY
+    builtinData.bakeDiffuseLighting = float3(0.0, 0.0, 0.0);
+    builtinData.backBakeDiffuseLighting = float3(0.0, 0.0, 0.0);
+    #endif
 
     // Compute the prelight data
     PreLightData preLightData = GetPreLightData(viewWS, posInput, bsdfData);
@@ -58,17 +56,9 @@ void ClosestHitMain(inout RayIntersection rayIntersection : SV_RayPayload, Attri
         sample.x = GetBNDSequenceSample(rayIntersection.pixelCoord, rayIntersection.sampleIndex, rayIntersection.remainingDepth * 2);
         sample.y = GetBNDSequenceSample(rayIntersection.pixelCoord, rayIntersection.sampleIndex, rayIntersection.remainingDepth * 2 + 1);
 
-        float3 sampleDir;
-        if (_RayTracingDiffuseLightingOnly)
-        {
-            sampleDir = SampleHemisphereCosine(sample.x, sample.y, surfaceData.normalWS);
-        }
-        else
-        {
-            float roughness = PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness);
-            float NdotL, NdotH, VdotH;
-            SampleGGXDir(sample, viewWS, fragInput.tangentToWorld, roughness, sampleDir, NdotL, NdotH, VdotH);
-        }
+        #ifdef DIFFUSE_LIGHTING_ONLY
+        // Importance sample with a cosine lobe
+        float3 sampleDir = SampleHemisphereCosine(sample.x, sample.y, surfaceData.normalWS);
 
         // Create the ray descriptor for this pixel
         RayDesc rayDescriptor;
@@ -91,26 +81,50 @@ void ClosestHitMain(inout RayIntersection rayIntersection : SV_RayPayload, Attri
         reflectedIntersection.cone.spreadAngle = rayIntersection.cone.spreadAngle;
         reflectedIntersection.cone.width = rayIntersection.cone.width;
 
-        bool launchRay = true;
-        if (!_RayTracingDiffuseLightingOnly)
-            launchRay = dot(sampleDir, surfaceData.normalWS) > 0.0;
-
         // Evaluate the ray intersection
-        if (launchRay)
-            TraceRay(_RaytracingAccelerationStructure
-                        , RAY_FLAG_CULL_BACK_FACING_TRIANGLES
-                        , _RayTracingDiffuseLightingOnly ? RAYTRACINGRENDERERFLAG_GLOBAL_ILLUMINATION : RAYTRACINGRENDERERFLAG_REFLECTION
-                        , 0, 1, 0, rayDescriptor, reflectedIntersection);
+        TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, RAYTRACINGRENDERERFLAG_OPAQUE, 0, 1, 0, rayDescriptor, reflectedIntersection);
 
         // Contribute to the pixel
-        if (_RayTracingDiffuseLightingOnly)
-            builtinData.bakeDiffuseLighting = reflectedIntersection.color;
-        else
+        builtinData.bakeDiffuseLighting = reflectedIntersection.color;
+        #else
+        // Importance sample the direction using GGX
+        float3 sampleDir = float3(0.0, 0.0, 0.0);
+        float roughness = PerceptualSmoothnessToRoughness(surfaceData.perceptualSmoothness);
+        float NdotL, NdotH, VdotH;
+        SampleGGXDir(sample, viewWS, fragInput.tangentToWorld, roughness, sampleDir, NdotL, NdotH, VdotH);
+
+        // If the sample is under the surface
+        if (dot(sampleDir, surfaceData.normalWS) > 0.0)
         {
-            // Override the reflected color
+            // Build the reflected ray
+            RayDesc reflectedRay;
+            reflectedRay.Origin = pointWSPos + surfaceData.normalWS * _RaytracingRayBias;
+            reflectedRay.Direction = sampleDir;
+            reflectedRay.TMin = 0;
+            reflectedRay.TMax = _RaytracingRayMaxLength;
+
+            // Create and init the RayIntersection structure for this
+            RayIntersection reflectedIntersection;
+            reflectedIntersection.color = float3(0.0, 0.0, 0.0);
+            reflectedIntersection.incidentDirection = reflectedRay.Direction;
+            reflectedIntersection.origin = reflectedRay.Origin;
+            reflectedIntersection.t = -1.0f;
+            reflectedIntersection.remainingDepth = rayIntersection.remainingDepth + 1;
+            reflectedIntersection.pixelCoord = rayIntersection.pixelCoord;
+            reflectedIntersection.sampleIndex = rayIntersection.sampleIndex;
+
+            // In order to achieve filtering for the textures, we need to compute the spread angle of the pixel
+            reflectedIntersection.cone.spreadAngle = rayIntersection.cone.spreadAngle;
+            reflectedIntersection.cone.width = rayIntersection.cone.width;
+
+            // Evaluate the ray intersection
+            TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, RAYTRACINGRENDERERFLAG_OPAQUE, 0, 1, 0, reflectedRay, reflectedIntersection);
+
+            // Override the transmitted color
             reflected = reflectedIntersection.color;
             reflectedWeight = 1.0;
         }
+        #endif
     }
     #endif
     
@@ -126,9 +140,6 @@ void ClosestHitMain(inout RayIntersection rayIntersection : SV_RayPayload, Attri
     // the unlit color is not impacted by that. Thus, we multiply it by the inverse of the current exposure multiplier.
     rayIntersection.color = bsdfData.color * GetInverseCurrentExposureMultiplier() + builtinData.emissiveColor;
 #endif
-
-    // Apply fog attenuation
-    ApplyFogAttenuation(WorldRayOrigin(), WorldRayDirection(), rayIntersection.t, rayIntersection.color, true);
 }
 
 // Generic function that handles the reflection code

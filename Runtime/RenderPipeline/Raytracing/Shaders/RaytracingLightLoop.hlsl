@@ -71,12 +71,16 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
+#if !defined(_DISABLE_SSR)
     // Add the traced reflection
     if (reflectionHierarchyWeight == 1.0)
     {
-        IndirectLighting lighting = EvaluateBSDF_RaytracedReflection(context, bsdfData, preLightData, reflection);
-        AccumulateIndirectLighting(lighting, aggregateLighting);
+        IndirectLighting indirect;
+        ZERO_INITIALIZE(IndirectLighting, indirect);
+        indirect.specularReflected = reflection.rgb * preLightData.specularFGD;
+        AccumulateIndirectLighting(indirect, aggregateLighting);
     }
+#endif
 
 #if HAS_REFRACTION
     // Add the traced transmission

@@ -273,7 +273,6 @@ Shader "HDRP/LayeredLitTessellation"
         [HideInInspector] _DstBlend ("__dst", Float) = 0.0
         [HideInInspector] _AlphaSrcBlend("__alphaSrc", Float) = 1.0
         [HideInInspector] _AlphaDstBlend("__alphaDst", Float) = 0.0
-        [HideInInspector][ToggleUI]_AlphaToMask("__alphaToMask", Float) = 0
 
         [HideInInspector][ToggleUI] _ZWrite ("__zw", Float) = 1.0
         [HideInInspector][ToggleUI] _TransparentZWrite("_TransparentZWrite", Float) = 0.0
@@ -383,7 +382,6 @@ Shader "HDRP/LayeredLitTessellation"
     #pragma only_renderers d3d11 playstation xboxone vulkan metal switch
 
     #pragma shader_feature_local _ALPHATEST_ON
-    #pragma shader_feature_local _ALPHATOMASK_ON
     #pragma shader_feature_local _DEPTHOFFSET_ON
     #pragma shader_feature_local _DOUBLESIDED_ON
     #pragma shader_feature_local _ _TESSELLATION_DISPLACEMENT _PIXEL_DISPLACEMENT
@@ -665,7 +663,6 @@ Shader "HDRP/LayeredLitTessellation"
             }
 
             Cull[_CullMode]
-            AlphaToMask [_AlphaToMask]
 
             ZWrite On
 
@@ -727,7 +724,6 @@ Shader "HDRP/LayeredLitTessellation"
             Tags{ "LightMode" = "DepthOnly" }
 
             Cull[_CullMode]
-            AlphaToMask [_AlphaToMask]
 
             // To be able to tag stencil with disableSSR information for forward
             Stencil

@@ -375,9 +375,6 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 1
     min: 0.001
-  weightTextureMask:
-    m_OverrideState: 0
-    m_Value: {fileID: 0}
 --- !u!114 &7502528774814404555
 MonoBehaviour:
   m_ObjectHideFlags: 3

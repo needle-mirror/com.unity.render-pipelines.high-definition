@@ -24,12 +24,7 @@ PackedVaryingsToPS VertTesselation(VaryingsToDS input)
 
 #endif // TESSELLATION_ON
 
-void Frag(PackedVaryingsToPS packedInput,
-    out float4 outResult : SV_Target0
-#ifdef UNITY_VIRTUAL_TEXTURING
-    ,out float4 outVTFeedback : SV_Target1
-#endif
-)
+float4 Frag(PackedVaryingsToPS packedInput) : SV_Target
 {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(packedInput);
     FragInputs input = UnpackVaryingsMeshToFragInputs(packedInput.vmesh);
@@ -63,12 +58,12 @@ void Frag(PackedVaryingsToPS packedInput,
     // The index stored in this buffer could either be
     //   - a gBufferIndex (always stored in _DebugViewMaterialArray[1] as only one supported)
     //   - a property index which is different for each kind of material even if reflecting the same thing (see MaterialSharedProperty)
-    int bufferSize = _DebugViewMaterialArray[0].x;
+    int bufferSize = int(_DebugViewMaterialArray[0]);
     // Loop through the whole buffer
     // Works because GetSurfaceDataDebug will do nothing if the index is not a known one
     for (int index = 1; index <= bufferSize; index++)
     {
-        int indexMaterialProperty = _DebugViewMaterialArray[index].x;
+        int indexMaterialProperty = int(_DebugViewMaterialArray[index]);
         if (indexMaterialProperty != 0)
         {
             float3 result = float3(1.0, 0.0, 1.0);
@@ -76,10 +71,10 @@ void Frag(PackedVaryingsToPS packedInput,
 
             GetPropertiesDataDebug(indexMaterialProperty, result, needLinearToSRGB);
             GetVaryingsDataDebug(indexMaterialProperty, input, result, needLinearToSRGB);
-            GetBuiltinDataDebug(indexMaterialProperty, builtinData, posInput, result, needLinearToSRGB);
+            GetBuiltinDataDebug(indexMaterialProperty, builtinData, result, needLinearToSRGB);
             GetSurfaceDataDebug(indexMaterialProperty, surfaceData, result, needLinearToSRGB);
             GetBSDFDataDebug(indexMaterialProperty, bsdfData, result, needLinearToSRGB);
-
+            
             // TEMP!
             // For now, the final blit in the backbuffer performs an sRGB write
             // So in the meantime we apply the inverse transform to linear data to compensate.
@@ -97,10 +92,6 @@ void Frag(PackedVaryingsToPS packedInput,
     }
 
 #endif
-
-    outResult = outColor;
-
-#ifdef UNITY_VIRTUAL_TEXTURING
-    outVTFeedback = builtinData.vtPackedFeedback;
-#endif
+    
+    return outColor;
 }

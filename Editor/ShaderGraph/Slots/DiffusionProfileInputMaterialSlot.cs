@@ -15,8 +15,7 @@ namespace UnityEditor.Rendering.HighDefinition
     [Serializable]
     [FormerName("UnityEditor.ShaderGraph.DiffusionProfileInputMaterialSlot")]
     [FormerName("UnityEditor.Experimental.Rendering.HDPipeline.DiffusionProfileInputMaterialSlot")]
-    [HasDependencies(typeof(DiffusionProfileInputMaterialSlot))]
-    class DiffusionProfileInputMaterialSlot : Vector1MaterialSlot, IHasDependencies
+    class DiffusionProfileInputMaterialSlot : Vector1MaterialSlot
     {
         [SerializeField, Obsolete("Use m_DiffusionProfileAsset instead.")]
         PopupList m_DiffusionProfile;
@@ -27,7 +26,6 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             [SerializeField]
             public DiffusionProfileSettings    diffusionProfileAsset = null;
-
         }
 
         [SerializeField]
@@ -69,8 +67,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 owner.ValidateNode();
             }
         }
-
-        public override bool isDefaultValue => diffusionProfile == null;
 
         public DiffusionProfileInputMaterialSlot()
         {
@@ -133,7 +129,6 @@ namespace UnityEditor.Rendering.HighDefinition
             if (slot != null)
             {
                 m_SerializedDiffusionProfile = slot.m_SerializedDiffusionProfile;
-                m_DiffusionProfileAsset = null;
             }
         }
 
@@ -155,14 +150,6 @@ namespace UnityEditor.Rendering.HighDefinition
             }
 #pragma warning restore 618
             EditorApplication.update -= UpgradeIfNeeded;
-        }
-
-        public void GetSourceAssetDependencies(List<string> paths)
-        {
-            if(diffusionProfile != null)
-            {
-                paths.Add(AssetDatabase.GetAssetPath(diffusionProfile));
-            }
         }
     }
 }
