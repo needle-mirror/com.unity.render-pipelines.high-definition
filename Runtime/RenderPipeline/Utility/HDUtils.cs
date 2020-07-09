@@ -24,7 +24,7 @@ namespace UnityEngine.Rendering.HighDefinition
         static internal HDAdditionalLightData s_DefaultHDAdditionalLightData { get { return ComponentSingleton<HDAdditionalLightData>.instance; } }
         /// <summary>Default HDAdditionalCameraData</summary>
         static internal HDAdditionalCameraData s_DefaultHDAdditionalCameraData { get { return ComponentSingleton<HDAdditionalCameraData>.instance; } }
-        
+
         static List<CustomPassVolume> m_TempCustomPassVolumeList = new List<CustomPassVolume>();
 
         static Texture3D m_ClearTexture3D;
@@ -196,6 +196,23 @@ namespace UnityEngine.Rendering.HighDefinition
             return Matrix4x4.Transpose(worldToViewMatrix.transpose * viewSpaceRasterTransform);
         }
 
+        // Scale and bias to transform unnormalized viewport/pixel coordinates to normalized device coordinates
+        internal static Vector4 ComputeInverseViewportScaleBias(HDCamera hdCamera)
+        {
+            float verticalFoV = hdCamera.camera.GetGateFittedFieldOfView() * Mathf.Deg2Rad;
+            Vector2 lensShift = hdCamera.camera.GetGateFittedLensShift();
+
+            float aspectRatio = hdCamera.camera.aspect < 0 ? hdCamera.screenSize.x * hdCamera.screenSize.w : hdCamera.camera.aspect;
+            float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
+
+            // See the comment in ComputePixelCoordToWorldSpaceViewDirectionMatrix for the derivation
+            return new Vector4(
+                -2.0f * hdCamera.screenSize.z * tanHalfVertFoV * aspectRatio,
+                -2.0f * hdCamera.screenSize.w * tanHalfVertFoV,
+                (1.0f - 2.0f * lensShift.x) * tanHalfVertFoV * aspectRatio,
+                (1.0f - 2.0f * lensShift.y) * tanHalfVertFoV);
+        }
+
         internal static float ComputZPlaneTexelSpacing(float planeDepth, float verticalFoV, float resolutionY)
         {
             float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
@@ -337,7 +354,6 @@ namespace UnityEngine.Rendering.HighDefinition
             MaterialPropertyBlock properties = null, int shaderPassId = 0)
         {
             CoreUtils.SetRenderTarget(commandBuffer, colorBuffer);
-            commandBuffer.SetGlobalVector(HDShaderIDs._RTHandleScale, colorBuffer.rtHandleProperties.rtHandleScale);
             commandBuffer.DrawProcedural(Matrix4x4.identity, material, shaderPassId, MeshTopology.Triangles, 3, 1, properties);
         }
 
@@ -356,7 +372,6 @@ namespace UnityEngine.Rendering.HighDefinition
             MaterialPropertyBlock properties = null, int shaderPassId = 0)
         {
             CoreUtils.SetRenderTarget(commandBuffer, colorBuffer, depthStencilBuffer);
-            commandBuffer.SetGlobalVector(HDShaderIDs._RTHandleScale, colorBuffer.rtHandleProperties.rtHandleScale);
             commandBuffer.DrawProcedural(Matrix4x4.identity, material, shaderPassId, MeshTopology.Triangles, 3, 1, properties);
         }
 
@@ -375,7 +390,6 @@ namespace UnityEngine.Rendering.HighDefinition
             MaterialPropertyBlock properties = null, int shaderPassId = 0)
         {
             CoreUtils.SetRenderTarget(commandBuffer, colorBuffers, depthStencilBuffer);
-            commandBuffer.SetGlobalVector(HDShaderIDs._RTHandleScale, depthStencilBuffer.rtHandleProperties.rtHandleScale);
             commandBuffer.DrawProcedural(Matrix4x4.identity, material, shaderPassId, MeshTopology.Triangles, 3, 1, properties);
         }
 
@@ -473,7 +487,7 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         // Set the renderPipelineAsset, either on the quality settings if it was unset from there or in GraphicsSettings.
-        // IMPORTANT: RenderPipelineManager.currentPipeline won't be HDRP until a camera.Render() call is made. 
+        // IMPORTANT: RenderPipelineManager.currentPipeline won't be HDRP until a camera.Render() call is made.
         internal static void RestoreRenderPipelineAsset(bool wasUnsetFromQuality, RenderPipelineAsset renderPipelineAsset)
         {
             if(wasUnsetFromQuality)
@@ -592,20 +606,30 @@ namespace UnityEngine.Rendering.HighDefinition
                 rt.Create();
         }
 
-        internal static Vector4 ComputeUvScaleAndLimit(Vector2Int viewportResolution, Vector2Int bufferSize)
+        internal static float ComputeViewportScale(int viewportSize, int bufferSize)
         {
-            Vector2 rcpBufferSize = new Vector2(1.0f / bufferSize.x, 1.0f / bufferSize.y);
+            float rcpBufferSize = 1.0f / bufferSize;
 
-            // vp_scale = vp_dim / tex_dim.
-            Vector2 uvScale = new Vector2(viewportResolution.x * rcpBufferSize.x,
-                                          viewportResolution.y * rcpBufferSize.y);
-
-            // clamp to (vp_dim - 0.5) / tex_dim.
-            Vector2 uvLimit = new Vector2((viewportResolution.x - 0.5f) * rcpBufferSize.x,
-                                          (viewportResolution.y - 0.5f) * rcpBufferSize.y);
-
-            return new Vector4(uvScale.x, uvScale.y, uvLimit.x, uvLimit.y);
+            // Scale by (vp_dim / buf_dim).
+            return viewportSize * rcpBufferSize;
         }
+
+        internal static float ComputeViewportLimit(int viewportSize, int bufferSize)
+        {
+            float rcpBufferSize = 1.0f / bufferSize;
+
+            // Clamp to (vp_dim - 0.5) / buf_dim.
+            return (viewportSize - 0.5f) * rcpBufferSize;
+        }
+
+        internal static Vector4 ComputeViewportScaleAndLimit(Vector2Int viewportSize, Vector2Int bufferSize)
+        {
+            return new Vector4(ComputeViewportScale(viewportSize.x, bufferSize.x),  // Scale(x)
+                               ComputeViewportScale(viewportSize.y, bufferSize.y),  // Scale(y)
+                               ComputeViewportLimit(viewportSize.x, bufferSize.x),  // Limit(x)
+                               ComputeViewportLimit(viewportSize.y, bufferSize.y)); // Limit(y)
+        }
+
 
 #if UNITY_EDITOR
         // This function can't be in HDEditorUtils because we need it in HDRenderPipeline.cs (and HDEditorUtils is in an editor asmdef)
@@ -657,31 +681,37 @@ namespace UnityEngine.Rendering.HighDefinition
 
 #endif
 
+        internal static bool IsMacOSVersionAtLeast(string os, int majorVersion, int minorVersion, int patchVersion)
+        {
+            int startIndex = os.LastIndexOf(" ");
+            var parts = os.Substring(startIndex + 1).Split('.');
+            int currentMajorVersion = Convert.ToInt32(parts[0]);
+            int currentMinorVersion = Convert.ToInt32(parts[1]);
+            int currentPatchVersion = Convert.ToInt32(parts[2]);
+
+            if (currentMajorVersion < majorVersion) return false;
+            if (currentMajorVersion > majorVersion) return true;
+            if (currentMinorVersion < minorVersion) return false;
+            if (currentMinorVersion > minorVersion) return true;
+            if (currentPatchVersion < patchVersion) return false;
+            if (currentPatchVersion > patchVersion) return true;
+            return true;
+        }
+
         internal static bool IsOperatingSystemSupported(string os)
         {
             // Metal support depends on OS version:
             // macOS 10.11.x doesn't have tessellation / earlydepthstencil support, early driver versions were buggy in general
             // macOS 10.12.x should usually work with AMD, but issues with Intel/Nvidia GPUs. Regardless of the GPU, there are issues with MTLCompilerService crashing with some shaders
-            // macOS 10.13.x is expected to work, and if it's a driver/shader compiler issue, there's still hope on getting it fixed to next shipping OS patch release
+            // macOS 10.13.x should work, but active development tests against current OS
             //
             // Has worked experimentally with iOS in the past, but it's not currently supported
             //
 
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
             {
-                if (os.StartsWith("Mac"))
-                {
-                    // TODO: Expose in C# version number, for now assume "Mac OS X 10.10.4" format with version 10 at least
-                    int startIndex = os.LastIndexOf(" ");
-                    var parts = os.Substring(startIndex + 1).Split('.');
-                    int a = Convert.ToInt32(parts[0]);
-                    int b = Convert.ToInt32(parts[1]);
-                    // In case in the future there's a need to disable specific patch releases
-                    // int c = Convert.ToInt32(parts[2]);
-
-                    if (a < 10 || b < 13)
-                        return false;
-                }
+                if (os.StartsWith("Mac") && !IsMacOSVersionAtLeast(os, 10, 13, 0))
+                    return false;
             }
 
             return true;
@@ -1000,6 +1030,13 @@ namespace UnityEngine.Rendering.HighDefinition
 
             string msg = "Platform " + currentPlatform + " with device " + graphicAPI + " is not supported with High Definition Render Pipeline, no rendering will occur";
             DisplayUnsupportedMessage(msg);
+        }
+
+        internal static void ReleaseComponentSingletons()
+        {
+            ComponentSingleton<HDAdditionalReflectionData>.Release();
+            ComponentSingleton<HDAdditionalLightData>.Release();
+            ComponentSingleton<HDAdditionalCameraData>.Release();
         }
     }
 }

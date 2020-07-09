@@ -15,11 +15,14 @@ namespace UnityEngine.Rendering.HighDefinition
     /// High Definition Render Pipeline asset.
     /// </summary>
     [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "HDRP-Asset" + Documentation.endURL)]
-    public partial class HDRenderPipelineAsset : RenderPipelineAsset
+    public partial class HDRenderPipelineAsset : RenderPipelineAsset, IVirtualTexturingEnabledRenderPipeline
     {
+        [System.NonSerialized]
+        internal bool isInOnValidateCall = false;
 
         HDRenderPipelineAsset()
         {
+            
         }
 
         void Reset() => OnValidate();
@@ -36,12 +39,16 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         protected override void OnValidate()
         {
+            isInOnValidateCall = true;
+
             //Do not reconstruct the pipeline if we modify other assets.
             //OnValidate is called once at first selection of the asset.
             if (GraphicsSettings.currentRenderPipeline == this)
                 base.OnValidate();
 
             UpdateRenderingLayerNames();
+
+            isInOnValidateCall = false;
         }
 
         [SerializeField]
@@ -252,6 +259,9 @@ namespace UnityEngine.Rendering.HighDefinition
         [SerializeField]
         internal List<string> afterPostProcessCustomPostProcesses = new List<string>();
 
+        [SerializeField]
+        internal VirtualTexturingSettingsSRP virtualTexturingSettings = new VirtualTexturingSettingsSRP();
+
 #if UNITY_EDITOR
         /// <summary>HDRP default material.</summary>
         public override Material defaultMaterial
@@ -361,5 +371,8 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 #endif
+
+        // Implement IVirtualTexturingEnabledRenderPipeline
+        public bool virtualTexturingEnabled { get { return true; } }
     }
 }
