@@ -1,17 +1,40 @@
-# Changelog
+﻿# Changelog
 All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [7.4.3] - 2020-08-06
-
-Version Updated
-The version number for this package has increased due to a version update of a related graphics package.
-
-## [7.4.2] - 2020-08-04
+## [7.5.1] - 2020-09-02
 
 ### Fixed
+- Pre-warm the RTHandle system to reduce the amount of memory allocations and the total memory needed at all points. 
+- Appropriately constraint blend distance of reflection probe while editing with the inspector (case 1248931)
+- Fixed fallback for ray tracing and light layers (1258837).
+- Fixed Sorting Priority not displayed correctly in the DrawRenderers custom pass UI.
+- Fixed default frame settings MSAA toggle for reflection probes (case 1247631)
+- Fixed regression where moving face of the probe gizmo was not moving its position anymore.
+- Remove MSAA debug mode when renderpipeline asset has no MSAA
+- Fixed issue that failed compilation when XR is disabled.
+- Fixed an issue where only one of the two lookdev views would update when changing the default lookdev volume profile
+- Fix Amplitude -> Min/Max parametrization conversion
+- Fixed sky asserts with XR multipass
+- Fixed "Screen position out of view frustum" error when camera is at exactly the planar reflection probe location.
+- Fixed issue when undoing a change in diffuse profile list after deleting the volume profile.
+- Fixed a static lighting flickering issue caused by having an active planar probe in the scene while rendering inspector preview.
+- Fixed an issue where even when set to OnDemand, the sky lighting would still be updated when changing sky parameters.
+- Fixed TAA issue and hardware dynamic resolution.
+- Fixed warning with area mesh (case 1268379)
+- Fixed an issue that lead to corrupted refraction in some scenarios on xbox.
+- Fixed issue in Material Postprocess which may fail due to empty SubAsset.
+- Fixed built-in shaders when using XR single-pass (1268962).
+
+### Changed
+- The `CustomPassLoadCameraColor` and `CustomPassSampleCameraColor` functions now returns the correct color buffer when used in after post process instead of the color pyramid (which didn't had post processes).
+
+## [7.4.3] - 2020-08-06
+
+### Fixed
+- Fixed a bug where connections to the `Normal` slot on *Stack Lit Master* node would be lost when changing normal space. 
 - Fixed an issue where manipulating the color wheels in a volume component would reset the cursor every time.
 - Fixed an issue where static sky lighting would not be updated for a new scene until it's reloaded at least once.
 - Fixed missing include guards in shadow hlsl files.
@@ -364,6 +387,7 @@ The version number for this package has increased due to a version update of a r
 - Fixed light layers not correctly disabled when the lightlayers is set to Nothing and Lightlayers isn't enabled in HDRP Asset
 - Fixed a wrong condition in CameraSwitcher, potentially causing out of bound exceptions.
 - Fixed an issue where editing the Look Dev default profile would not reflect directly in the Look Dev window.
+- Fix supported Mac platform detection to handle new major version (11.0) properly
 
 ### Changed
 - Hide unused LOD settings in Quality Settings legacy window.
