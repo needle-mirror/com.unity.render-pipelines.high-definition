@@ -2,9 +2,15 @@
 
 The **Screen Space Reflection** (SSR) override is a High Definition Render Pipeline (HDRP) feature that uses the depth and color buffer of the screen to calculate reflections. For information about how SSR works in HDRP, see the [reflection documentation](Reflection-in-HDRP.md#ScreenSpaceReflection).
 
-## Using Screen Space Reflection
+## Enabling Screen Space Reflection
 
-To use SSR in your Scene, you must enable it for your Cameras. In the Inspector for your [HDRP Asset](HDRP-Asset.md), go to the **Default Frame Settings > Lighting > Reflections** section and enable the **Screen Space Reflection** checkbox.
+[!include[](snippets/Volume-Override-Enable.md)]
+
+For this feature:
+The property to enable in your HDRP Asset is: **Lighting > Reflections > Screen Space Reflection**.
+The property to enable in your Frame Settings is: **Lighting > Screen Space Reflection**.
+
+## Using Screen Space Reflection
 
 HDRP uses the [Volume](Volumes.md) framework to calculate SSR, so to enable and modify SSR properties, you must add a **Screen Space Reflection** override to a [Volume](Volumes.md) in your Scene. To add **Screen Space Reflection** to a Volume:
 
@@ -16,6 +22,8 @@ HDRP uses the [Volume](Volumes.md) framework to calculate SSR, so to enable and 
 
 ![](Images/Override-ScreenSpaceReflection1.png)
 
+[!include[](snippets/Volume-Override-Enable-Properties.md)]
+
 | **Property**                  | **Description**                                              |
 | ----------------------------- | ------------------------------------------------------------ |
 | **Screen Edge Fade Distance** | Use the slider to control the distance at which HDRP fades out screen space reflections when the destination of the ray is near the boundaries of the screen. Increase this value to increase the distance from the screen edge at which HDRP fades out screen space reflections for a ray destination. |
@@ -24,3 +32,10 @@ HDRP uses the [Volume](Volumes.md) framework to calculate SSR, so to enable and 
 | **Min Smoothness**            | Use the slider to set the minimum amount of surface smoothness at which HDRP performs SSR tracing. Lower values result in HDRP performing SSR tracing for less smooth GameObjects. |
 | **Smoothness Fade Start**     | Use the slider to set the smoothness value at which SSR reflections begin to fade out. Lower values result in HDRP fading out SSR reflections for less smooth GameObjects |
 | **Reflect Sky**               | Indicates whether HDRP should use SSR to handle sky reflection. If you disable this property, pixels that reflect the sky use the next level of the [reflection hierarchy](Reflection-in-HDRP.md#ReflectionHierarchy).<br />**Note**: SSR uses the depth buffer to calculate reflection and HDRP does not add transparent GameObjects to the depth buffer. If you enable this property, transparent GameObject that appear over the sky in the color buffer can cause visual artifacts and incorrect looking reflection. This is a common limitation for SSR techniques. |
+
+## Limitations
+
+To calculate SSR, HDRP reads a color buffer with a blurred mipmap generated during the previous frame. Depending on your [HDRP Asset](HDRP-Asset.md) settings, the content of this color buffer may vary.
+- With **Rough Refraction** enabled and **Distortion** disabled, the color buffer only includes transparent GameObjects that use the **BeforeRefraction** [Rendering Pass](Surface-Type.md). 
+- With both **Rough Refraction** and **Distortion** enabled, the color buffer includes all transparent GameObjects.
+- With both **Rough Refraction** and **Distortion** disabled, the color buffer includes all transparent GameObjects.

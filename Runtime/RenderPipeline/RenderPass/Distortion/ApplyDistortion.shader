@@ -11,6 +11,7 @@ Shader "Hidden/HDRP/ApplyDistortion"
         #pragma target 4.5
         #pragma only_renderers d3d11 playstation xboxone vulkan metal switch
         #pragma editor_sync_compilation
+
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Builtin/BuiltinData.hlsl"
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
@@ -60,13 +61,6 @@ Shader "Hidden/HDRP/ApplyDistortion"
             bool distortionIsSourceValid;
             DecodeDistortion(encodedDistortion, distortion, distortionBlur, distortionIsSourceValid);
 
-            // Reject the pixel if it is not in the distortion mask
-            if (!distortionIsSourceValid)
-            {
-                discard;
-                return 0;
-            }
-
             int2 distortedEncodedDistortionId = input.positionCS.xy + int2(distortion);
 
             // Reject distortion if we try to fetch a pixel out of the buffer
@@ -94,8 +88,8 @@ Shader "Hidden/HDRP/ApplyDistortion"
 
             // Get source pixel for distortion
             float2 distordedUV = float2(input.positionCS.xy + distortion * _FetchBias) * _Size.zw;
-            float mip = (_ColorPyramidScale.z - 1) * clamp(distortionBlur, 0.0, 1.0);
-            float4 sampled = SAMPLE_TEXTURE2D_X_LOD(_ColorPyramidTexture, s_trilinear_clamp_sampler, distordedUV * _ColorPyramidScale.xy, mip);
+            float mip = (_ColorPyramidLodCount - 1) * clamp(distortionBlur, 0.0, 1.0);
+            float4 sampled = SAMPLE_TEXTURE2D_X_LOD(_ColorPyramidTexture, s_trilinear_clamp_sampler, distordedUV * _RTHandleScaleHistory.xy, mip);
 
             return sampled;
         }
@@ -110,7 +104,7 @@ Shader "Hidden/HDRP/ApplyDistortion"
             Stencil
             {
                 WriteMask [_StencilMask]
-                ReadMask [_StencilMask] 
+                ReadMask [_StencilMask]
                 Ref  [_StencilRef]
                 Comp Equal
                 Pass Zero   // We can clear the bit since we won't need anymore.

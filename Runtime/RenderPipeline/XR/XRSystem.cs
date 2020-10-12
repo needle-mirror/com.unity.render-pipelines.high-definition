@@ -39,13 +39,6 @@ namespace UnityEngine.Rendering.HighDefinition
         MaterialPropertyBlock mirrorViewMaterialProperty = new MaterialPropertyBlock();
 #endif
 
-        // Set by test framework
-        internal static bool automatedTestRunning = false;
-
-        // Used by test framework and to enable debug features
-        static bool testModeEnabledInitialization { get => Array.Exists(Environment.GetCommandLineArgs(), arg => arg == "-xr-tests"); }
-        internal static bool testModeEnabled = testModeEnabledInitialization;
-
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
         internal static bool dumpDebugInfo = false;
         internal static List<string> passDebugInfos = new List<string>(8);
@@ -76,12 +69,17 @@ namespace UnityEngine.Rendering.HighDefinition
         	if (GraphicsSettings.currentRenderPipeline == null)
                 return;
 
+        #if UNITY_2020_2_OR_NEWER
+            SubsystemManager.GetSubsystems(displayList);
+        #else
             SubsystemManager.GetInstances(displayList);
+        #endif
 
             for (int i = 0; i < displayList.Count; i++)
             {
                 displayList[i].disableLegacyRenderer = true;
                 displayList[i].sRGB = true;
+                displayList[i].textureLayout = XRDisplaySubsystem.TextureLayout.Texture2DArray;
             }
         }
 #endif
@@ -99,13 +97,16 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 #endif
 
-            if (testModeEnabled)
+            if (XRGraphicsAutomatedTests.enabled)
                 maxViews = Math.Max(maxViews, 2);
 
             return maxViews;
         }
-
+#if UNITY_2021_1_OR_NEWER
+        internal List<(Camera, XRPass)> SetupFrame(List<Camera> cameras, bool singlePassAllowed, bool singlePassTestModeActive)
+#else
         internal List<(Camera, XRPass)> SetupFrame(Camera[] cameras, bool singlePassAllowed, bool singlePassTestModeActive)
+#endif
         {
             bool xrActive = RefreshXrSdk();
 
@@ -115,10 +116,9 @@ namespace UnityEngine.Rendering.HighDefinition
                 ReleaseFrame();
             }
 
-            if ((singlePassTestModeActive || automatedTestRunning) && testModeEnabled)
-                SetCustomLayout(LayoutSinglePassTestMode);
-            else
-                SetCustomLayout(null);
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            bool singlePassTestMode = (singlePassTestModeActive || XRGraphicsAutomatedTests.running) && XRGraphicsAutomatedTests.enabled;
+#endif
 
             foreach (var camera in cameras)
             {
@@ -128,17 +128,32 @@ namespace UnityEngine.Rendering.HighDefinition
                 // Enable XR layout only for gameview camera
                 bool xrSupported = camera.cameraType == CameraType.Game && camera.targetTexture == null && HDUtils.TryGetAdditionalCameraDataOrDefault(camera).xrRendering;
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+                if (singlePassTestMode && LayoutSinglePassTestMode(new XRLayout() { camera = camera, xrSystem = this }))
+                {
+                    // single-pass test layout in used
+                }
+                else
+#endif
                 if (customLayout != null && customLayout(new XRLayout() { camera = camera, xrSystem = this }))
                 {
                     // custom layout in used
                 }
+#if ENABLE_VR && ENABLE_XR_MODULE
                 else if (xrActive && xrSupported)
                 {
                     // Disable vsync on the main display when rendering to a XR device
                     QualitySettings.vSyncCount = 0;
 
+                    if(display != null)
+                    {
+                        display.zNear = camera.nearClipPlane;
+                        display.zFar = camera.farClipPlane;
+                    }
+
                     CreateLayoutFromXrSdk(camera, singlePassAllowed);
                 }
+#endif
                 else
                 {
                     AddPassToFrame(camera, emptyPass);
@@ -164,7 +179,12 @@ namespace UnityEngine.Rendering.HighDefinition
         bool RefreshXrSdk()
         {
 #if ENABLE_VR && ENABLE_XR_MODULE
+
+        #if UNITY_2020_2_OR_NEWER
+            SubsystemManager.GetSubsystems(displayList);
+        #else
             SubsystemManager.GetInstances(displayList);
+        #endif
 
             if (displayList.Count > 0)
             {
@@ -333,6 +353,7 @@ namespace UnityEngine.Rendering.HighDefinition
 #endif
         }
 
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
         bool LayoutSinglePassTestMode(XRLayout frameLayout)
         {
             Camera camera = frameLayout.camera;
@@ -383,5 +404,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             return false;
         }
+#endif
     }
 }

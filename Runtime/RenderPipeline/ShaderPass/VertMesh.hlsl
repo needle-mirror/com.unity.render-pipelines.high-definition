@@ -11,9 +11,23 @@ struct PackedVaryingsToPS
 #ifdef VARYINGS_NEED_PASS
     PackedVaryingsPassToPS vpass;
 #endif
+
     PackedVaryingsMeshToPS vmesh;
 
+    // SGVs must be packed after all non-SGVs have been packed.
+    // If there are several SGVs, they are packed in the order of HLSL declaration.
+
     UNITY_VERTEX_OUTPUT_STEREO
+
+#if defined(PLATFORM_SUPPORTS_PRIMITIVE_ID_IN_PIXEL_SHADER) && SHADER_STAGE_FRAGMENT
+#if (defined(VARYINGS_NEED_PRIMITIVEID) || (SHADERPASS == SHADERPASS_FULLSCREEN_DEBUG))
+    uint primitiveID : SV_PrimitiveID;
+#endif
+#endif
+
+#if defined(VARYINGS_NEED_CULLFACE) && SHADER_STAGE_FRAGMENT
+    FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+#endif
 };
 
 PackedVaryingsToPS PackVaryingsToPS(VaryingsToPS input)
@@ -26,6 +40,23 @@ PackedVaryingsToPS PackVaryingsToPS(VaryingsToPS input)
 
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
     return output;
+}
+
+FragInputs UnpackVaryingsToFragInputs(PackedVaryingsToPS packedInput)
+{
+    FragInputs input = UnpackVaryingsMeshToFragInputs(packedInput.vmesh);
+
+#if defined(PLATFORM_SUPPORTS_PRIMITIVE_ID_IN_PIXEL_SHADER) && SHADER_STAGE_FRAGMENT
+#if (defined(VARYINGS_NEED_PRIMITIVEID) || (SHADERPASS == SHADERPASS_FULLSCREEN_DEBUG))
+    input.primitiveID = packedInput.primitiveID;
+#endif
+#endif
+
+#if defined(VARYINGS_NEED_CULLFACE) && SHADER_STAGE_FRAGMENT
+    input.isFrontFace = IS_FRONT_VFACE(packedInput.cullFace, true, false);
+#endif
+
+    return input;
 }
 
 #ifdef TESSELLATION_ON
@@ -120,7 +151,7 @@ VaryingsMeshType VertMesh(AttributesMesh input)
     float4 tangentWS = float4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w);
 #endif
 
-     // Do vertex modification in camera relative space (if enable)
+    // Do vertex modification in camera relative space (if enable)
 #if defined(HAVE_VERTEX_MODIFICATION)
     ApplyVertexModification(input, normalWS, positionRWS, _TimeParameters.xyz);
 #endif
@@ -128,19 +159,23 @@ VaryingsMeshType VertMesh(AttributesMesh input)
 #ifdef TESSELLATION_ON
     output.positionRWS = positionRWS;
     output.normalWS = normalWS;
-    #if defined(VARYINGS_NEED_TANGENT_TO_WORLD) || defined(VARYINGS_DS_NEED_TANGENT)
+#if defined(VARYINGS_NEED_TANGENT_TO_WORLD) || defined(VARYINGS_DS_NEED_TANGENT)
     output.tangentWS = tangentWS;
-    #endif
-#else
-    #ifdef VARYINGS_NEED_POSITION_WS
+#endif
+#else // TESSELLATION_ON
+#ifdef VARYINGS_NEED_POSITION_WS
     output.positionRWS = positionRWS;
-    #endif
+#endif
     output.positionCS = TransformWorldToHClip(positionRWS);
-    #ifdef VARYINGS_NEED_TANGENT_TO_WORLD
+#ifdef VARYINGS_NEED_TANGENT_TO_WORLD
     output.normalWS = normalWS;
     output.tangentWS = tangentWS;
-    #endif
 #endif
+#if !defined(SHADER_API_METAL) && defined(SHADERPASS) && (SHADERPASS == SHADERPASS_FULLSCREEN_DEBUG)
+    if (_DebugFullScreenMode == FULLSCREENDEBUGMODE_VERTEX_DENSITY)
+        IncrementVertexDensityCounter(output.positionCS);
+#endif
+#endif // TESSELLATION_ON
 
 #if defined(VARYINGS_NEED_TEXCOORD0) || defined(VARYINGS_DS_NEED_TEXCOORD0)
     output.texCoord0 = input.uv0;
@@ -171,6 +206,11 @@ VaryingsMeshToPS VertMeshTesselation(VaryingsMeshToDS input)
     UNITY_TRANSFER_INSTANCE_ID(input, output);
 
     output.positionCS = TransformWorldToHClip(input.positionRWS);
+
+#if !defined(SHADER_API_METAL) && defined(SHADERPASS) && (SHADERPASS == SHADERPASS_FULLSCREEN_DEBUG)
+    if (_DebugFullScreenMode == FULLSCREENDEBUGMODE_VERTEX_DENSITY)
+        IncrementVertexDensityCounter(output.positionCS);
+#endif
 
 #ifdef VARYINGS_NEED_POSITION_WS
     output.positionRWS = input.positionRWS;
