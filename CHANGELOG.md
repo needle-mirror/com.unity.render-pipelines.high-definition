@@ -4,6 +4,37 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [7.5.2] - 2020-11-16
+
+### Added
+- Added a warning when trying to bake with static lighting being in an invalid state.
+
+### Fixed
+- Fixed a null ref exception when baking reflection probes.
+- Fixed shadow resolution settings level in the light explorer.
+- Fixed rendering of custom passes in the Custom Pass Volume inspector
+- Fixed issue with volume manager trying to access a null volume.
+- Fixed an issue that caused a null reference when deleting camera component in a prefab. (case 1244430)
+- Fixed nan in pbr sky
+- Fixed Light skin not properly applied on the LookDev when switching from Dark Skin (case 1278802)
+- Fixed Custom Post Processes affecting preview cameras.
+- Fixed serialization issue with matcap scale intensity.
+- Fixed XR shadows culling
+- Fixed volument component creation via script.
+- Fixed issue with exposure history being uninitialized on second frame.
+- Fixed error Maximum allowed thread group count is 65535 when resolution is very high. 
+- Fixed an issue with opaque material using a shader graph with Transparent SurfaceType selected. FPTL was not working for this case.
+- Fixed NullReferenceException when loading multipel scene async
+- Fixed an issue where a warning about the static sky not being ready was wrongly displayed.
+- Fixed NullReferenceException in HDRenderPipeline.UpgradeResourcesIfNeeded (case 1292524)
+- VFX : Debug material view were rendering pink for albedo. (case 1290752)
+- Fixed NaNs happening when upscaling ray tracing reflections in performance mode (case 1294076).
+- Fixed LayeredLit shader compilation issue with metal shader and raytracing
+- Fixed nan in reflection probe when volumetric fog filtering is enabled, causing the whole probe to be invalid.
+
+### Changed
+- Removed XRSystemTests. The GC verification is now done during playmode tests (case 1285012).
+
 ## [7.5.1] - 2020-09-02
 
 ### Fixed
