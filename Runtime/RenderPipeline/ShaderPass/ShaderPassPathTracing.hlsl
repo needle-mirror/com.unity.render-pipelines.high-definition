@@ -54,11 +54,6 @@ void ComputeSurfaceScattering(inout PathIntersection pathIntersection : SV_RayPa
     posInput.positionWS = fragInput.positionRWS;
     posInput.positionSS = pathIntersection.pixelCoord;
 
-    // For path tracing, we want the front-facing test to be performed on the actual geometric normal
-    float3 geomNormal;
-    GetCurrentIntersectionGeometricNormal(attributeData, geomNormal);
-    fragInput.isFrontFace = dot(WorldRayDirection(), geomNormal) < 0.0;
-
     // Build the surfacedata and builtindata
     SurfaceData surfaceData;
     BuiltinData builtinData;
@@ -80,11 +75,7 @@ void ComputeSurfaceScattering(inout PathIntersection pathIntersection : SV_RayPa
 
 #ifndef SHADER_UNLIT
 
-    // Override the geometric normal (otherwise, it is merely the non-mapped smooth normal)
-    // Also make sure that it is in the same hemisphere as the shading normal (which may have been flipped)
-    bsdfData.geomNormalWS = dot(bsdfData.normalWS, geomNormal) > 0.0 ? geomNormal : -geomNormal;
-
-    // Compute the world space position (the non-camera relative one if camera relative rendering is enabled)
+    // Let's compute the world space position (the non-camera relative one if camera relative rendering is enabled)
     float3 shadingPosition = fragInput.positionRWS;
 
     // Get current path throughput
@@ -101,7 +92,7 @@ void ComputeSurfaceScattering(inout PathIntersection pathIntersection : SV_RayPa
     #ifdef _SURFACE_TYPE_TRANSPARENT
         float3 lightNormal = 0.0;
     #else
-        float3 lightNormal = mtlData.bsdfData.normalWS;
+        float3 lightNormal = mtlData.bsdfData.geomNormalWS;
     #endif
         LightList lightList = CreateLightList(shadingPosition, lightNormal, builtinData.renderingLayers);
 
@@ -209,8 +200,7 @@ void ComputeSurfaceScattering(inout PathIntersection pathIntersection : SV_RayPa
     if (builtinData.opacity < 1.0)
     {
         RayDesc rayDescriptor;
-        float bias = dot(WorldRayDirection(), fragInput.tangentToWorld[2]) > 0.0 ? _RaytracingRayBias : -_RaytracingRayBias;
-        rayDescriptor.Origin = fragInput.positionRWS + bias * fragInput.tangentToWorld[2];
+        rayDescriptor.Origin = GetAbsolutePositionWS(fragInput.positionRWS) - fragInput.tangentToWorld[2] * _RaytracingRayBias;
         rayDescriptor.Direction = WorldRayDirection();
         rayDescriptor.TMin = 0.0;
         rayDescriptor.TMax = FLT_INF;

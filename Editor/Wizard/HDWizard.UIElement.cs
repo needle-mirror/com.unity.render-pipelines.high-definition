@@ -1,11 +1,10 @@
 using UnityEngine;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor.Experimental;
@@ -59,7 +58,7 @@ namespace UnityEditor.Rendering.HighDefinition
 #else
                     Expression.Call(objectSelectorVariable, showInfo, objectParameter, typeParameter, Expression.Constant(null, typeof(SerializedProperty)), Expression.Constant(false), Expression.Constant(null, typeof(List<int>)), Expression.Constant(null, typeof(Action<UnityEngine.Object>)), onChangedObjectParameter)
 #endif
-                    );
+                );
                 var showObjectSelectorLambda = Expression.Lambda<Action<UnityEngine.Object, Type, Action<UnityEngine.Object>>>(showObjectSelectorBlock, objectParameter, typeParameter, onChangedObjectParameter);
                 ShowObjectSelector = showObjectSelectorLambda.Compile();
 
@@ -86,6 +85,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 ObjectSelector.s_OnClose = onClose;
                 EditorApplication.update += CheckClose;
             }
+
             static void CheckClose()
             {
                 if (!opened)
@@ -146,15 +146,32 @@ namespace UnityEditor.Rendering.HighDefinition
                     onCancel?.Invoke();
                     break;
                 case 2: //Load
-                    {
-                        m_Fixer.Pause();
-                        ObjectSelector.Show(target, typeof(T), o => onObjectChanged?.Invoke((T)o), m_Fixer.Unpause);
-                        break;
-                    }
+                {
+                    m_Fixer.Pause();
+                    ObjectSelector.Show(target, typeof(T), o => onObjectChanged?.Invoke((T)o), m_Fixer.Unpause);
+                    break;
+                }
 
                 default:
                     throw new ArgumentException("Unrecognized option");
             }
+        }
+
+        void Repopulate()
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/" + HDProjectSettings.projectSettingsFolderPath))
+                AssetDatabase.CreateFolder("Assets", HDProjectSettings.projectSettingsFolderPath);
+
+            var hdrpAsset = ScriptableObject.CreateInstance<HDRenderPipelineAsset>();
+            hdrpAsset.name = "HDRenderPipelineAsset";
+
+            AssetDatabase.CreateAsset(hdrpAsset, "Assets/" + HDProjectSettings.projectSettingsFolderPath + "/" + hdrpAsset.name + ".asset");
+
+            GraphicsSettings.renderPipelineAsset = hdrpAsset;
+            if (!IsHdrpAssetRuntimeResourcesCorrect())
+                FixHdrpAssetRuntimeResources(true);
+            if (!IsHdrpAssetEditorResourcesCorrect())
+                FixHdrpAssetEditorResources(true);
         }
 
         #endregion
@@ -163,8 +180,8 @@ namespace UnityEditor.Rendering.HighDefinition
 
         class ToolbarRadio : UIElements.Toolbar, INotifyValueChanged<int>
         {
-            public new class UxmlFactory : UxmlFactory<ToolbarRadio, UxmlTraits> { }
-            public new class UxmlTraits : Button.UxmlTraits { }
+            public new class UxmlFactory : UxmlFactory<ToolbarRadio, UxmlTraits> {}
+            public new class UxmlTraits : Button.UxmlTraits {}
 
             List<ToolbarToggle> radios = new List<ToolbarToggle>();
 
@@ -227,7 +244,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 {
                     radios[radioLength - 1].RemoveFromClassList("LastRadio");
                 }
-                foreach (var (label, tooltip) in tabs)
+                foreach (var(label, tooltip) in tabs)
                     AddRadio(label, tooltip);
 
                 radios[radioLength - 1].AddToClassList("LastRadio");
@@ -301,14 +318,14 @@ namespace UnityEditor.Rendering.HighDefinition
 
         class HiddableUpdatableContainer : VisualElementUpdatable
         {
-            public HiddableUpdatableContainer(Func<bool> tester, bool haveFixer = false) : base(tester, haveFixer) { }
+            public HiddableUpdatableContainer(Func<bool> tester, bool haveFixer = false) : base(tester, haveFixer) {}
 
             public override void CheckUpdate()
             {
                 base.CheckUpdate();
                 if (currentStatus)
                 {
-                    foreach (VisualElementUpdatable updatable in Children().Where(e => e is VisualElementUpdatable))
+                    foreach (VisualElementUpdatable updatable in Children())
                         updatable.CheckUpdate();
                 }
             }
@@ -366,10 +383,10 @@ namespace UnityEditor.Rendering.HighDefinition
                     testRow.Add(statusKO);
                 }
                 testRow.Add(fixer);
-                
+
                 Add(testRow);
                 HelpBox.Kind kind;
-                switch(messageType)
+                switch (messageType)
                 {
                     default:
                     case MessageType.None: kind = HelpBox.Kind.None; break;
@@ -394,17 +411,17 @@ namespace UnityEditor.Rendering.HighDefinition
                         this.Q(name: "StatusError").style.display = DisplayStyle.None;
                     }
                     this.Q(name: "Resolver").style.display = DisplayStyle.None;
-                    this.Q(className: "HelpBox").style.display = DisplayStyle.None;
+                    this.Q(name: "HelpBox").style.display = DisplayStyle.None;
                 }
                 else
                 {
                     if (m_VisibleStatus)
                     {
                         this.Q(name: "StatusOK").style.display = statusOK ? DisplayStyle.Flex : DisplayStyle.None;
-                        this.Q(name: "StatusError").style.display = !statusOK ? (m_SkipErrorIcon ? DisplayStyle.None: DisplayStyle.Flex) : DisplayStyle.None;
+                        this.Q(name: "StatusError").style.display = !statusOK ? (m_SkipErrorIcon ? DisplayStyle.None : DisplayStyle.Flex) : DisplayStyle.None;
                     }
                     this.Q(name: "Resolver").style.display = statusOK || !haveFixer ? DisplayStyle.None : DisplayStyle.Flex;
-                    this.Q(className: "HelpBox").style.display = statusOK ? DisplayStyle.None : DisplayStyle.Flex;
+                    this.Q(name: "HelpBox").style.display = statusOK ? DisplayStyle.None : DisplayStyle.Flex;
                 }
             }
         }
@@ -418,7 +435,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 Warning,
                 Error
             }
-            
+
             readonly Label label;
             readonly Image icon;
 
@@ -466,7 +483,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 this.label = new Label(message);
                 icon = new Image();
 
-                AddToClassList("HelpBox");
+                name = "HelpBox";
                 Add(icon);
                 Add(this.label);
 
@@ -490,29 +507,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
             protected override void UpdateDisplay(bool statusOK, bool haveFixer)
                 => this.Q(name: "FixAll").style.display = statusOK ? DisplayStyle.None : DisplayStyle.Flex;
-        }
-
-        class ScopeBox : VisualElementUpdatable
-        {
-            readonly Label label;
-            bool initTitleBackground;
-
-            public ScopeBox(string title) : base (null, false)
-            {
-                label = new Label(title);
-                label.name = "Title";
-                AddToClassList("ScopeBox");
-                Add(label);
-            }
-            
-            public override void CheckUpdate()
-            {                
-                foreach (VisualElementUpdatable updatable in Children().Where(e => e is VisualElementUpdatable))
-                    updatable.CheckUpdate();
-            }
-
-            protected override void UpdateDisplay(bool statusOK, bool haveFixer)
-            { }
         }
 
         #endregion

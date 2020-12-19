@@ -3,7 +3,7 @@
     width: 12px;
     height: 12px;
     position: absolute;
-    right: 10px;
+    left: 425px;
 }
 
 #DefaultResourceFolder > Label, #NewScene > Label, #NewDXRScene > Label
@@ -24,7 +24,7 @@
     margin-top: -4px;
 }
 
-.HelpBox
+#HelpBox
 {
     margin: 10px;
     margin-top: 5px;
@@ -35,7 +35,7 @@
     flex-shrink: 1;
 }
 
-.HelpBox > Image
+#HelpBox > Image
 {
     margin-top: -7px;
     margin-bottom: -7px;
@@ -46,7 +46,7 @@
     align-self: center;
 }
 
-.HelpBox > Label
+#HelpBox > Label
 {
     -unity-text-align: middle-left;
     white-space: normal;
@@ -59,12 +59,12 @@
     margin-top: 5px;
 }
 
-#FixAllWarning
+#FixAll
 {
-    margin-bottom: -8px
+    margin-top: 10px;
 }
 
-#FixAll
+HiddableUpdatableContainer
 {
     margin-top: 10px;
 }
@@ -73,7 +73,7 @@
 {
     margin: 10px;
     margin-top: 0px;
-    margin-bottom: 0px;
+    margin-bottom: 15px;
     border-radius: 3px;
 }
 
@@ -124,57 +124,39 @@ ToolbarRadio
     border-top-right-radius: 3px;
 }
 
-#DefaultResourceFolder
+#ResourceRow
 {
-    margin-right: 10px;
+    flex-direction:row;
 }
 
-.RightAnchoredButton
+#DefaultResourceFolder
+{
+    flex: 1;
+    margin-right: 130px;
+}
+
+#Repopulate
 {
     position: absolute;
     right: 0px;
-    width: 114px;
-    margin-top: 0px;
-    margin-right: 10px;
+    width: 120px;
 }
 
-.LargeButton
+#LargeButton
 {
     margin-left: 20px;
     margin-right: 20px;
 }
 
-#HDRPVersionContainer
-{
-    flex-direction: row;
-    margin-top: 10px;
-    padding-top: 3px;
-    padding-bottom: 3px;
-    padding-left: 3px;
-}
-
-.ScopeBox
-{
-    border-width: 1px;
-    border-radius: 3px;
-    margin: 0px;
-    margin-top: 12px;
-    padding: 7px;
-}
-
-.ScopeBox > #Title
-{
-    margin-top: -17px;
-    align-self: center;
-    width: 200px;
-    font-size: 14px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
-}
 
 /* spacing between categories */
 
-#WizardCheckbox, .h1
+#NewDXRScene, #InstallConfigPackageArea
+{
+    margin-bottom: 15px;
+}
+
+#WizardCheckbox
 {
     margin-top: 15px;
 }

@@ -44,8 +44,8 @@ namespace UnityEngine.Rendering.HighDefinition
         SSGIPass,
         SSGITrace,
         SSGIDenoise,
-        SSGIUpscale,
         SSGIConvert,
+        SSGIUpscale,
 
         ForwardEmissive,
         ForwardOpaque,

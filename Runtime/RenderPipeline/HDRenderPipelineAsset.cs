@@ -31,7 +31,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
         HDRenderPipelineAsset()
         {
-
         }
 
         void Reset() => OnValidate();
@@ -146,7 +145,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         internal ref FrameSettings GetDefaultFrameSettings(FrameSettingsRenderType type)
         {
-            switch(type)
+            switch (type)
             {
                 case FrameSettingsRenderType.Camera:
                     return ref m_RenderingPathDefaultCameraFrameSettings;
@@ -355,9 +354,6 @@ namespace UnityEngine.Rendering.HighDefinition
         public override Shader terrainDetailGrassBillboardShader
             => renderPipelineEditorResources?.shaders.terrainDetailGrassBillboardShader;
 
-        public override Shader defaultSpeedTree8Shader
-            => renderPipelineEditorResources?.shaderGraphs.defaultSpeedTree8Shader;
-
         // Note: This function is HD specific
         /// <summary>HDRP default Decal material.</summary>
         public Material GetDefaultDecalMaterial()
@@ -436,6 +432,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 return false;
             }
         }
+
 #endif
 
         /// <summary>

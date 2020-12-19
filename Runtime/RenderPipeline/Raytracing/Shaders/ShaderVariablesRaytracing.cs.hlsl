@@ -1,5 +1,5 @@
 //
-// This file was automatically generated. Please don't edit by hand. Execute Editor command [ Edit / Render Pipeline / Generate Shader Includes ] instead
+// This file was automatically generated. Please don't edit by hand.
 //
 
 #ifndef SHADERVARIABLESRAYTRACING_CS_HLSL
@@ -22,7 +22,6 @@ GLOBAL_CBUFFER_START(ShaderVariablesRaytracing, b3)
     int _RaytracingMinRecursion;
     int _RaytracingMaxRecursion;
     int _RayTracingDiffuseLightingOnly;
-    float _DirectionalShadowFallbackIntensity;
 CBUFFER_END
 
 

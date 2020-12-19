@@ -32,7 +32,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     mat.shader = litShader;
                     // We remove all keyword already present
                     CoreEditorUtils.RemoveMaterialKeywords(mat);
-                    LitGUI.SetupMaterialKeywordsAndPass(mat);
+                    LitGUI.SetupLitKeywordsAndPass(mat);
                     EditorUtility.SetDirty(mat);
                 }
                 else if (mat.shader.name == "HDRP/LayeredLitTessellation")
@@ -40,7 +40,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     mat.shader = layeredLitShader;
                     // We remove all keyword already present
                     CoreEditorUtils.RemoveMaterialKeywords(mat);
-                    LayeredLitGUI.SetupMaterialKeywordsAndPass(mat);
+                    LayeredLitGUI.SetupLayeredLitKeywordsAndPass(mat);
                     EditorUtility.SetDirty(mat);
                 }
             }
@@ -181,14 +181,14 @@ namespace UnityEditor.Rendering.HighDefinition
             ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, ScriptableObject.CreateInstance<DoCreateNewAssetDiffusionProfileSettings>(), "New Diffusion Profile.asset", icon, null);
         }
 
-        [MenuItem("Assets/Create/Shader/HD Render Pipeline/Custom FullScreen Pass")]
+        [MenuItem("Assets/Create/Shader/HDRP/Custom FullScreen Pass")]
         static void MenuCreateCustomFullScreenPassShader()
         {
             string templatePath = $"{HDUtils.GetHDRenderPipelinePath()}/Editor/RenderPipeline/CustomPass/CustomPassFullScreenShader.template";
             ProjectWindowUtil.CreateScriptAssetFromTemplateFile(templatePath, "New FullScreen CustomPass.shader");
         }
 
-        [MenuItem("Assets/Create/Shader/HD Render Pipeline/Custom Renderers Pass")]
+        [MenuItem("Assets/Create/Shader/HDRP/Custom Renderers Pass")]
         static void MenuCreateCustomRenderersPassShader()
         {
             string templatePath = $"{HDUtils.GetHDRenderPipelinePath()}/Editor/RenderPipeline/CustomPass/CustomPassRenderersShader.template";
@@ -209,11 +209,11 @@ namespace UnityEditor.Rendering.HighDefinition
             ProjectWindowUtil.CreateScriptAssetFromTemplateFile(templatePath, "New Post Process Volume.cs");
         }
 
-        [MenuItem("Assets/Create/Shader/HD Render Pipeline/Post Process", priority = CoreUtils.assetCreateMenuPriority3)]
+        [MenuItem("Assets/Create/Shader/HDRP/Post Process", priority = CoreUtils.assetCreateMenuPriority3)]
         static void MenuCreatePostProcessShader()
         {
             string templatePath = $"{HDUtils.GetHDRenderPipelinePath()}/Editor/PostProcessing/Templates/CustomPostProcessingShader.template";
-            ProjectWindowUtil.CreateScriptAssetFromTemplateFile(templatePath, "New Post Process Volume.shader");
+            ProjectWindowUtil.CreateScriptAssetFromTemplateFile(templatePath, "New Post Process Shader.shader");
         }
 
         //[MenuItem("Internal/HDRP/Add \"Additional Light-shadow Data\" (if not present)")]
@@ -308,7 +308,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             try
             {
-                var scenes = AssetDatabase.FindAssets("t:Scene", new string[]{ "Assets" });
+                var scenes = AssetDatabase.FindAssets("t:Scene", new string[] { "Assets" });
                 var scale = 1f / Mathf.Max(1, scenes.Length);
                 for (var i = 0; i < scenes.Length; ++i)
                 {
@@ -343,7 +343,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         static void ResetAllMaterialAssetsKeywords(float progressScale, float progressOffset)
         {
-            var matIds = AssetDatabase.FindAssets("t:Material", new string[]{ "Assets" }); // do not include packages
+            var matIds = AssetDatabase.FindAssets("t:Material", new string[] { "Assets" }); // do not include packages
 
             bool VCSEnabled = (UnityEditor.VersionControl.Provider.enabled && UnityEditor.VersionControl.Provider.isActive);
 
@@ -428,7 +428,6 @@ namespace UnityEditor.Rendering.HighDefinition
             // Flag that holds
             bool generalErrorFlag = false;
             var rendererArray = UnityEngine.GameObject.FindObjectsOfType<Renderer>();
-            var lodGroupArray = UnityEngine.GameObject.FindObjectsOfType<LODGroup>();
             List<Material> materialArray = new List<Material>(32);
             ReflectionProbe reflectionProbe = new ReflectionProbe();
 
@@ -441,7 +440,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 currentRenderer.GetSharedMaterials(materialArray);
                 if (materialArray == null)
                 {
-                    Debug.LogWarning("The object "+ currentRenderer.name + " has a null material array.");
+                    Debug.LogWarning("The object " + currentRenderer.name + " has a null material array.");
                     generalErrorFlag = true;
                     continue;
                 }
@@ -481,8 +480,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
                 bool materialIsOnlyTransparent = true;
                 bool hasTransparentSubMaterial = false;
-                bool singleSided = true;
-                bool hasSingleSided = false;
 
                 for (int meshIdx = 0; meshIdx < numSubMeshes; ++meshIdx)
                 {
@@ -497,18 +494,11 @@ namespace UnityEditor.Rendering.HighDefinition
                         {
                             bool materialIsTransparent = currentMaterial.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT")
                                 || (HDRenderQueue.k_RenderQueue_Transparent.lowerBound <= currentMaterial.renderQueue
-                                && HDRenderQueue.k_RenderQueue_Transparent.upperBound >= currentMaterial.renderQueue);
+                                    && HDRenderQueue.k_RenderQueue_Transparent.upperBound >= currentMaterial.renderQueue);
 
                             // aggregate the transparency info
                             materialIsOnlyTransparent &= materialIsTransparent;
                             hasTransparentSubMaterial |= materialIsTransparent;
-
-                            // Evaluate if it is single sided
-                            bool doubleSided = currentMaterial.doubleSidedGI || currentMaterial.IsKeywordEnabled("_DOUBLESIDED_ON");
-
-                            // Aggregate the double sided information
-                            hasSingleSided |= !doubleSided;
-                            singleSided &= !doubleSided;
                         }
                         else
                         {
@@ -523,34 +513,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     Debug.LogWarning("The object " + currentRenderer.name + " has both transparent and opaque sub-meshes. This may cause performance issues");
                     generalErrorFlag = true;
                 }
-
-                if (!singleSided && hasSingleSided)
-                {
-                    Debug.LogWarning("The object " + currentRenderer.name + " has both double sided and single sided sub-meshes. All materials will be considered double-sided for ray-traced effects.");
-                    generalErrorFlag = true;
-                }
             }
-			
-			//Check if one LOD is missing a renderer
-			for (var i = 0; i < lodGroupArray.Length; i++)
-            {
-                // Grab the current LOD group
-                LODGroup lodGroup = lodGroupArray[i];
-				LOD[] lodArray = lodGroup.GetLODs();
-                for (int lodIdx = 0; lodIdx < lodArray.Length; ++lodIdx)
-                {
-					
-                    LOD currentLOD = lodArray[lodIdx];
-                    for (int rendererIdx = 0; rendererIdx < currentLOD.renderers.Length; ++rendererIdx)
-                    {
-                        if(currentLOD.renderers[rendererIdx] == null)
-						{
-							Debug.LogWarning("The LOD Group " + lodGroup.gameObject.name + " has at least one missing renderer in its children.");
-							generalErrorFlag = true;
-						}
-                    }
-                }
-			}
 
             if (!generalErrorFlag)
             {

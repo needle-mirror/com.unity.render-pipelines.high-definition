@@ -90,7 +90,6 @@ namespace UnityEngine.Rendering.HighDefinition
         bool[] subMeshTransparentArray = new bool[maxNumSubMeshes];
         ReflectionProbe reflectionProbe = new ReflectionProbe();
         List<Material> materialArray = new List<Material>(maxNumSubMeshes);
-        Dictionary<int, bool> m_ShaderValidityCache = new Dictionary<int, bool>();
 
         // Used to detect material and transform changes for Path Tracing
         Dictionary<int, int> m_MaterialCRCs = new Dictionary<int, int>();
@@ -127,8 +126,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
         internal void ReleaseRayTracingManager()
         {
-            m_CurrentRAS.Dispose();
-
             if (m_RayTracingLightCluster != null)
                 m_RayTracingLightCluster.ReleaseResources();
             if (m_RayCountManager != null)
@@ -146,26 +143,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 m_DiffuseShadowDenoiser.Release();
             if (m_DiffuseDenoiser != null)
                 m_DiffuseDenoiser.Release();
-        }
-
-        bool IsValidRayTracedMaterial(Material currentMaterial)
-        {
-            if (currentMaterial == null || currentMaterial.shader == null)
-                return false;
-
-            bool isValid;
-
-            // We use a cache, to speed up the case where materials/shaders are reused many times
-            int shaderId = currentMaterial.shader.GetInstanceID();
-            if (m_ShaderValidityCache.TryGetValue(shaderId, out isValid))
-                return isValid;
-
-            // For the time being, we only consider non-decal HDRP materials as valid
-            isValid = currentMaterial.GetTag("RenderPipeline", false) == "HDRenderPipeline" && !DecalSystem.IsDecalMaterial(currentMaterial);
-
-            m_ShaderValidityCache.Add(shaderId, isValid);
-
-            return isValid;
         }
 
         void RaytracingManagerCleanupNonRenderGraphResources()
@@ -232,15 +209,9 @@ namespace UnityEngine.Rendering.HighDefinition
             // We need to build the instance flag for this renderer
             uint instanceFlag = 0x00;
 
-            bool doubleSided = false;
+            bool singleSided = false;
             bool materialIsOnlyTransparent = true;
             bool hasTransparentSubMaterial = false;
-
-            // We disregard the ray traced shadows option when in Path Tracing
-            rayTracedShadow &= !pathTracingEnabled;
-
-            // Deactivate Path Tracing if the object does not belong to the path traced layer(s)
-            pathTracingEnabled &= (bool)((ptLayerValue & objectLayerValue) != 0);
 
             for (int meshIdx = 0; meshIdx < numSubMeshes; ++meshIdx)
             {
@@ -251,8 +222,8 @@ namespace UnityEngine.Rendering.HighDefinition
                     // Grab the material for the current sub-mesh
                     Material currentMaterial = materialArray[meshIdx];
 
-                    // Make sure that the material is HDRP's and non-decal
-                    if (IsValidRayTracedMaterial(currentMaterial))
+                    // Make sure that the material is both non-null and non-decal
+                    if (currentMaterial != null && !DecalSystem.IsDecalMaterial(currentMaterial))
                     {
                         // Mesh is valid given that all requirements are ok
                         validMesh = true;
@@ -260,8 +231,8 @@ namespace UnityEngine.Rendering.HighDefinition
 
                         // Is the sub material transparent?
                         subMeshTransparentArray[meshIdx] = currentMaterial.IsKeywordEnabled("_SURFACE_TYPE_TRANSPARENT")
-                        || (HDRenderQueue.k_RenderQueue_Transparent.lowerBound <= currentMaterial.renderQueue
-                        && HDRenderQueue.k_RenderQueue_Transparent.upperBound >= currentMaterial.renderQueue);
+                            || (HDRenderQueue.k_RenderQueue_Transparent.lowerBound <= currentMaterial.renderQueue
+                                && HDRenderQueue.k_RenderQueue_Transparent.upperBound >= currentMaterial.renderQueue);
 
                         // Aggregate the transparency info
                         materialIsOnlyTransparent &= subMeshTransparentArray[meshIdx];
@@ -269,12 +240,12 @@ namespace UnityEngine.Rendering.HighDefinition
 
                         // Is the material alpha tested?
                         subMeshCutoffArray[meshIdx] = currentMaterial.IsKeywordEnabled("_ALPHATEST_ON")
-                        || (HDRenderQueue.k_RenderQueue_OpaqueAlphaTest.lowerBound <= currentMaterial.renderQueue
-                        && HDRenderQueue.k_RenderQueue_OpaqueAlphaTest.upperBound >= currentMaterial.renderQueue);
+                            || (HDRenderQueue.k_RenderQueue_OpaqueAlphaTest.lowerBound <= currentMaterial.renderQueue
+                                && HDRenderQueue.k_RenderQueue_OpaqueAlphaTest.upperBound >= currentMaterial.renderQueue);
 
-                        // Check if we want to enable double-sidedness for the mesh
-                        // (note that a mix of single and double-sided materials will result in a double-sided mesh in the AS)
-                        doubleSided |= currentMaterial.doubleSidedGI || currentMaterial.IsKeywordEnabled("_DOUBLESIDED_ON");
+                        // Force it to be non single sided if it has the keyword if there is a reason
+                        bool doubleSided = currentMaterial.doubleSidedGI || currentMaterial.IsKeywordEnabled("_DOUBLESIDED_ON");
+                        singleSided |= !doubleSided;
 
                         // Check if the material has changed since last time we were here
                         if (!m_MaterialsDirty)
@@ -294,11 +265,12 @@ namespace UnityEngine.Rendering.HighDefinition
                     }
                 }
 
-                // If the mesh was not valid, exclude it (without affecting sidedness)
+                // If the mesh was not valid, exclude it
                 if (!validMesh)
                 {
                     subMeshFlagArray[meshIdx] = false;
                     subMeshCutoffArray[meshIdx] = false;
+                    singleSided = true;
                 }
             }
 
@@ -343,36 +315,34 @@ namespace UnityEngine.Rendering.HighDefinition
 
             if (reflEnabled && !materialIsOnlyTransparent && meshIsVisible)
             {
-                // Raise the Screen Space Reflection flag if needed
+                // Raise the Screen Space Reflection if needed
                 instanceFlag |= ((reflLayerValue & objectLayerValue) != 0) ? (uint)(RayTracingRendererFlag.Reflection) : 0x00;
             }
 
             if (giEnabled && !materialIsOnlyTransparent && meshIsVisible)
             {
-                // Raise the Global Illumination flag if needed
+                // Raise the Global Illumination if needed
                 instanceFlag |= ((giLayerValue & objectLayerValue) != 0) ? (uint)(RayTracingRendererFlag.GlobalIllumination) : 0x00;
             }
 
             if (recursiveEnabled && meshIsVisible)
             {
-                // Raise the Recursive Rendering flag if needed
+                // Raise the Global Illumination if needed
                 instanceFlag |= ((rrLayerValue & objectLayerValue) != 0) ? (uint)(RayTracingRendererFlag.RecursiveRendering) : 0x00;
             }
 
             if (pathTracingEnabled && meshIsVisible)
             {
-                // Raise the Path Tracing flag if needed
-                instanceFlag |= (uint)(RayTracingRendererFlag.PathTracing);
+                // Raise the Global Illumination if needed
+                instanceFlag |= ((ptLayerValue & objectLayerValue) != 0) ? (uint)(RayTracingRendererFlag.PathTracing) : 0x00;
             }
 
             // If the object was not referenced
             if (instanceFlag == 0) return AccelerationStructureStatus.Added;
 
             // Add it to the acceleration structure
-            m_CurrentRAS.AddInstance(currentRenderer, subMeshMask: subMeshFlagArray, subMeshTransparencyFlags: subMeshCutoffArray, enableTriangleCulling: !doubleSided, mask: instanceFlag);
-
-            // Indicates that a transform has changed in our scene (mesh or light)
             m_TransformDirty |= currentRenderer.transform.hasChanged;
+            m_CurrentRAS.AddInstance(currentRenderer, subMeshMask: subMeshFlagArray, subMeshTransparencyFlags: subMeshCutoffArray, enableTriangleCulling: singleSided, mask: instanceFlag);
             currentRenderer.transform.hasChanged = false;
 
             // return the status
@@ -417,10 +387,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     m_RayTracedShadowsRequired |= (hdLight.useRayTracedShadows && screenSpaceShadowsSupported);
                     m_RayTracedContactShadowsRequired |= (hdLight.useContactShadow.@override && hdLight.rayTraceContactShadow);
 
-                    // Indicates that a transform has changed in our scene (mesh or light)
-                    m_TransformDirty |= hdLight.transform.hasChanged;
-                    hdLight.transform.hasChanged = false;
-
                     switch (hdLight.type)
                     {
                         case HDLightType.Directional:
@@ -439,7 +405,7 @@ namespace UnityEngine.Rendering.HighDefinition
                                 case AreaLightShape.Tube:
                                     m_RayTracingLights.hdLineLightArray.Add(hdLight);
                                     break;
-                                //TODO: case AreaLightShape.Disc:
+                                    //TODO: case AreaLightShape.Disc:
                             }
                             break;
                     }
@@ -465,9 +431,9 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 
             m_RayTracingLights.lightCount = m_RayTracingLights.hdPointLightArray.Count
-                                            + m_RayTracingLights.hdLineLightArray.Count
-                                            + m_RayTracingLights.hdRectLightArray.Count
-                                            + m_RayTracingLights.reflectionProbeArray.Count;
+                + m_RayTracingLights.hdLineLightArray.Count
+                + m_RayTracingLights.hdRectLightArray.Count
+                + m_RayTracingLights.reflectionProbeArray.Count;
 
             AmbientOcclusion aoSettings = hdCamera.volumeStack.GetComponent<AmbientOcclusion>();
             bool rtAOEnabled = aoSettings.rayTracing.value && hdCamera.frameSettings.IsEnabled(FrameSettingsField.SSAO);
@@ -498,12 +464,12 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 // This objects should be included into the RAS
                 AddInstanceToRAS(currentRenderer,
-                                rayTracedShadows,
-                                rtAOEnabled, aoSettings.layerMask.value,
-                                rtREnabled, reflSettings.layerMask.value,
-                                rtGIEnabled, giSettings.layerMask.value,
-                                rrEnabled, recursiveSettings.layerMask.value,
-                                ptEnabled, pathTracingSettings.layerMask.value);
+                    rayTracedShadows,
+                    rtAOEnabled, aoSettings.layerMask.value,
+                    rtREnabled, reflSettings.layerMask.value,
+                    rtGIEnabled, giSettings.layerMask.value,
+                    rrEnabled, recursiveSettings.layerMask.value,
+                    ptEnabled, pathTracingSettings.layerMask.value);
             }
 
             int matCount = m_MaterialCRCs.Count;
@@ -542,8 +508,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     for (int rendererIdx = 0; rendererIdx < currentLOD.renderers.Length; ++rendererIdx)
                     {
                         Renderer currentRenderer = currentLOD.renderers[rendererIdx];
-                        if(currentRenderer == null) continue;
-						
                         // Add this fella to the renderer list
                         // Unfortunately, we need to check that this renderer was not already pushed into the list (happens if the user uses the same mesh renderer
                         // for two LODs)
@@ -577,12 +541,12 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 // This objects should be included into the RAS
                 AddInstanceToRAS(currentRenderer,
-                                rayTracedShadows,
-                                aoSettings.rayTracing.value, aoSettings.layerMask.value,
-                                reflSettings.rayTracing.value, reflSettings.layerMask.value,
-                                giSettings.rayTracing.value, giSettings.layerMask.value,
-                                recursiveSettings.enable.value, recursiveSettings.layerMask.value,
-                                pathTracingSettings.enable.value, pathTracingSettings.layerMask.value);
+                    rayTracedShadows,
+                    aoSettings.rayTracing.value, aoSettings.layerMask.value,
+                    reflSettings.rayTracing.value, reflSettings.layerMask.value,
+                    giSettings.rayTracing.value, giSettings.layerMask.value,
+                    recursiveSettings.enable.value, recursiveSettings.layerMask.value,
+                    pathTracingSettings.enable.value, pathTracingSettings.layerMask.value);
             }
 
             // Check if the amount of materials being tracked has changed
@@ -610,7 +574,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 return 0;
             else
         #endif
-            return (int)hdCamera.GetCameraFrameCount() % 8;
+            return hdCamera.IsTAAEnabled() ? hdCamera.taaFrameIndex : (int)m_FrameCount % 8;
         }
 
         internal int RayTracingFrameIndex(HDCamera hdCamera, int targetFrameCount = 8)
@@ -620,7 +584,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 return 0;
             else
             #endif
-                return (int)hdCamera.GetCameraFrameCount() % targetFrameCount;
+            return (int)hdCamera.GetCameraFrameCount() % targetFrameCount;
         }
 
         internal bool RayTracingLightClusterRequired(HDCamera hdCamera)
@@ -632,10 +596,10 @@ namespace UnityEngine.Rendering.HighDefinition
             SubSurfaceScattering subSurface = hdCamera.volumeStack.GetComponent<SubSurfaceScattering>();
 
             return (m_ValidRayTracingState && (reflSettings.rayTracing.value
-                                                || giSettings.rayTracing.value
-                                                || recursiveSettings.enable.value
-                                                || pathTracingSettings.enable.value
-                                                || subSurface.rayTracing.value));
+                || giSettings.rayTracing.value
+                || recursiveSettings.enable.value
+                || pathTracingSettings.enable.value
+                || subSurface.rayTracing.value));
         }
 
         internal void CullForRayTracing(CommandBuffer cmd, HDCamera hdCamera)
@@ -664,7 +628,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 UpdateShaderVariablesRaytracingLightLoopCB(hdCamera, cmd);
 
-				m_RayTracingLightCluster.BuildLightClusterBuffer(cmd, hdCamera, m_RayTracingLights);
+                m_RayTracingLightCluster.BuildLightClusterBuffer(cmd, hdCamera, m_RayTracingLights);
             }
         }
 
@@ -676,8 +640,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 historyValidity = 0.0f;
             else
 #endif
-                // We need to check if something invalidated the history buffers
-                historyValidity *= ValidRayTracingHistory(hdCamera) ? 1.0f : 0.0f;
+            // We need to check if something invalidated the history buffers
+            historyValidity *= ValidRayTracingHistory(hdCamera) ? 1.0f : 0.0f;
             return historyValidity;
         }
 
@@ -728,10 +692,10 @@ namespace UnityEngine.Rendering.HighDefinition
         static internal bool rayTracingSupportedBySystem
             => UnityEngine.SystemInfo.supportsRayTracing
 #if UNITY_EDITOR
-                && (UnityEditor.EditorUserBuildSettings.activeBuildTarget == UnityEditor.BuildTarget.StandaloneWindows64
-                    || UnityEditor.EditorUserBuildSettings.activeBuildTarget == UnityEditor.BuildTarget.StandaloneWindows)
+            && (UnityEditor.EditorUserBuildSettings.activeBuildTarget == UnityEditor.BuildTarget.StandaloneWindows64
+                || UnityEditor.EditorUserBuildSettings.activeBuildTarget == UnityEditor.BuildTarget.StandaloneWindows)
 #endif
-            ;
+        ;
 
         internal BlueNoise GetBlueNoiseManager()
         {
@@ -819,7 +783,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 case InternalRayTracingBuffers.Direction:
                 {
-                    m_RayTracingDirectionBuffer = RTHandles.Alloc(Vector2.one, TextureXR.slices, colorFormat: GraphicsFormat.R16G16B16A16_SFloat, dimension: TextureXR.dimension, enableRandomWrite: true, useDynamicScale: true,useMipMap: false, name: "RaytracingDirectionBuffer");
+                    m_RayTracingDirectionBuffer = RTHandles.Alloc(Vector2.one, TextureXR.slices, colorFormat: GraphicsFormat.R16G16B16A16_SFloat, dimension: TextureXR.dimension, enableRandomWrite: true, useDynamicScale: true, useMipMap: false, name: "RaytracingDirectionBuffer");
                     return m_RayTracingDirectionBuffer;
                 }
                 case InternalRayTracingBuffers.Distance:

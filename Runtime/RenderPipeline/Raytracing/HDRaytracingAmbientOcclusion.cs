@@ -36,12 +36,6 @@ namespace UnityEngine.Rendering.HighDefinition
             m_RTAOApplyIntensityKernel = m_PipelineRayTracingResources.aoRaytracingCS.FindKernel("RTAOApplyIntensity");
         }
 
-        public float EvaluateRTSpecularOcclusionFlag(HDCamera hdCamera, AmbientOcclusion ssoSettings)
-        {
-            float remappedRayLength = (Mathf.Clamp(ssoSettings.rayLength, 1.25f, 1.5f) - 1.25f) / 0.25f;
-            return Mathf.Lerp(0.0f, 1.0f, 1.0f - remappedRayLength);
-        }
-
         public void InitializeNonRenderGraphResources()
         {
             // Allocate the intermediate textures
@@ -60,10 +54,9 @@ namespace UnityEngine.Rendering.HighDefinition
         static RTHandle AmbientOcclusionHistoryBufferAllocatorFunction(string viewName, int frameIndex, RTHandleSystem rtHandleSystem)
         {
             return rtHandleSystem.Alloc(Vector2.one, TextureXR.slices, colorFormat: GraphicsFormat.R16G16_SFloat, dimension: TextureXR.dimension,
-                                        enableRandomWrite: true, useMipMap: false, autoGenerateMips: false,
-                                        name: string.Format("{0}_AmbientOcclusionHistoryBuffer{1}", viewName, frameIndex));
+                enableRandomWrite: true, useMipMap: false, autoGenerateMips: false,
+                name: string.Format("{0}_AmbientOcclusionHistoryBuffer{1}", viewName, frameIndex));
         }
-
 
         static public void SetDefaultAmbientOcclusionTexture(CommandBuffer cmd)
         {
@@ -197,7 +190,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // TODO: All the push-debug stuff should be centralized somewhere
             (RenderPipelineManager.currentPipeline as HDRenderPipeline).PushFullScreenDebugTexture(hdCamera, cmd, outputTexture, FullScreenDebugMode.ScreenSpaceAmbientOcclusion);
-
         }
 
         static public void TraceAO(CommandBuffer cmd, AmbientOcclusionTraceParameters aoTraceParameters, AmbientOcclusionTraceResources aoTraceResources)
@@ -279,7 +271,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // Bind the textures and the params
             cmd.SetGlobalTexture(HDShaderIDs._AmbientOcclusionTexture, outputTexture);
-
         }
     }
 }

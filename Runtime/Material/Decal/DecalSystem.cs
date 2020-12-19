@@ -12,7 +12,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>The light will no affect any object.</summary>
         Nothing = 0,   // Custom name for "Nothing" option
         /// <summary>Decal Layer 0.</summary>
-        DecalLayerDefault = 1 << 0,
+        LightLayerDefault = 1 << 0,
         /// <summary>Decal Layer 1.</summary>
         DecalLayer1 = 1 << 1,
         /// <summary>Decal Layer 2.</summary>
@@ -44,7 +44,6 @@ namespace UnityEngine.Rendering.HighDefinition
         };
 
         public static readonly string[] s_MaterialDecalPassNames = Enum.GetNames(typeof(MaterialDecalPass));
-        public static readonly string s_AtlasSizeWarningMessage = "Decal texture atlas out of space, decals on transparent geometry might not render correctly, atlas size can be changed in HDRenderPipelineAsset";
 
         public class CullResult : IDisposable
         {
@@ -445,7 +444,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 InitializeMaterialValues();
             }
 
-
             private BoundingSphere GetDecalProjectBoundingSphere(Matrix4x4 decalToWorld)
             {
                 Vector4 min = new Vector4();
@@ -498,7 +496,7 @@ namespace UnityEngine.Rendering.HighDefinition
                     float angleEnd = data.endAngleFade / 180.0f;
                     var range = Mathf.Max(0.0001f, angleEnd - angleStart);
                     m_CachedAngleFade[index].x = 1.0f - (0.25f - angleStart) / range;
-                    m_CachedAngleFade[index].y = - 0.25f / range;
+                    m_CachedAngleFade[index].y = -0.25f / range;
                 }
                 m_CachedUVScaleBias[index] = data.uvScaleBias;
                 m_CachedAffectsTransparency[index] = data.affectsTransparency;
@@ -861,9 +859,9 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 get
                 {
-                    if (this.m_Material.HasProperty(HDShaderIDs._DrawOrder))
+                    if (m_IsHDRenderPipelineDecal)
                     {
-                        return this.m_Material.GetInt(HDShaderIDs._DrawOrder);
+                        return this.m_Material.GetInt("_DrawOrder");
                     }
                     else
                     {
@@ -920,13 +918,13 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
-		void SetupMipStreamingSettings(Texture texture, bool allMips)
-		{
-			if (texture)
-			{
-				if (texture.dimension == UnityEngine.Rendering.TextureDimension.Tex2D)
-				{
-					Texture2D tex2D = (texture as Texture2D);
+        void SetupMipStreamingSettings(Texture texture, bool allMips)
+        {
+            if (texture)
+            {
+                if (texture.dimension == UnityEngine.Rendering.TextureDimension.Tex2D)
+                {
+                    Texture2D tex2D = (texture as Texture2D);
                     if (tex2D)
                     {
                         if (allMips)
@@ -934,9 +932,9 @@ namespace UnityEngine.Rendering.HighDefinition
                         else
                             tex2D.ClearRequestedMipmapLevel();
                     }
-				}
-			}
-		}
+                }
+            }
+        }
 
         void SetupMipStreamingSettings(Material material, bool allMips)
         {
@@ -1109,14 +1107,13 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 if (!m_AllocationSuccess && m_PrevAllocationSuccess) // still failed to allocate, decal atlas size needs to increase, debounce so that we don't spam the console with warnings
                 {
-                    Debug.LogWarning(s_AtlasSizeWarningMessage);
+                    Debug.LogWarning("Decal texture atlas out of space, decals on transparent geometry might not render correctly, atlas size can be changed in HDRenderPipelineAsset");
                 }
             }
             m_PrevAllocationSuccess = m_AllocationSuccess;
             // now that textures have been stored in the atlas we can update their location info in decal data
             UpdateDecalDatasWithAtlasInfo();
         }
-
 
         public void CreateDrawData()
         {
@@ -1151,7 +1148,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
             foreach (var decalSet in m_DecalSetsRenderList)
                 decalSet.CreateDrawData();
-            }
+        }
 
         public void Cleanup()
         {
@@ -1188,11 +1185,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     decalSet.SetCullResult(cullResult.requests[enumerator.Current.Key]);
                 }
             }
-        }
-
-        public bool IsAtlasAllocatedSuccessfully()
-        {
-            return m_AllocationSuccess;
         }
     }
 }

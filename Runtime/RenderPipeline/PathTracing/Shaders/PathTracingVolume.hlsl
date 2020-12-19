@@ -10,7 +10,7 @@ float ComputeHeightFogMultiplier(float height)
     return ComputeHeightFogMultiplier(height, _HeightFogBaseHeight, _HeightFogExponents);
 }
 
-bool SampleVolumeScatteringPosition(inout float theSample, inout float t, inout float pdf, out bool sampleLocalLights)
+bool SampleVolumeScatteringPosition(inout float sample, inout float t, inout float pdf, out bool sampleLocalLights)
 {
     sampleLocalLights = false;
 
@@ -28,14 +28,14 @@ bool SampleVolumeScatteringPosition(inout float theSample, inout float t, inout 
     if (localWeight < 0.0)
         return false;
 
-    sampleLocalLights = theSample < localWeight;
+    sampleLocalLights = sample < localWeight;
     if (sampleLocalLights)
     {
         tMax = min(tMax, tFog);
         if (tMin >= tMax)
             return false;
 
-        theSample /= localWeight;
+        sample /= localWeight;
         pdfVol *= localWeight;
     }
     else
@@ -43,8 +43,8 @@ bool SampleVolumeScatteringPosition(inout float theSample, inout float t, inout 
         tMin = 0.0;
         tMax = tFog;
 
-        theSample -= localWeight;
-        theSample /= 1.0 - localWeight;
+        sample -= localWeight;
+        sample /= 1.0 - localWeight;
         pdfVol *= 1.0 - localWeight;
     }
 #else
@@ -52,46 +52,68 @@ bool SampleVolumeScatteringPosition(inout float theSample, inout float t, inout 
     tMax = tFog;
 #endif
 
-    // FIXME: not quite sure what the sigmaT value is supposed to be...
+    // FIXME: not quite sure what the sigmaS, sigmaT values are supposed to be...
+    const float sigmaS = (t == FLT_MAX) ? 1.0 : sqrt(Luminance(_HeightFogBaseScattering.xyz));
     const float sigmaT = _HeightFogBaseExtinction;
-    const float transmittanceTMax = max(exp(-tMax * sigmaT), 0.01);
-    const float transmittanceThreshold = t < FLT_MAX ? 1.0 - min(0.5, transmittanceTMax) : 1.0;
+    const float transmittanceMax = exp(-tMax * sigmaT);
 
-    if (theSample >= transmittanceThreshold)
+    const float pdfNoVolA = 1.0 - sigmaS;
+    const float pdfNoVolB = sigmaS * transmittanceMax;
+    const float pdfNoVol = pdfNoVolA + pdfNoVolB;
+    pdfVol *= 1.0 - pdfNoVol;
+
+    if (sample >= sigmaS)
     {
         // Re-scale the sample
-        theSample -= transmittanceThreshold;
-        theSample /= 1.0 - transmittanceThreshold;
+        sample -= sigmaS;
+        sample /= 1.0 - sigmaS;
 
-        // Adjust the pdf
-        pdf *= 1.0 - transmittanceThreshold;
+        // Set the pdf
+        pdf *= pdfNoVol;
 
         return false;
     }
 
     // Re-scale the sample
-    theSample /= transmittanceThreshold;
+    sample /= sigmaS;
 
-    // Adjust the pdf
-    pdf *= pdfVol * transmittanceThreshold;
+    // Evaluate the length to a potential volume scattering event
+    if (-log(1.0 - sample) / sigmaT >= tMax)
+    {
+        // Re-scale the sample
+        sample -= 1.0 - transmittanceMax;
+        sample /= transmittanceMax;
+
+        // Set the pdf
+        pdf *= pdfNoVol;
+
+        return false;
+    }
 
     if (sampleLocalLights)
     {
+        // Re-scale the sample
+        sample /= 1.0 - transmittanceMax;
+
         // Linear sampling
         float deltaT = tMax - tMin;
-        t = tMin + theSample * deltaT;
+        t = tMin + sample * deltaT;
 
-        // Adjust the pdf
-        pdf /= deltaT;
+        // Set the pdf
+        pdf *= pdfVol / deltaT;
     }
     else
     {
-        // Exponential sampling
-        float transmittance = transmittanceTMax + theSample * (1.0 - transmittanceTMax);
+        // Let's (avoid very low transmittance, for robustness sake (minor bias)
+        if (transmittanceMax < 0.01)
+            sample = sample * 0.99 / (1.0 - transmittanceMax);
+
+        // Log sampling
+        float transmittance = 1.0 - sample;
         t = -log(transmittance) / sigmaT;
 
-        // Adjust the pdf
-        pdf *= sigmaT * transmittance;
+        // Set the pdf
+        pdf *= pdfVol * sigmaT * transmittance;
     }
 
     return true;
@@ -124,13 +146,13 @@ void ComputeVolumeScattering(inout PathIntersection pathIntersection : SV_RayPay
     RayDesc ray;
     ray.Origin = scatteringPosition;
     ray.TMin = 0.0;
-  
+
     PathIntersection nextPathIntersection;
-  
+
     // Light sampling
     if (computeDirect)
     {
-        if (SampleLights(lightList, inputSample, scatteringPosition, 0.0, ray.Direction, value, pdf, ray.TMax))
+        if (SampleLights(lightList, inputSample.xyz, scatteringPosition, 0.0, ray.Direction, value, pdf, ray.TMax))
         {
             // FIXME: Apply phase function and divide by pdf (only isotropic for now, and not sure about sigmaS value)
             value *= _HeightFogBaseScattering.xyz * ComputeHeightFogMultiplier(scatteringPosition.y) * INV_FOUR_PI / pdf;

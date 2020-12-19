@@ -16,7 +16,6 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/PostProcessing/Shaders/TemporalAntialiasing.hlsl"
 #define BILATERAL_ROUGHNESS
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/Denoising/BilateralFilter.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/Denoising/DenoisingUtils.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/ShaderVariablesRaytracing.cs.hlsl"
 // Tile size of this compute
 #define REFLECTION_FILTER_TILE_SIZE 8
@@ -95,7 +94,6 @@ void TemporalAccumulation(uint3 dispatchThreadId : SV_DispatchThreadID, uint2 gr
     float colorLuma = Luminance(color);
     float averageLuma = Luminance(average);
     float nudge = lerp(4.0, 0.25, saturate(velocityLength * 100.0)) * abs(averageLuma - colorLuma);
-
 
     float3 minimum = min(bottomRight, topLeft) - nudge;
     float3 maximum = max(topLeft, bottomRight) + nudge;

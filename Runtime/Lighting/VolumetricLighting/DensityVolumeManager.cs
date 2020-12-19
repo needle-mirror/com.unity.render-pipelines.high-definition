@@ -67,13 +67,13 @@ namespace UnityEngine.Rendering.HighDefinition
 
         public bool ContainsVolume(DensityVolume volume) => volumes.Contains(volume);
 
-        public List<DensityVolume> PrepareDensityVolumeData(CommandBuffer cmd, HDCamera currentCam)
+        public List<DensityVolume> PrepareDensityVolumeData(CommandBuffer cmd, HDCamera currentCam, float time)
         {
             //Update volumes
-            float time = currentCam.time;
+            bool animate = currentCam.animateMaterials;
             foreach (DensityVolume volume in volumes)
             {
-                volume.PrepareParameters(time);
+                volume.PrepareParameters(animate, time);
             }
 
             if (atlasNeedsRefresh)

@@ -28,7 +28,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             bool alphaToMaskEnable = alphaTestEnable && material.HasProperty(kAlphaToMask) && material.GetFloat(kAlphaToMask) > 0.0f;
             CoreUtils.SetKeyword(material, "_ALPHATOMASK_ON", alphaToMaskEnable);
-            
+
             SurfaceType surfaceType = material.GetSurfaceType();
             CoreUtils.SetKeyword(material, "_SURFACE_TYPE_TRANSPARENT", surfaceType == SurfaceType.Transparent);
 
@@ -226,7 +226,9 @@ namespace UnityEditor.Rendering.HighDefinition
                 MaterialEditor.FixupEmissiveFlag(material);
             }
 
-            material.SetupMainTexForAlphaTestGI("_UnlitColorMap", "_UnlitColor");
+            // Commented out for now because unfortunately we used the hard coded property names used by the GI system for our own parameters
+            // So we need a way to work around that before we activate this.
+            material.SetupMainTexForAlphaTestGI("_EmissiveColorMap", "_EmissiveColor");
 
             // depth offset for ShaderGraphs (they don't have the displacement mode property)
             if (!material.HasProperty(kDisplacementMode) && material.HasProperty(kDepthOffsetEnable))
@@ -268,13 +270,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         static public void SetupBaseUnlitPass(this Material material)
         {
-            if (material.shader.IsShaderGraph())
-            {
-                // Shader graph generate distortion pass only if required. So we can safely enable it
-                // all the time here.
-                material.SetShaderPassEnabled(HDShaderPassNames.s_DistortionVectorsStr, true);
-            }
-            else if (material.HasProperty(kDistortionEnable))
+            if (material.HasProperty(kDistortionEnable))
             {
                 bool distortionEnable = material.GetFloat(kDistortionEnable) > 0.0f && ((SurfaceType)material.GetFloat(kSurfaceType) == SurfaceType.Transparent);
 
@@ -346,8 +342,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 // don't do any vertex deformation but we can still have
                 // skinning / morph target
                 material.SetShaderPassEnabled(HDShaderPassNames.s_MotionVectorsStr, addPrecomputedVelocity);
-             }
+            }
         }
-
     }
 }

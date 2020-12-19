@@ -76,7 +76,7 @@ namespace UnityEditor.Rendering.HighDefinition
         }
 
         static public readonly GUIContent k_RayLengthText = EditorGUIUtility.TrTextContent("Max Ray Length", "Controls the maximal length of global illumination rays. The higher this value is, the more expensive ray traced global illumination is.");
-        static public readonly GUIContent k_DepthBufferThicknessText = EditorGUIUtility.TrTextContent("Depth Tolerance", "Controls the tolerance when comparing the depth of two pixels.");
+        static public readonly GUIContent k_DepthBufferThicknessText = EditorGUIUtility.TrTextContent("Object Thickness", "Controls the typical thickness of objects the global illumination rays may pass behind.");
 
         public void DenoiserGUI()
         {
@@ -92,7 +92,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
         public override void OnInspectorGUI()
         {
-
             HDRenderPipelineAsset currentAsset = HDRenderPipeline.currentAsset;
             if (!currentAsset?.currentPlatformRenderPipelineSettings.supportSSGI ?? false)
             {
@@ -143,7 +142,7 @@ namespace UnityEditor.Rendering.HighDefinition
                                             DenoiserGUI();
                                         }
                                     }
-                                        break;
+                                    break;
                                     case RayTracingMode.Quality:
                                     {
                                         using (new QualityScope(this))
@@ -155,7 +154,7 @@ namespace UnityEditor.Rendering.HighDefinition
                                             DenoiserGUI();
                                         }
                                     }
-                                        break;
+                                    break;
                                 }
                             }
                         }
@@ -186,7 +185,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
                             EditorGUI.indentLevel--;
                         }
-
                     }
                 }
 
@@ -198,7 +196,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     using (new HDEditorUtils.IndentScope())
                     using (new QualityScope(this))
                     {
-                        PropertyField(m_FullResolutionSS,EditorGUIUtility.TrTextContent("Full Resolution", "Enables full resolution mode."));
+                        PropertyField(m_FullResolutionSS, EditorGUIUtility.TrTextContent("Full Resolution", "Enables full resolution mode."));
                         PropertyField(m_RaySteps);
                         PropertyField(m_FilterRadius);
                     }
@@ -207,6 +205,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 }
             }
         }
+
         public override QualitySettingsBlob SaveCustomQualitySettingsAsObject(QualitySettingsBlob settings = null)
         {
             if (settings == null)

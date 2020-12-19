@@ -59,7 +59,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public MinFloatParameter depthExtent = new MinFloatParameter(64.0f, 0.1f);
         /// <summary>Controls which denoising technique to use for the volumetric effect.</summary>
         /// <remarks>Reprojection mode is effective for static lighting but can lead to severe ghosting artifacts with highly dynamic lighting. Gaussian mode is effective with dynamic lighting. You can also use both modes together which produces high-quality results, but increases the resource intensity of processing the effect.</remarks>
-        [Tooltip("Specifies the denoising technique to use for the volumetric effect.")]
+        [Tooltip("Controls which denoising technique to use for the volumetric effect. Reprojection is very effective for static lighting, but can lead to severe ghosting for highly dynamic lighting. Gaussian is a good alternative for dynamic lighting. Using both techniques can give high quality results but significantly increases the resource intensity of the effect.")]
         public FogDenoisingModeParameter denoisingMode = new FogDenoisingModeParameter(FogDenoisingMode.Gaussian);
 
         // Advanced parameters
@@ -89,16 +89,16 @@ namespace UnityEngine.Rendering.HighDefinition
             set { m_FogControlMode.value = value; }
         }
         [SerializeField, FormerlySerializedAs("fogControlMode")]
-        [Tooltip("Specifies which method to use to control the performance and quality of the volumetric fog.")]
+        [Tooltip("Controls which method to use to control the performance and quality of the volumetric fog. Balance mode allows you to use a performance-oriented approach to define the quality of the volumetric fog. Manual mode gives you access to the internal set of properties which directly control the effect.")]
         private FogControlParameter m_FogControlMode = new FogControlParameter(FogControl.Balance);
 
-        /// <summary>Stores the resolution of the volumetric buffer (3D texture) along the x-axis and y-axis relative to the resolution of the screen.</summary>
-        [Tooltip("Controls the resolution of the volumetric buffer (3D texture) along the x-axis and y-axis relative to the resolution of the screen.")]
+        /// <summary>Stores the resolution of the volumetric buffer (3D texture) along the x-axis and y-axis relative to the resolution of the frame buffer.</summary>
+        [Tooltip("Stores the resolution of the volumetric buffer (3D texture) along the x-axis and y-axis relative to the resolution of the frame buffer.")]
         public ClampedFloatParameter screenResolutionPercentage = new ClampedFloatParameter(optimalFogScreenResolutionPercentage, minFogScreenResolutionPercentage, maxFogScreenResolutionPercentage);
         /// <summary>Number of slices of the volumetric buffer (3D texture) along the camera's focal axis.</summary>
-        [Tooltip("Controls the number of slices to use the volumetric buffer (3D texture) along the camera's focal axis.")]
+        [Tooltip("Number of slices of the volumetric buffer (3D texture) along the camera's focal axis.")]
         public ClampedIntParameter volumeSliceCount = new ClampedIntParameter(64, 1, maxFogSliceCount);
-        
+
         /// <summary>Defines the performance to quality ratio of the volumetric fog. A value of 0 being the least resource-intensive and a value of 1 being the highest quality.</summary>
         /// <remarks>Try to minimize this value to find a compromise between quality and performance. </remarks>
         public float volumetricFogBudget
@@ -113,7 +113,7 @@ namespace UnityEngine.Rendering.HighDefinition
             set { m_VolumetricFogBudget.value = value; }
         }
         [SerializeField, FormerlySerializedAs("volumetricFogBudget")]
-        [Tooltip("Controls the performance to quality ratio of the volumetric fog. A value of 0 being the least resource-intensive and a value of 1 being the highest quality.")]
+        [Tooltip("Defines the performance to quality ratio of the volumetric fog. A value of 0 being the least resource-intensive and a value of 1 being the highest quality.")]
         private ClampedFloatParameter m_VolumetricFogBudget = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);
 
         /// <summary>Controls how Unity shares resources between Screen (XY) and Depth (Z) resolutions.</summary>
@@ -130,16 +130,12 @@ namespace UnityEngine.Rendering.HighDefinition
             set { m_ResolutionDepthRatio.value = value; }
         }
         [SerializeField, FormerlySerializedAs("resolutionDepthRatio")]
-        [Tooltip("Controls how Unity shares resources between Screen (x-axis and y-axis) and Depth (z-axis) resolutions.")]
+        [Tooltip("Controls how Unity shares resources between Screen (XY) and Depth (Z) resolutions.")]
         public ClampedFloatParameter m_ResolutionDepthRatio = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
 
         /// <summary>Indicates whether Unity includes or excludes non-directional light types when it evaluates the volumetric fog. Including non-directional lights increases the resource intensity of the effect.</summary>
-        [Tooltip("When enabled, HDRP only includes directional Lights when it evaluates volumetric fog.")]
+        [Tooltip("Indicates whether Unity includes or excludes non-directional light types when it evaluates the volumetric fog. Including non-directional lights increases the resource intensity of the effect.")]
         public BoolParameter directionalLightsOnly = new BoolParameter(false);
-
-        /// <summary>Deprecated don't used</summary>
-        [Tooltip("Deprecated don't used")]
-        public BoolParameter filter = new BoolParameter(false); // DO not used, removed in 11.x
 
         internal static bool IsFogEnabled(HDCamera hdCamera)
         {
@@ -251,7 +247,7 @@ namespace UnityEngine.Rendering.HighDefinition
     sealed class FogTypeParameter : VolumeParameter<FogType>
     {
         public FogTypeParameter(FogType value, bool overrideState = false)
-            : base(value, overrideState) { }
+            : base(value, overrideState) {}
     }
 
     /// <summary>
@@ -266,7 +262,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">Fog Color Parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public FogColorParameter(FogColorMode value, bool overrideState = false)
-            : base(value, overrideState) { }
+            : base(value, overrideState) {}
     }
 
     /// <summary>
@@ -296,7 +292,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public FogControlParameter(FogControl value, bool overrideState = false) : base(value, overrideState) { }
+        public FogControlParameter(FogControl value, bool overrideState = false) : base(value, overrideState) {}
     }
 
     /// <summary>
@@ -333,6 +329,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public FogDenoisingModeParameter(FogDenoisingMode value, bool overrideState = false) : base(value, overrideState) { }
+        public FogDenoisingModeParameter(FogDenoisingMode value, bool overrideState = false) : base(value, overrideState) {}
     }
 }

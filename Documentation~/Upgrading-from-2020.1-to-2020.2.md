@@ -1,6 +1,6 @@
 # Upgrading HDRP from 8.x to 10.x
 
-In the High Definition Render Pipeline (HDRP), some features work differently between major versions. This document helps you upgrade HDRP from 8.x to 10.x. 
+In the High Definition Render Pipeline (HDRP), some features work differently between major versions. This document helps you upgrade HDRP from 8.x to 10.x.
 Note that package version 9.x-preview has now been published. It is compatible with Unity 2020.1 and includes some features from 10.x. However, this package was for feedback purposes and will not be maintained in the future.
 
 ## Constant Buffer API
@@ -19,10 +19,6 @@ Currently, the only publicly accessible variables in the `ShaderVariablesGlobal`
 
 From 10.x, if you create a new [HDRP Asset](HDRP-Asset.md), the **MSAA Within Forward** Frame Setting is enabled by default.
 
-## Menu
-
-From 10.x, various HDRP menu items in **Assets > Create > Shader** have been renamed to **HD Render Pipeline** for consistency.
-
 ## Decal
 
 From 10.x, decals no longer require a full Depth Prepass. HDRP only renders Materials with **Receive Decals** enabled during the Depth Prepass. Unless other options force it.
@@ -31,15 +27,9 @@ From 10.x, you can use the Decal Layers system which makes use of the **Renderin
 
 ## Lighting
 
-From 10.x, when you create a Spot Light from the Editor menu, HDRP now enables the **Reflector** property by default. Note that, if you create a Spot Light via a C# script, this property is disabled.
-
-From 10.x, HDRP disables [Backplate](Override-HDRI-Sky.md) rendering for lighting cubemaps that are not compatible.
-
-From 10.x, [Screen Space Ambient Occlusion](Override-Ambient-Occlusion.md), [Screen Space Global Illumination](Override-Screen-Space-GI.md), [Screen Space Reflection](Override-Screen-Space-Reflection.md), [Ray Tracing Effects](Ray-Tracing-Getting-Started.md), and [Volumetric Reprojection](Override-Fog.md) do not interact with Reflection Probes as they do not work correctly.
-
 From 10.x, if you disable the sky override used as the **Static Lighting Sky** in the **Lighting** window, the sky no longer affects the baked lighting. Previously, the sky affected the baked lighting even when it was disabled.
 
-From 10.x, HDRP has 
+From 10.x, HDRP has
 the Cubemap Array for Point [Light](Light-Component.md) cookies and now uses octahedral projection with a regular 2D-Cookie atlas. This is to allow for a single path for light cookies and IES, but it may produce visual artifacts when using a low-resolution cube-cookie. For example, projecting pixel art data.
 
 As the **Cubemap cookie atlas** no longer exists, it is possible that HDRP does not have enough space on the current 2D atlas for the cookies. If this is the case, HDRP displays an error in the Console window. To fix this, increase the size of the 2D cookie atlas. To do this:
@@ -57,18 +47,9 @@ From 10.x, if you previously used the **UseEmissiveIntensity** property in eithe
 
 For project migrating from old 9.x.x-preview package. There is a change in the order of enum of Exposure that may shift the current exposure mode to another one in Exposure Volume. This will need to be corrected manually by reselecting the correct Exposure mode.
 
-From 10.x, the debug lens attenuation has been removed, however the lens attenuation can now be set in the HDRP Default setting Panel as either modelling a perfect lens or an imperfect one. 
+From 10.x, the debug lens attenuation has been removed, however the lens attenuation can now be set in the HDRP Default setting Panel as either modelling a perfect lens or an imperfect one.
 
 From 10.x, the [Screen Space Reflection](Override-Screen-Space-Reflection.md) effect always uses the color pyramid HDRP generates after the Before Refraction transparent pass. This means the color buffer only includes transparent GameObjects that use the **BeforeRefraction** [Rendering Pass](Surface-Type.md). Previously the content depended on whether the Distortion effect was active.
-
-## Volumetric Fog
-
-When upgrading a project to 10.2, the quality of volumetric fog in your Scene may degrade. This is because of the new volumetric fog control modes. To make volumetric fog look the same as it did in 8.x:
-
-1. In the [Fog](Override-Fog.md) Volume Override, set **Fog Control Mode** to **Manual**.
-2. For the properties this mode exposes, enter the same values as you had in 8.x
-
-Alternatively, set **Fog Control Mode** to **Balance** and use the new performance-oriented properties to define the quality of the volumetric fog.
 
 ## Shadows
 
@@ -196,7 +177,7 @@ For example in Material.hlsl, the following lines:
     #if defined(_BLENDMODE_ADD) || defined(_BLENDMODE_ALPHA)
         return float4(diffuseLighting * opacity + specularLighting, opacity);
 ```
-are replaced by 
+are replaced by
 ```
     if (_BlendMode == BLENDMODE_ALPHA || _BlendMode == BLENDMODE_ADDITIVE)
         return float4(diffuseLighting * opacity + specularLighting * (
@@ -206,7 +187,7 @@ are replaced by
             opacity), opacity);
 
 ```
-This reduced the number of shader variant. In case of custom shader it can be required to move the include of Material.hlsl after the declaration of the property _Blendmode.  Also, if the custom shader wants to support the blend mode preserve specular option, it needs to make sure _EnableBlendModePreserveSpecularLighting property is defined and that the compile time constant SUPPORT_BLENDMODE_PRESERVE_SPECULAR_LIGHTING is defined too. 
+This reduced the number of shader variant. In case of custom shader it can be required to move the include of Material.hlsl after the declaration of the property _Blendmode.  Also, if the custom shader wants to support the blend mode preserve specular option, it needs to make sure _EnableBlendModePreserveSpecularLighting property is defined and that the compile time constant SUPPORT_BLENDMODE_PRESERVE_SPECULAR_LIGHTING is defined too.
 
 
 From 10.x, HDRP includes a new optimization for [Planar Reflection Probes](Planar-Reflection-Probe.md). Now, when a shader samples a probe's environment map, it samples from mip level 0 if the LightData.roughReflections parameter is enabled (has a value of 1.0). You must update your custom shaders to take this behavior into account.
@@ -221,11 +202,6 @@ In the Lit, LitTessellation, LayeredLit and LayeredLitTesselation shaders, two n
 In the Decal shader, the property `_MetallicRemapMin` have been added, and `_MetallicScale` has been renamed as `_MetallicRemapMax`.
 
 From 10.x, a new pass ScenePickingPass have been added to all the shader and master node to allow the editor to correctly handle the picking with tesselated objects and backfaced objects.
-
-From 10.x, a decal function in shader code has been added. To handle normal flipping for double sided materials, calls to `GetDecalSurfaceData()` should be updated from this function:
-`DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, float3 vtxNormal, inout float alpha)`
-to:
-`DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, FragInputs input, inout float alpha)`
 
 ## Raytracing
 
@@ -269,6 +245,6 @@ We recommend to put all the diffusion profiles used in your project in the HDRP 
 
 ## Post Processing
 
-Previously, in the Motion Blur volume component the camera rotation clamp was always active such that by default the part of the motion vector derived from camera rotation was clamped differently. This can create confusion due to changes in motion vectors that are relative to camera. 
+Previously, in the Motion Blur volume component the camera rotation clamp was always active such that by default the part of the motion vector derived from camera rotation was clamped differently. This can create confusion due to changes in motion vectors that are relative to camera.
 
 From 2020.2, the camera rotation clamp option is not the default, but needs to be selected as an option under the **Camera Clamp Mode** setting. Moreover, additional clamping controls on camera influence on motion blur are available under the same setting.

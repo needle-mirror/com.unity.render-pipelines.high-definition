@@ -63,7 +63,7 @@ void EvalDecalMask( PositionInputs posInput, float3 vtxNormal, float3 positionRW
                 float2 sampleDiffuseDdx = positionDSDdx.xz * decalData.diffuseScaleBias.xy; // factor in the atlas scale
                 float2 sampleDiffuseDdy = positionDSDdy.xz * decalData.diffuseScaleBias.xy;
                 float  lodDiffuse = ComputeTextureLOD(sampleDiffuseDdx, sampleDiffuseDdy, _DecalAtlasResolution, 0.5);
-               
+
                 src *= SAMPLE_TEXTURE2D_LOD(_DecalAtlas2D, _trilinear_clamp_sampler_DecalAtlas2D, sampleDiffuse, lodDiffuse);
             }
 
@@ -258,21 +258,6 @@ DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, float3 vtxNormal, 
 
     DecalSurfaceData decalSurfaceData;
     DECODE_FROM_DBUFFER(DBuffer, decalSurfaceData);
-
-    return decalSurfaceData;
-}
-
-DecalSurfaceData GetDecalSurfaceData(PositionInputs posInput, FragInputs input, inout float alpha)
-{
-    float3 vtxNormal = input.tangentToWorld[2];
-    DecalSurfaceData decalSurfaceData = GetDecalSurfaceData(posInput, vtxNormal, alpha);
-
-#ifdef _DOUBLESIDED_ON
-    // 'doubleSidedConstants' is float3(-1, -1, -1) in flip mode and float3(1, 1, -1) in mirror mode.
-    // It's float3(1, 1, 1) in the none mode.
-    float3 flipSign = input.isFrontFace ? float3(1.0, 1.0, 1.0) : _DoubleSidedConstants.xyz;
-    decalSurfaceData.normalWS.xyz *= flipSign;
-#endif // _DOUBLESIDED_ON
 
     return decalSurfaceData;
 }

@@ -45,7 +45,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public FloatParameter           groundLevel         = new FloatParameter(0.0f);
         /// <summary>Extent of the Backplate (if circle only the X value is considered).</summary>
         [Tooltip("Extent of the Backplate (if circle only the X value is considered).")]
-        public Vector2Parameter         scale               = new Vector2Parameter(Vector2.one*32.0f);
+        public Vector2Parameter         scale               = new Vector2Parameter(Vector2.one * 32.0f);
         /// <summary>Backplate's projection distance to varying the cubemap projection on the plate.</summary>
         [Tooltip("Backplate's projection distance to varying the cubemap projection on the plate.")]
         public MinFloatParameter        projectionDistance  = new MinFloatParameter(16.0f, 1e-7f);
@@ -154,21 +154,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 
             return hash;
-        }
-
-        /// <summary>
-        /// Determines if the SkySettings is significantly divergent from another. This is going to be used to determine whether
-        /// to reset completely the ambient probe instead of using previous one when waiting for current data upon changes.
-        /// In addition to the checks done with the base function, this HDRISky override checks whether the cubemap parameter
-        /// has changed if both settings are HDRISky.
-        /// </summary>
-        /// <param name="otherSettings">The settings to compare with.</param>
-        /// <returns>Whether the settings are deemed very different.</returns>
-        public override bool SignificantlyDivergesFrom(SkySettings otherSettings)
-        {
-            HDRISky otherHdriSkySettings = otherSettings as HDRISky;
-
-            return base.SignificantlyDivergesFrom(otherSettings) || hdriSky.value != otherHdriSkySettings.hdriSky.value;
         }
 
         /// <summary>

@@ -11,6 +11,7 @@
     #define CTYPE_SWIZZLE xyz
 #endif
 
+
 #if UNITY_REVERSED_Z
     #define COMPARE_DEPTH(a, b) step(b, a)
 #else
@@ -48,15 +49,13 @@ float4 Fetch4Array(Texture2DArray tex, uint slot, float2 coords, float2 offset, 
 // Options
 // ---------------------------------------------------
 
-#define SHARPEN_ALPHA 0 // switch to 1 if you want to enable TAA sharpenning on alpha channel
-
 // History sampling options
 #define BILINEAR 0
 #define BICUBIC_5TAP 1
 
 /// Neighbourhood sampling options
 #define PLUS 0    // Faster! Can allow for read across twice (paying cost of 2 samples only)
-#define CROSS 1   // Can only do one fast read diagonal 
+#define CROSS 1   // Can only do one fast read diagonal
 #define SMALL_NEIGHBOURHOOD_SHAPE PLUS
 
 // Neighbourhood AABB options
@@ -329,7 +328,7 @@ float ModifyBlendWithMotionVectorRejection(TEXTURE2D_X(VelocityMagnitudeTexture)
 }
 
 // ---------------------------------------------------
-// History sampling 
+// History sampling
 // ---------------------------------------------------
 
 CTYPE HistoryBilinear(TEXTURE2D_X(HistoryTexture), float2 UV)
@@ -419,7 +418,7 @@ CTYPE GetFilteredHistory(TEXTURE2D_X(HistoryTexture), float2 UV, float sharpenin
 // ---------------------------------------------------
 // Neighbourhood related.
 // ---------------------------------------------------
-#define SMALL_NEIGHBOURHOOD_SIZE 4 
+#define SMALL_NEIGHBOURHOOD_SIZE 4
 #define NEIGHBOUR_COUNT ((WIDE_NEIGHBOURHOOD == 0) ? SMALL_NEIGHBOURHOOD_SIZE : 8)
 
 struct NeighbourhoodSamples
@@ -718,11 +717,5 @@ CTYPE SharpenColor(NeighbourhoodSamples samples, CTYPE color, float sharpenStren
     linearC = linearC + (linearC - linearAvg) * sharpenStrength * 3;
     linearC = clamp(linearC, 0, CLAMP_MAX);
 #endif
-    CTYPE outputSharpened = linearC * PerceptualWeight(linearC);
-
-#if (SHARPEN_ALPHA == 0 && defined(ENABLE_ALPHA))
-    outputSharpened.a = color.a;
-#endif
-
-    return outputSharpened;
+    return linearC * PerceptualWeight(linearC);
 }

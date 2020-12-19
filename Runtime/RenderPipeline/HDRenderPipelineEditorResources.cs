@@ -8,8 +8,8 @@ namespace UnityEngine.Rendering.HighDefinition
     {
         [Reload(new[]
         {
-            "Runtime/RenderPipelineResources/Skin Diffusion Profile.asset",
-            "Runtime/RenderPipelineResources/Foliage Diffusion Profile.asset"
+            "Runtime/RenderPipelineResources/SkinDiffusionProfile.asset",
+            "Runtime/RenderPipelineResources/FoliageDiffusionProfile.asset"
         })]
         [SerializeField]
         internal DiffusionProfileSettings[] defaultDiffusionProfileSettingsList;
@@ -51,14 +51,12 @@ namespace UnityEngine.Rendering.HighDefinition
         [Serializable, ReloadGroup]
         public sealed class ShaderGraphResources
         {
-            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractive.shadergraph")]
+            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractive.ShaderGraph")]
             public Shader autodeskInteractive;
-            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveMasked.shadergraph")]
+            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveMasked.ShaderGraph")]
             public Shader autodeskInteractiveMasked;
-            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.shadergraph")]
+            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.ShaderGraph")]
             public Shader autodeskInteractiveTransparent;
-            [Reload("Runtime/Material/Nature/SpeedTree8.shadergraph")]
-            public Shader defaultSpeedTree8Shader;
         }
 
         [Serializable, ReloadGroup]
@@ -86,7 +84,7 @@ namespace UnityEngine.Rendering.HighDefinition
             if (UnityEditor.EditorPrefs.GetBool("DeveloperMode")
                 && GUILayout.Button("Reload All"))
             {
-                foreach(var field in typeof(HDRenderPipelineEditorResources).GetFields())
+                foreach (var field in typeof(HDRenderPipelineEditorResources).GetFields())
                     field.SetValue(target, null);
 
                 ResourceReloader.ReloadAllNullIn(target, HDUtils.GetHDRenderPipelinePath());

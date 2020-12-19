@@ -140,7 +140,7 @@ namespace UnityEditor.Rendering.HighDefinition
         void DrawSettingsGUI()
         {
             serializedObject.Update();
-            
+
             EditorGUI.BeginChangeCheck();
             {
                 Rect isGlobalRect = EditorGUILayout.GetControlRect();
@@ -192,10 +192,9 @@ namespace UnityEditor.Rendering.HighDefinition
 
             m_CustomPassList.drawElementCallback = (rect, index, active, focused) => {
                 EditorGUI.BeginChangeCheck();
-                
+
                 passList.serializedObject.ApplyModifiedProperties();
                 var customPass = passList.GetArrayElementAtIndex(index);
-                customPass.managedReferenceValue = m_Volume.customPasses[index];
                 var drawer = GetCustomPassDrawer(customPass, m_Volume.customPasses[index], index);
                 if (drawer != null)
                     drawer.OnGUI(rect, customPass, null);
@@ -232,7 +231,7 @@ namespace UnityEditor.Rendering.HighDefinition
                         passList.serializedObject.Update();
                         // Notify the prefab that something have changed:
                         PrefabUtility.RecordPrefabInstancePropertyModifications(target);
-                   });
+                    });
                 }
                 menu.ShowAsContext();
             };

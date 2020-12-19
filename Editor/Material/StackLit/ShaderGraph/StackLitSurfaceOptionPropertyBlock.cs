@@ -33,10 +33,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             // StackLit specific properties:
 
             AddProperty("Base Color Parametrization", () => stackLitData.baseParametrization, (newValue) => stackLitData.baseParametrization = newValue);
-            if (stackLitData.baseParametrization == StackLit.BaseParametrization.SpecularColor)
-            {
-                AddProperty("Energy Conserving Specular", () => stackLitData.energyConservingSpecular, (newValue) => stackLitData.energyConservingSpecular = newValue, 1);
-            }
+            AddProperty("Energy Conserving Specular", () => stackLitData.energyConservingSpecular, (newValue) => stackLitData.energyConservingSpecular = newValue, 1);
 
             // Material type enables:
             context.AddLabel("Material Core Features", 0);
@@ -64,7 +61,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 
             // SpecularOcclusion from input AO (baked or data-based SO)
             EnumField specularOcclusionFromInputAOField;
-            if(stackLitData.devMode)
+            if (stackLitData.devMode)
             {
                 specularOcclusionFromInputAOField = new EnumField(StackLitData.SpecularOcclusionBaseMode.DirectFromAO);
                 specularOcclusionFromInputAOField.value = stackLitData.dataBasedSpecularOcclusionBaseMode;
@@ -96,10 +93,10 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 AddProperty("Specular Occlusion Bent Cone Fixup", () => stackLitData.specularOcclusionConeFixupMethod != StackLitData.SpecularOcclusionConeFixupMethod.Off, (newValue) =>
                 {
                     stackLitData.specularOcclusionConeFixupMethod = newValue ? StackLitData.SpecularOcclusionConeFixupMethod.BoostAndTilt
-                                                        : StackLitData.SpecularOcclusionConeFixupMethod.Off;
+                        : StackLitData.SpecularOcclusionConeFixupMethod.Off;
                 }, 0);
             }
-            
+
             // Misc Cont.
             // Advanced Options
             context.AddLabel("Advanced Options", 0);

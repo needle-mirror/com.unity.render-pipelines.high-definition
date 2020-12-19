@@ -92,9 +92,9 @@ namespace UnityEditor.VFX
         [VFXSetting(VFXSettingAttribute.VisibleFlags.InInspector), SerializeField, Tooltip("When enabled, particles can be affected by environment light set in the global volume profile.")]
         protected bool enableEnvLight = true;
 
-        protected VFXAbstractParticleHDRPLitOutput(bool strip = false) : base(strip) { }
+        protected VFXAbstractParticleHDRPLitOutput(bool strip = false) : base(strip) {}
 
-        protected virtual bool allowTextures { get { return GetOrRefreshShaderGraphObject() == null; }}
+        protected virtual bool allowTextures { get { return shaderGraph == null; }}
 
         public class HDRPLitInputProperties
         {
@@ -160,7 +160,7 @@ namespace UnityEditor.VFX
             public Color emissiveColor = Color.black;
         }
 
-        protected override bool needsExposureWeight { get { return GetOrRefreshShaderGraphObject() == null && ((colorMode & ColorMode.Emissive) != 0 || useEmissive || useEmissiveMap); } }
+        protected override bool needsExposureWeight { get { return shaderGraph == null && ((colorMode & ColorMode.Emissive) != 0 || useEmissive || useEmissiveMap); } }
 
         protected override bool bypassExposure { get { return false; } }
 
@@ -176,7 +176,7 @@ namespace UnityEditor.VFX
             {
                 var properties = base.inputProperties;
 
-                if (GetOrRefreshShaderGraphObject() == null)
+                if (shaderGraph == null)
                 {
                     properties = properties.Concat(PropertiesFromType("HDRPLitInputProperties"));
                     properties = properties.Concat(PropertiesFromType(kMaterialTypeToName[(int)materialType]));
@@ -213,7 +213,7 @@ namespace UnityEditor.VFX
             foreach (var exp in base.CollectGPUExpressions(slotExpressions))
                 yield return exp;
 
-            if (GetOrRefreshShaderGraphObject() == null)
+            if (shaderGraph == null)
             {
                 yield return slotExpressions.First(o => o.name == "smoothness");
 
@@ -230,12 +230,12 @@ namespace UnityEditor.VFX
 
                     case MaterialType.Translucent:
                     case MaterialType.SimpleLitTranslucent:
-                        {
-                            yield return slotExpressions.First(o => o.name == "thickness");
-                            uint diffusionProfileHash = (diffusionProfileAsset?.profile != null) ? diffusionProfileAsset.profile.hash : 0;
-                            yield return new VFXNamedExpression(VFXValue.Constant(diffusionProfileHash), "diffusionProfileHash");
-                            break;
-                        }
+                    {
+                        yield return slotExpressions.First(o => o.name == "thickness");
+                        uint diffusionProfileHash = (diffusionProfileAsset?.profile != null) ? diffusionProfileAsset.profile.hash : 0;
+                        yield return new VFXNamedExpression(VFXValue.Constant(diffusionProfileHash), "diffusionProfileHash");
+                        break;
+                    }
 
                     default: break;
                 }
@@ -275,7 +275,7 @@ namespace UnityEditor.VFX
 
                 yield return "HDRP_LIT";
 
-                if (GetOrRefreshShaderGraphObject() == null)
+                if (shaderGraph == null)
                     switch (materialType)
                     {
                         case MaterialType.Standard:
@@ -337,7 +337,7 @@ namespace UnityEditor.VFX
                         yield return "HDRP_USE_EMISSIVE_MAP";
                 }
 
-                if (GetOrRefreshShaderGraphObject() == null)
+                if (shaderGraph == null)
                 {
                     if ((colorMode & ColorMode.BaseColor) != 0)
                         yield return "HDRP_USE_BASE_COLOR";
@@ -356,7 +356,7 @@ namespace UnityEditor.VFX
                 if (onlyAmbientLighting && !isBlendModeOpaque)
                     yield return "USE_ONLY_AMBIENT_LIGHTING";
 
-                if (isBlendModeOpaque && (GetOrRefreshShaderGraphObject() != null || (materialType != MaterialType.SimpleLit && materialType != MaterialType.SimpleLitTranslucent)))
+                if (isBlendModeOpaque && (shaderGraph != null || (materialType != MaterialType.SimpleLit && materialType != MaterialType.SimpleLitTranslucent)))
                     yield return "IS_OPAQUE_NOT_SIMPLE_LIT_PARTICLE";
             }
         }
@@ -394,7 +394,7 @@ namespace UnityEditor.VFX
                     yield return "alphaMask";
                 }
 
-                if (GetOrRefreshShaderGraphObject() != null)
+                if (shaderGraph != null)
                 {
                     yield return "materialType";
                     yield return "useEmissive";
@@ -407,7 +407,6 @@ namespace UnityEditor.VFX
                 {
                     yield return "onlyAmbientLighting";
                     yield return "preserveSpecularLighting";
-                    yield return "excludeFromTAA";
                 }
             }
         }
@@ -438,7 +437,7 @@ namespace UnityEditor.VFX
 
                 yield return new KeyValuePair<string, VFXShaderWriter>("${VFXHDRPForwardDefines}", forwardDefines);
                 var forwardPassName = new VFXShaderWriter();
-                forwardPassName.Write(GetOrRefreshShaderGraphObject() == null && (materialType == MaterialType.SimpleLit || materialType == MaterialType.SimpleLitTranslucent) ? "ForwardOnly" : "Forward");
+                forwardPassName.Write(shaderGraph == null && (materialType == MaterialType.SimpleLit || materialType == MaterialType.SimpleLitTranslucent) ? "ForwardOnly" : "Forward");
                 yield return new KeyValuePair<string, VFXShaderWriter>("${VFXHDRPForwardPassName}", forwardPassName);
             }
         }

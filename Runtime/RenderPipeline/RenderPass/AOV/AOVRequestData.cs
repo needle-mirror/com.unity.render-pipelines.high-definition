@@ -153,7 +153,6 @@ namespace UnityEngine.Rendering.HighDefinition
                         Debug.LogError("Allocation for requested AOVBuffers ID: " + bufferId.ToString() + " have fail. Please ensure the callback allocator do the correct allocation.");
                     }
                 }
-                    
             }
 
             if (m_CustomPassAOVBuffers != null)
@@ -232,10 +231,10 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.target = targets[index];
 
                 builder.SetRenderFunc(
-                (PushCameraTexturePassData data, RenderGraphContext ctx) =>
-                {
-                    HDUtils.BlitCameraTexture(ctx.cmd, data.source, data.target);
-                });
+                    (PushCameraTexturePassData data, RenderGraphContext ctx) =>
+                    {
+                        HDUtils.BlitCameraTexture(ctx.cmd, data.source, data.target);
+                    });
             }
         }
 
@@ -326,13 +325,13 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.target = targets[index];
 
                 builder.SetRenderFunc(
-                (PushCustomPassTexturePassData data, RenderGraphContext ctx) =>
-                {
-                    if (data.customPassSource != null)
-                        HDUtils.BlitCameraTexture(ctx.cmd, data.customPassSource, data.target);
-                    else
-                        HDUtils.BlitCameraTexture(ctx.cmd, data.source, data.target);
-                });
+                    (PushCustomPassTexturePassData data, RenderGraphContext ctx) =>
+                    {
+                        if (data.customPassSource != null)
+                            HDUtils.BlitCameraTexture(ctx.cmd, data.customPassSource, data.target);
+                        else
+                            HDUtils.BlitCameraTexture(ctx.cmd, data.source, data.target);
+                    });
             }
         }
 
@@ -383,44 +382,5 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="gameObject">The game object of the light to be rendered.</param>
         /// <returns><c>true</c> when the light must be rendered, <c>false</c> when it should be ignored.</returns>
         public bool IsLightEnabled(GameObject gameObject) => m_LightFilter == null || m_LightFilter.Contains(gameObject);
-
-        internal int GetHash()
-        {
-            int hash = m_Settings.GetHashCode();
-
-            if (m_LightFilter != null)
-            {
-                foreach (var obj in m_LightFilter)
-                {
-                    hash += obj.GetHashCode();
-                }
-            }
-
-            return hash;
-        }
-
-        internal bool HasSameSettings(AOVRequestData other)
-        {
-            if (m_Settings != other.m_Settings)
-                return false;
-
-            if (m_LightFilter != null)
-                return m_LightFilter.Equals(other.m_LightFilter);
-
-            return true;
-        }
-    }
-
-    internal class AOVRequestDataComparer : IEqualityComparer<AOVRequestData>
-    {
-        public bool Equals(AOVRequestData x, AOVRequestData y)
-        {
-            return x.HasSameSettings(y);
-        }
-
-        public int GetHashCode(AOVRequestData obj)
-        {
-            return obj.GetHash();
-        }
     }
 }

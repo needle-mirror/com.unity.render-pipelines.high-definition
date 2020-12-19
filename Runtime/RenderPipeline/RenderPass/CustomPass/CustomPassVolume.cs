@@ -88,17 +88,19 @@ namespace UnityEngine.Rendering.HighDefinition
         void OnDisable()
         {
             UnRegister(this);
-            CleanupPasses();
 #if UNITY_EDITOR
             UnityEditor.SceneVisibilityManager.visibilityChanged -= UpdateCustomPassVolumeVisibility;
 #endif
         }
+
+        void OnDestroy() => CleanupPasses();
 
 #if UNITY_EDITOR
         void UpdateCustomPassVolumeVisibility()
         {
             visible = !UnityEditor.SceneVisibilityManager.instance.IsHidden(gameObject);
         }
+
 #endif
 
         bool IsVisible(HDCamera hdCamera)
@@ -110,10 +112,9 @@ namespace UnityEngine.Rendering.HighDefinition
 #endif
 
             // We never execute volume if the layer is not within the culling layers of the camera
-            // Special case for the scene view: we can't easily change it's volume later mask, so by default we show all custom passes
-            if (hdCamera.camera.cameraType != CameraType.SceneView && (hdCamera.volumeLayerMask & (1 << gameObject.layer)) == 0)
+            if ((hdCamera.volumeLayerMask & (1 << gameObject.layer)) == 0)
                 return false;
-            
+
             return true;
         }
 
@@ -194,7 +195,8 @@ namespace UnityEngine.Rendering.HighDefinition
             // Traverse all volumes
             foreach (var volume in m_ActivePassVolumes)
             {
-                if (!volume.IsVisible(camera))
+                // Ignore volumes that are not in the camera layer mask
+                if ((camera.volumeLayerMask & (1 << volume.gameObject.layer)) == 0)
                     continue;
 
                 // Global volumes always have influence
@@ -428,6 +430,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 }
             }
         }
+
 #endif
     }
 }

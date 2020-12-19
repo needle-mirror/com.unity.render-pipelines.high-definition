@@ -62,6 +62,7 @@ namespace UnityEngine.Rendering.HighDefinition
             viewport.y      *= renderPass.renderTargetDesc.height;
             viewport.height *= renderPass.renderTargetDesc.height;
         }
+
 #endif
     }
 
@@ -181,6 +182,7 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             AddViewInternal(new XRView(xrSdkRenderPass, xrSdkRenderParameter));
         }
+
 #endif
 
         internal static void Release(XRPass xrPass)
@@ -210,7 +212,7 @@ namespace UnityEngine.Rendering.HighDefinition
         // Must be called after all views have been added to the pass
         internal void UpdateOcclusionMesh()
         {
-            if (isOcclusionMeshSupported && singlePassEnabled && TryGetOcclusionMeshCombinedHashCode(out var hashCode))
+            if (isOcclusionMeshSupported && TryGetOcclusionMeshCombinedHashCode(out var hashCode))
             {
                 if (occlusionMeshCombined == null || hashCode != occlusionMeshCombinedHashCode)
                 {

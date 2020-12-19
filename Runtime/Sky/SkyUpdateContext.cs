@@ -11,8 +11,6 @@ namespace UnityEngine.Rendering.HighDefinition
         public int          skyParametersHash = -1;
         public float        currentUpdateTime = 0.0f;
 
-        public bool settingsHadBigDifferenceWithPrev { get; private set; }
-
         public SkySettings skySettings
         {
             get { return m_SkySettings; }
@@ -26,11 +24,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     skyRenderer.Cleanup();
                     skyRenderer = null;
                 }
-
-                if (m_SkySettings == null)
-                    settingsHadBigDifferenceWithPrev = true;
-                else
-                    settingsHadBigDifferenceWithPrev = m_SkySettings.SignificantlyDivergesFrom(value);
 
                 if (m_SkySettings == value)
                     return;

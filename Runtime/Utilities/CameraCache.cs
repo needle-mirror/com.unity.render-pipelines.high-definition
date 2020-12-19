@@ -41,7 +41,7 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             else
             {
-                camera.lastFrame = frameCount;
+                camera.lastFrame = Time.frameCount;
                 m_Cache[key] = camera;
             }
             return camera.camera;
@@ -54,18 +54,18 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             if (m_Cache == null)
                 throw new ObjectDisposedException(nameof(CameraCache<K>));
-            
+
             // In case cameraKeysCache length does not matches the current cache length, we resize it:
             if (cameraKeysCache.Length != m_Cache.Count)
                 cameraKeysCache = new K[m_Cache.Count];
-            
+
             // Copy keys to remove them from the dictionary (avoids collection modifed while iterating error)
             m_Cache.Keys.CopyTo(cameraKeysCache, 0);
             foreach (var key in cameraKeysCache)
             {
                 if (m_Cache.TryGetValue(key, out var value))
                 {
-                    if (Math.Abs(frameCount - value.lastFrame) > frameWindow)
+                    if ((frameCount - value.lastFrame) > frameWindow)
                     {
                         if (value.camera != null)
                         {

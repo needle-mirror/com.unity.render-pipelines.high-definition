@@ -303,16 +303,6 @@ namespace UnityEngine.Rendering.HighDefinition
             m_RaytracingAmbientOcclusion.Init(renderPipeline);
         }
 
-        internal float EvaluateSpecularOcclusionFlag(HDCamera hdCamera)
-        {
-            AmbientOcclusion ssoSettings = hdCamera.volumeStack.GetComponent<AmbientOcclusion>();
-            bool enableRTAO = hdCamera.frameSettings.IsEnabled(FrameSettingsField.RayTracing) && ssoSettings.rayTracing.value;
-            if (enableRTAO)
-                return m_RaytracingAmbientOcclusion.EvaluateRTSpecularOcclusionFlag(hdCamera, ssoSettings);
-            else
-                return 1.0f;
-        }
-
         internal bool IsActive(HDCamera camera, AmbientOcclusion settings) => camera.frameSettings.IsEnabled(FrameSettingsField.SSAO) && settings.intensity.value > 0f;
 
         internal void Render(CommandBuffer cmd, HDCamera camera, ScriptableRenderContext renderContext, RTHandle depthTexture, RTHandle normalBuffer, RTHandle motionVectors, in ShaderVariablesRaytracing globalRTCB, int frameCount)
@@ -363,7 +353,7 @@ namespace UnityEngine.Rendering.HighDefinition
             public ShaderVariablesAmbientOcclusion cb;
         }
 
-        RenderAOParameters PrepareRenderAOParameters(HDCamera camera, Vector2 historySize, in HDUtils.PackedMipChainInfo depthMipInfo)
+        RenderAOParameters PrepareRenderAOParameters(HDCamera camera, Vector2 historySize, int frameCount, in HDUtils.PackedMipChainInfo depthMipInfo)
         {
             var parameters = new RenderAOParameters();
 
@@ -386,21 +376,20 @@ namespace UnityEngine.Rendering.HighDefinition
 
             float invHalfTanFOV = -camera.mainViewConstants.projMatrix[1, 1];
             float aspectRatio = parameters.runningRes.y / parameters.runningRes.x;
-            uint frameCount = camera.GetCameraFrameCount();
 
             cb._AOParams0 = new Vector4(
                 parameters.fullResolution ? 0.0f : 1.0f,
                 parameters.runningRes.y * invHalfTanFOV * 0.25f,
                 settings.radius.value,
                 settings.stepCount
-                );
+            );
 
             cb._AOParams1 = new Vector4(
                 settings.intensity.value,
                 1.0f / (settings.radius.value * settings.radius.value),
                 (frameCount / 6) % 4,
                 (frameCount % 6)
-                );
+            );
 
 
             // We start from screen space position, so we bake in this factor the 1 / resolution as well.
@@ -409,7 +398,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 2.0f / (invHalfTanFOV * parameters.runningRes.y),
                 1.0f / (invHalfTanFOV * aspectRatio),
                 1.0f / invHalfTanFOV
-                );
+            );
 
             float scaleFactor = (parameters.runningRes.x * parameters.runningRes.y) / (540.0f * 960.0f);
             float radInPixels = Mathf.Max(16, settings.maximumRadiusInPixels * Mathf.Sqrt(scaleFactor));
@@ -463,7 +452,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 parameters.gtaoCS.EnableKeyword("TEMPORAL");
             }
-            if(parameters.fullResolution)
+            if (parameters.fullResolution)
             {
                 parameters.gtaoCS.EnableKeyword("FULL_RES");
             }
@@ -510,10 +499,10 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         static void RenderAO(in RenderAOParameters      parameters,
-                                RTHandle                packedDataTexture,
-                                RTHandle                depthTexture,
-                                RTHandle                normalBuffer,
-                                CommandBuffer           cmd)
+            RTHandle                packedDataTexture,
+            RTHandle                depthTexture,
+            RTHandle                normalBuffer,
+            CommandBuffer           cmd)
         {
             ConstantBuffer.Push(cmd, parameters.cb, parameters.gtaoCS, HDShaderIDs._ShaderVariablesAmbientOcclusion);
             cmd.SetComputeTextureParam(parameters.gtaoCS, parameters.gtaoKernel, HDShaderIDs._AOPackedData, packedDataTexture);
@@ -528,14 +517,14 @@ namespace UnityEngine.Rendering.HighDefinition
             cmd.DispatchCompute(parameters.gtaoCS, parameters.gtaoKernel, threadGroupX, threadGroupY, parameters.viewCount);
         }
 
-        static void DenoiseAO(  in RenderAOParameters   parameters,
-                                RTHandle                packedDataTex,
-                                RTHandle                packedDataBlurredTex,
-                                RTHandle                packedHistoryTex,
-                                RTHandle                packedHistoryOutputTex,
-                                RTHandle                motionVectors,
-                                RTHandle                aoOutputTex,
-                                CommandBuffer           cmd)
+        static void DenoiseAO(in RenderAOParameters   parameters,
+            RTHandle                packedDataTex,
+            RTHandle                packedDataBlurredTex,
+            RTHandle                packedHistoryTex,
+            RTHandle                packedHistoryOutputTex,
+            RTHandle                motionVectors,
+            RTHandle                aoOutputTex,
+            CommandBuffer           cmd)
         {
             const int groupSizeX = 8;
             const int groupSizeY = 8;
@@ -584,11 +573,11 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
-        static void UpsampleAO( in RenderAOParameters   parameters,
-                                RTHandle                depthTexture,
-                                RTHandle                input,
-                                RTHandle                output,
-                                CommandBuffer           cmd)
+        static void UpsampleAO(in RenderAOParameters   parameters,
+            RTHandle                depthTexture,
+            RTHandle                input,
+            RTHandle                output,
+            CommandBuffer           cmd)
         {
             bool blurAndUpsample = !parameters.temporalAccumulation;
 
@@ -605,7 +594,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 int threadGroupX = ((int)(parameters.runningRes.x) + (groupSizeX - 1)) / groupSizeX;
                 int threadGroupY = ((int)(parameters.runningRes.y) + (groupSizeY - 1)) / groupSizeY;
                 cmd.DispatchCompute(parameters.upsampleAndBlurAOCS, parameters.upsampleAndBlurKernel, threadGroupX, threadGroupY, parameters.viewCount);
-
             }
             else
             {
@@ -634,11 +622,11 @@ namespace UnityEngine.Rendering.HighDefinition
                     var historyOutput = camera.GetPreviousFrameRT((int)HDCameraFrameHistoryType.AmbientOcclusion);
 
                     Vector2 historySize = new Vector2(currentHistory.referenceSize.x * currentHistory.scaleFactor.x,
-                                                      currentHistory.referenceSize.y * currentHistory.scaleFactor.y);
+                        currentHistory.referenceSize.y * currentHistory.scaleFactor.y);
                     var rtScaleForHistory = camera.historyRTHandleProperties.rtHandleScale;
 
                     var hdrp = (RenderPipelineManager.currentPipeline as HDRenderPipeline);
-                    var aoParameters = PrepareRenderAOParameters(camera, historySize * rtScaleForHistory, hdrp.sharedRTManager.GetDepthBufferMipChainInfo());
+                    var aoParameters = PrepareRenderAOParameters(camera, historySize * rtScaleForHistory, frameCount, hdrp.sharedRTManager.GetDepthBufferMipChainInfo());
                     using (new ProfilingScope(cmd, ProfilingSampler.Get(HDProfileId.HorizonSSAO)))
                     {
                         RenderAO(aoParameters, m_PackedDataTex, depthTexture, normalBuffer, cmd);

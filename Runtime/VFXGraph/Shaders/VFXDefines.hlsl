@@ -3,14 +3,14 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialBlendModeEnum.cs.hlsl"
 
 #if VFX_BLENDMODE_ALPHA
-    #define _BlendMode BLENDMODE_ALPHA 
+    #define _BlendMode BLENDMODE_ALPHA
 #elif VFX_BLENDMODE_ADD
-    #define _BlendMode BLENDMODE_ADDITIVE  
+    #define _BlendMode BLENDMODE_ADDITIVE
 #elif VFX_BLENDMODE_PREMULTIPLY
-    #define _BlendMode BLENDMODE_PREMULTIPLY   
+    #define _BlendMode BLENDMODE_PREMULTIPLY
 #else
     //Opaque, doesn't really matter what we specify, but a definition is needed to avoid compilation errors.
-    #define _BlendMode BLENDMODE_ALPHA 
+    #define _BlendMode BLENDMODE_ALPHA
 #endif
 
 #ifdef _BLENDMODE_PRESERVE_SPECULAR_LIGHTING
@@ -35,8 +35,3 @@
 #if IS_TRANSPARENT_PARTICLE
 #define _SURFACE_TYPE_TRANSPARENT
 #endif
-
-// this is only necessary for the old VFXTarget pathway
-// it defines the macro used to access hybrid instanced properties
-// (new HDRP/URP Target pathway overrides the type so this is never used)
-#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(name, type) name

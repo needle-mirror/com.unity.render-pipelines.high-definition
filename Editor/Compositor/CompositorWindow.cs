@@ -33,7 +33,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
         {
             // Get existing open window or if none, make a new one:
             s_Window = (CompositorWindow)EditorWindow.GetWindow(typeof(CompositorWindow));
-            s_Window.titleContent = new GUIContent("Graphics Compositor");
+            s_Window.titleContent = new GUIContent("Graphics Compositor (Preview)");
             s_Window.Show();
         }
 
@@ -54,7 +54,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 Repaint();
 
                 // [case 1266216] Ensure the game view gets repainted a few times per second even when we are not in play mode.
-                // This ensures that we will not always display the first frame, which might have some artifacts for effects that require temporal data 
+                // This ensures that we will not always display the first frame, which might have some artifacts for effects that require temporal data
                 if (!Application.isPlaying)
                 {
                     CompositionManager compositor = CompositionManager.GetInstance();
@@ -72,7 +72,6 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
 #endif
                         }
                     }
-
                 }
             }
         }
@@ -115,13 +114,13 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 Undo.RegisterCreatedObjectUndo(compositor.outputCamera.gameObject, "Create Compositor");
                 Undo.RegisterCreatedObjectUndo(go, "Create Compositor");
             }
-            else if (compositor && (compositor.enabled != enableCompositor))
+            else if (compositor)
             {
                 string message = enableCompositor ? "Enable Compositor" : "Disable Compositor";
                 Undo.RecordObject(compositor, message);
                 compositor.enabled = enableCompositor;
             }
-            else if (!compositor)
+            else
             {
                 return;
             }
@@ -132,7 +131,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 {
                     if (compositor.outputCamera)
                     {
-                        if(compositor.outputCamera.name == CompositionUtils.k_DefaultCameraName)
+                        if (compositor.outputCamera.name == CompositionUtils.k_DefaultCameraName)
                         {
                             var cameraData = compositor.outputCamera.GetComponent<HDAdditionalCameraData>();
                             if (cameraData != null)
@@ -144,7 +143,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
                         }
                     }
-                    
+
                     CoreUtils.Destroy(compositor);
                     return;
                 }
@@ -179,9 +178,6 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 if (m_Editor)
                 {
                     m_Editor.OnInspectorGUI();
-
-                    // Remember which layer was selected / drawn in the last draw call
-                    s_SelectionIndex = m_Editor.selectionIndex;
                 }
             }
             GUILayout.EndScrollView();
@@ -218,11 +214,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
 
             m_Editor.CacheSerializedObjects();
             m_RequiresRedraw = true;
-
-            // After undo, set the selection index to the last shown layer, because the Unity Editor resets the value to the last layer in the list
-            m_Editor.defaultSelection = s_SelectionIndex;
-            m_Editor.selectionIndex = s_SelectionIndex;
-
+            s_SelectionIndex = m_Editor.selectionIndex;
 
             CompositionManager compositor = CompositionManager.GetInstance();
             // The compositor might be null even if the CompositionManagerEditor is not (in case the user switches from a scene with a compositor to a scene without one)
@@ -231,10 +223,6 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 // Some properties were changed, mark the profile as dirty so it can be saved if the user saves the scene
                 EditorUtility.SetDirty(compositor);
                 EditorUtility.SetDirty(compositor.profile);
-
-                // Clean-up existing cameras after undo, we will re-allocate the layer resources
-                CompositorCameraRegistry.GetInstance().CleanUpCameraOrphans(compositor.layers);
-                compositor.DeleteLayerRTs();
                 compositor.UpdateLayerSetup();
             }
         }

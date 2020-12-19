@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System;
-using System.Reflection;
 using UnityEngine.Rendering.HighDefinition.Attributes;
 
 namespace UnityEngine.Rendering.HighDefinition
@@ -155,7 +154,9 @@ namespace UnityEngine.Rendering.HighDefinition
         // className include the additional "/"
         static void FillWithProperties(Type type, ref List<GUIContent> debugViewMaterialStringsList, ref List<int> debugViewMaterialValuesList, string className)
         {
-            var attr = type.GetCustomAttribute<GenerateHLSL>();
+            var attributes = type.GetCustomAttributes(true);
+            // Get attribute to get the start number of the value for the enum
+            var attr = attributes[0] as GenerateHLSL;
 
             if (!attr.needParamDebug)
             {
@@ -174,7 +175,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (Attribute.IsDefined(field, typeof(PackingAttribute)))
                 {
                     var packingAttributes = (PackingAttribute[])field.GetCustomAttributes(typeof(PackingAttribute), false);
-                    foreach(PackingAttribute packAttr in packingAttributes)
+                    foreach (PackingAttribute packAttr in packingAttributes)
                     {
                         displayNames.AddRange(packAttr.displayNames);
                     }
@@ -274,7 +275,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 List<MaterialItem> materialItems = GetAllMaterialDatas();
 
                 // Init list
-                List < GUIContent> debugViewMaterialStringsList = new List<GUIContent>();
+                List<GUIContent> debugViewMaterialStringsList = new List<GUIContent>();
                 List<int> debugViewMaterialValuesList = new List<int>();
                 List<GUIContent> debugViewEngineStringsList = new List<GUIContent>();
                 List<int> debugViewEngineValuesList = new List<int>();
@@ -358,7 +359,8 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 // builtins parameters
                 Type builtin = typeof(Builtin.BuiltinData);
-                var generateHLSLAttribute = builtin.GetCustomAttribute<GenerateHLSL>();
+                var attributes = builtin.GetCustomAttributes(true);
+                var generateHLSLAttribute = attributes[0] as GenerateHLSL;
                 int materialStartIndex = generateHLSLAttribute.paramDefinesStart;
 
                 int localIndex = 0;
@@ -377,7 +379,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 // specific shader parameters
                 foreach (MaterialItem materialItem in materialItems)
                 {
-                    generateHLSLAttribute = materialItem.surfaceDataType.GetCustomAttribute<GenerateHLSL>();
+                    attributes = materialItem.surfaceDataType.GetCustomAttributes(true);
+                    generateHLSLAttribute = attributes[0] as GenerateHLSL;
                     materialStartIndex = generateHLSLAttribute.paramDefinesStart;
 
                     if (!generateHLSLAttribute.needParamDebug)
@@ -401,7 +404,8 @@ namespace UnityEngine.Rendering.HighDefinition
                     if (materialItem.bsdfDataType == null)
                         continue;
 
-                    generateHLSLAttribute = materialItem.bsdfDataType.GetCustomAttribute<GenerateHLSL>();
+                    attributes = materialItem.bsdfDataType.GetCustomAttributes(true);
+                    generateHLSLAttribute = attributes[0] as GenerateHLSL;
                     materialStartIndex = generateHLSLAttribute.paramDefinesStart;
 
                     if (!generateHLSLAttribute.needParamDebug)
@@ -445,7 +449,8 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Current Debug View Material.
         /// </summary>
-        public int[] debugViewMaterial {
+        public int[] debugViewMaterial
+        {
             get => m_DebugViewMaterial;
             internal set
             {
@@ -615,7 +620,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>True if Material debug is enabled.</returns>
         public bool IsDebugViewMaterialEnabled()
         {
-            int size = m_DebugViewMaterial?[0] ?? 0;
+            int size = m_DebugViewMaterial ? [0] ?? 0;
             bool enabled = false;
             for (int i = 1; i <= size; ++i)
             {

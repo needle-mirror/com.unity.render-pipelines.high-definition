@@ -35,7 +35,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 if (!Application.isBatchMode)
                 {
                     if (!EditorUtility.DisplayDialog("Build Player",
-                                                    "There is no HDRP Asset provided in GraphicsSettings.\nAre you sure you want to continue?\n Build time can be extremely long without it.", "Ok", "Cancel"))
+                        "There is no HDRP Asset provided in GraphicsSettings.\nAre you sure you want to continue?\n Build time can be extremely long without it.", "Ok", "Cancel"))
                     {
                         throw new BuildFailedException("Stop build on request.");
                     }
@@ -59,7 +59,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // Update all quality levels with the right max lod so that meshes can be stripped.
             // We don't take lod bias into account because it can be overridden per camera.
-            int currentQualityLevel = QualitySettings.GetQualityLevel();
             int qualityLevelCount = QualitySettings.names.Length;
             for (int i = 0; i < qualityLevelCount; ++i)
             {
@@ -74,7 +73,6 @@ namespace UnityEditor.Rendering.HighDefinition
                     QualitySettings.maximumLODLevel = GetMinimumMaxLoDValue(hdPipelineAsset);
                 }
             }
-            QualitySettings.SetQualityLevel(currentQualityLevel, false);
         }
     }
 }

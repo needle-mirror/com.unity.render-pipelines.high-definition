@@ -10,9 +10,12 @@ using static UnityEngine.Rendering.HighDefinition.HDMaterialProperties;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
-    class LayerListUIBlock : MaterialUIBlock
+    /// <summary>
+    /// The UI block that represents a material layer list. The Layered Lit shader uses this UI block.
+    /// </summary>
+    public class LayerListUIBlock : MaterialUIBlock
     {
-        public class Styles
+        internal class Styles
         {
             public const string header = "Layer List";
             public static readonly GUIContent layerNameHeader = EditorGUIUtility.TrTextContent("Layer name");
@@ -31,8 +34,8 @@ namespace UnityEditor.Rendering.HighDefinition
 
         MaterialProperty layerCount = null;
 
-        Expandable      m_ExpandableBit;
-        bool[]          m_WithUV = new bool[kMaxLayerCount];
+        ExpandableBit      m_ExpandableBit;
+        bool[]          m_WithUV;
         Material[]      m_MaterialLayers = new Material[kMaxLayerCount];
         AssetImporter   m_MaterialImporter;
 
@@ -50,20 +53,28 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             if (layerNumber == 4)
             {
-                materialEditor.SetExpandedAreas((uint)Expandable.ShowLayer3, true);
+                materialEditor.SetExpandedAreas((uint)ExpandableBit.ShowLayer3, true);
             }
             if (layerNumber >= 3)
             {
-                materialEditor.SetExpandedAreas((uint)Expandable.ShowLayer2, true);
+                materialEditor.SetExpandedAreas((uint)ExpandableBit.ShowLayer2, true);
             }
-            materialEditor.SetExpandedAreas((uint)Expandable.ShowLayer1, true);
+            materialEditor.SetExpandedAreas((uint)ExpandableBit.ShowLayer1, true);
         }
 
-        public LayerListUIBlock(Expandable expandableBit)
+        /// <summary>
+        /// Constructs a LayerListUIBlock based on the parameters.
+        /// </summary>
+        /// <param name="expandableBit">Bit index used to store the state of the foldout</param>
+        public LayerListUIBlock(ExpandableBit expandableBit)
         {
             m_ExpandableBit = expandableBit;
+            m_WithUV = new bool[] { true, true, true, true };
         }
 
+        /// <summary>
+        /// Loads the material properties for the block.
+        /// </summary>
         public override void LoadMaterialProperties()
         {
             layerCount = FindProperty(kLayerCount);
@@ -75,9 +86,30 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // Material importer can be null when the selected material doesn't exists as asset (Material saved inside the scene)
             if (m_MaterialImporter != null)
-                LayeredLitGUI.InitializeMaterialLayers(m_MaterialImporter, ref m_MaterialLayers, ref m_WithUV);
+                InitializeMaterialLayers(m_MaterialImporter, ref m_MaterialLayers);
         }
 
+        // We use the user data to save a string that represent the referenced lit material
+        // so we can keep reference during serialization
+        static void InitializeMaterialLayers(AssetImporter materialImporter, ref Material[] layers)
+        {
+            if (materialImporter.userData != string.Empty)
+            {
+                SerializeableGUIDs layersGUID = JsonUtility.FromJson<SerializeableGUIDs>(materialImporter.userData);
+                if (layersGUID.GUIDArray.Length > 0)
+                {
+                    layers = new Material[layersGUID.GUIDArray.Length];
+                    for (int i = 0; i < layersGUID.GUIDArray.Length; ++i)
+                    {
+                        layers[i] = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(layersGUID.GUIDArray[i]), typeof(Material)) as Material;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Renders the properties in the block.
+        /// </summary>
         public override void OnGUI()
         {
             using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
@@ -121,18 +153,19 @@ namespace UnityEditor.Rendering.HighDefinition
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
+                    EditorGUI.BeginChangeCheck();
+
                     Rect lineRect = GUILayoutUtility.GetRect(1, EditorGUIUtility.singleLineHeight);
                     Rect colorRect = new Rect(lineRect.x + 17f, lineRect.y + 7f, colorWidth, colorWidth);
                     Rect materialRect = new Rect(lineRect.x + padding + colorRect.width, lineRect.y, lineRect.width - UVWidth - padding - 3 - resetButtonWidth + endOffset, lineRect.height);
                     Rect uvRect = new Rect(lineRect.x + lineRect.width - resetButtonWidth - padding - UVWidth - endOffset, lineRect.y, UVWidth, lineRect.height);
                     Rect resetRect = new Rect(lineRect.x + lineRect.width - resetButtonWidth - endOffset, lineRect.y, resetButtonWidth, lineRect.height);
 
-                    EditorGUI.BeginChangeCheck();
                     m_MaterialLayers[layerIndex] = EditorGUI.ObjectField(materialRect, Styles.layerLabels[layerIndex], m_MaterialLayers[layerIndex], typeof(Material), allowSceneObjects: true) as Material;
                     if (EditorGUI.EndChangeCheck())
                     {
                         Undo.RecordObjects(new UnityEngine.Object[] { material, m_MaterialImporter }, "Change layer material");
-                        LayeredLitGUI.SynchronizeLayerProperties(material, layerIndex, m_MaterialLayers[layerIndex], m_WithUV[layerIndex]);
+                        LayeredLitGUI.SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, true);
                         layersChanged = true;
 
                         // Update external reference.
@@ -145,18 +178,12 @@ namespace UnityEditor.Rendering.HighDefinition
 
                     EditorGUI.DrawRect(colorRect, kLayerColors[layerIndex]);
 
-                    EditorGUI.BeginChangeCheck();
                     m_WithUV[layerIndex] = EditorGUI.Toggle(uvRect, m_WithUV[layerIndex]);
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        Undo.RecordObjects(new UnityEngine.Object[] { material, m_MaterialImporter }, "Change layer material");
-                        layersChanged = true;
-                    }
 
                     if (GUI.Button(resetRect, GUIContent.none))
                     {
                         Undo.RecordObjects(new UnityEngine.Object[] { material, m_MaterialImporter }, "Reset layer material");
-                        LayeredLitGUI.SynchronizeLayerProperties(material, layerIndex, m_MaterialLayers[layerIndex], m_WithUV[layerIndex]);
+                        LayeredLitGUI.SynchronizeLayerProperties(material, m_MaterialLayers, layerIndex, !m_WithUV[layerIndex]);
                         layersChanged = true;
                     }
 
@@ -180,12 +207,12 @@ namespace UnityEditor.Rendering.HighDefinition
             {
                 foreach (var mat in materials)
                 {
-                    LayeredLitGUI.SetupMaterialKeywordsAndPass(mat);
+                    LayeredLitGUI.SetupLayeredLitKeywordsAndPass(mat);
                 }
 
                 // SaveAssetsProcessor the referenced material in the users data
                 if (m_MaterialImporter != null)
-                    LayeredLitGUI.SaveMaterialLayers(material, m_MaterialLayers, m_WithUV);
+                    LayeredLitGUI.SaveMaterialLayers(material, m_MaterialLayers);
 
                 // We should always do this call at the end
                 materialEditor.serializedObject.ApplyModifiedProperties();

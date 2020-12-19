@@ -11,8 +11,6 @@ The Depth Of Field component applies a depth of field effect, which simulates th
 
 Depth Of Field includes [more options](More-Options.md) that you must manually expose.
 
-[!include[](snippets/volume-override-api.md)]
-
 
 ## Properties
 

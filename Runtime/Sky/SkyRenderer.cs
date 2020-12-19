@@ -33,18 +33,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="builtinParams">Engine parameters that you can use to render the sky.</param>
         /// <param name="renderForCubemap">Pass in true if you want to render the sky into a cubemap for lighting. This is useful when the sky renderer needs a different implementation in this case.</param>
         /// <param name="renderSunDisk">If the sky renderer supports the rendering of a sun disk, it must not render it if this is set to false.</param>
-        [System.Obsolete("Please override PreRenderSky(BuiltinSkyParameters) instead.")]
-        public virtual void PreRenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk)
-        {
-            PreRenderSky(builtinParams);
-        }
-
-        /// <summary>
-        /// Preprocess for rendering the sky. Called before the DepthPrePass operations
-        /// </summary>
-        /// <param name="builtinParams">Engine parameters that you can use to render the sky.</param>
-        public virtual void PreRenderSky(BuiltinSkyParameters builtinParams) {}
-
+        public virtual void PreRenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk) {}
 
         /// <summary>
         /// Whether the PreRenderSky step is required.
@@ -70,7 +59,24 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>Returns SkySetting exposure.</returns>
         protected static float GetSkyIntensity(SkySettings skySettings, DebugDisplaySettings debugSettings)
         {
-            return skySettings.GetIntensityFromSettings();
+            float skyIntensity = 1.0f;
+
+            switch (skySettings.skyIntensityMode.value)
+            {
+                case SkyIntensityMode.Exposure:
+                    // Note: Here we use EV100 of sky as a multiplier, so it is the opposite of when use with a Camera
+                    // because for sky/light, higher EV mean brighter, but for camera higher EV mean darker scene
+                    skyIntensity *= ColorUtils.ConvertEV100ToExposure(-skySettings.exposure.value);
+                    break;
+                case SkyIntensityMode.Multiplier:
+                    skyIntensity *= skySettings.multiplier.value;
+                    break;
+                case SkyIntensityMode.Lux:
+                    skyIntensity *= skySettings.desiredLuxValue.value / skySettings.upperHemisphereLuxValue.value;
+                    break;
+            }
+
+            return skyIntensity;
         }
 
         /// <summary>
@@ -80,7 +86,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="builtinParams">Sky system builtin parameters.</param>
         public virtual void SetGlobalSkyData(CommandBuffer cmd, BuiltinSkyParameters builtinParams)
         {
-
         }
 
         internal bool DoUpdate(BuiltinSkyParameters parameters)

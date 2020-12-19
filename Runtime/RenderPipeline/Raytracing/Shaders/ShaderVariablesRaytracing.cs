@@ -30,7 +30,5 @@ namespace UnityEngine.Rendering.HighDefinition
         public int _RaytracingMaxRecursion;
         // Ray traced indirect diffuse data
         public int _RayTracingDiffuseLightingOnly;
-        // Shadow value to be used when the point to shade is not inside of the cascades
-        public float _DirectionalShadowFallbackIntensity;
     }
 }

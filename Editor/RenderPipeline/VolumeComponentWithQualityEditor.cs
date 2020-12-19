@@ -24,7 +24,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             Dictionary<int, QualitySetting> settings = new Dictionary<int, QualitySetting>();
 
-            public static bool IsEqual (QualitySettingsBlob left, QualitySettingsBlob right)
+            public static bool IsEqual(QualitySettingsBlob left, QualitySettingsBlob right)
             {
                 if (right == null && left == null)
                 {
@@ -139,7 +139,8 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // Ensure we reflect presets in the pipeline asset, not the hardcoded defaults.
             // Warning: base.OnEnable must be called after VolumeComponentWithQuality has unpacked SerializedData.
-            if (RenderPipelineManager.currentPipeline is HDRenderPipeline pipeline)
+            var pipeline = (HDRenderPipeline)RenderPipelineManager.currentPipeline;
+            if (pipeline != null)
             {
                 serializedObject.Update();
 
@@ -190,7 +191,7 @@ namespace UnityEditor.Rendering.HighDefinition
                             s_CustomSettingsHistory.TryGetValue(serializedObject.targetObject, out history);
                             if (history != null)
                             {
-                                 SaveCustomQualitySettingsAsObject(history);
+                                SaveCustomQualitySettingsAsObject(history);
                             }
                             else
                             {
@@ -200,7 +201,6 @@ namespace UnityEditor.Rendering.HighDefinition
                                 {
                                     s_CustomSettingsHistory.Add(serializedObject.targetObject, history);
                                 }
-
                             }
                         }
                         LoadSettingsFromQualityPreset(pipeline.currentPlatformRenderPipelineSettings, newQualityLevel);
@@ -231,7 +231,7 @@ namespace UnityEditor.Rendering.HighDefinition
         /// <summary>
         /// This function should be overriden by a volume component to load preset settings from RenderPipelineSettings
         /// </summary>
-        public virtual void LoadSettingsFromQualityPreset(RenderPipelineSettings settings, int level) { }
+        public virtual void LoadSettingsFromQualityPreset(RenderPipelineSettings settings, int level) {}
 
         /// <summary>
         /// This function should be overriden by a volume component to return an opaque object (binary blob) with the custom quality settings currently in use.
@@ -249,5 +249,4 @@ namespace UnityEditor.Rendering.HighDefinition
         /// <returns></returns>
         public virtual bool QualityEnabled() => true;
     }
-
 }

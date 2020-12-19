@@ -27,7 +27,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">SSR Algo Type parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public SSRAlgoParameter(ScreenSpaceReflectionAlgorithm value, bool overrideState = false)
-            : base(value, overrideState) { }
+            : base(value, overrideState) {}
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Number of bounces for reflection rays.
         /// </summary>
-        public ClampedIntParameter bounceCount = new ClampedIntParameter(1, 1, 8);
+        public ClampedIntParameter bounceCount = new ClampedIntParameter(1, 1, 31);
 
         /// <summary>
         /// Sets the maximum number of steps HDRP uses for raytracing. Affects both correctness and performance.

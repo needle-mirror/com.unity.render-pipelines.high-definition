@@ -1,15 +1,15 @@
 {
   "name": "com.unity.render-pipelines.high-definition",
   "description": "The High Definition Render Pipeline (HDRP) is a high-fidelity Scriptable Render Pipeline built by Unity to target modern (Compute Shader compatible) platforms. HDRP utilizes Physically-Based Lighting techniques, linear lighting, HDR lighting, and a configurable hybrid Tile/Cluster deferred/Forward lighting architecture and gives you the tools you need to create games, technical demos, animations, and more to a high graphical standard.",
-  "version": "10.6.0",
-  "unity": "2020.3",
-  "unityRelease": "13f1",
+  "version": "11.0.0",
+  "unity": "2021.1",
+  "unityRelease": "0a7",
   "displayName": "High Definition RP",
   "dependencies": {
-    "com.unity.render-pipelines.core": "10.6.0",
-    "com.unity.shadergraph": "10.6.0",
-    "com.unity.visualeffectgraph": "10.6.0",
-    "com.unity.render-pipelines.high-definition-config": "10.6.0"
+    "com.unity.render-pipelines.core": "11.0.0",
+    "com.unity.shadergraph": "11.0.0",
+    "com.unity.visualeffectgraph": "11.0.0",
+    "com.unity.render-pipelines.high-definition-config": "11.0.0"
   },
   "keywords": [
     "graphics",
@@ -39,13 +39,5 @@
       "description": "Adds Material Samples to your project. Open the MaterialSamples scene to see examples of materials based on the lit shader with effects such as subsurface scattering, displacement, anisotropy and more. This scene requires Text Mesh Pro to render text explanations.",
       "path": "Samples~/MaterialSamples"
     }
-  ],
-  "upmCi": {
-    "footprint": "182a7e6ec70bc78a57eb4c68d9b7e1361d6ff25b"
-  },
-  "repository": {
-    "url": "https://github.com/Unity-Technologies/Graphics.git",
-    "type": "git",
-    "revision": "d645e6b498e293626bcb30ec32b652b9f584e9b5"
-  }
+  ]
 }

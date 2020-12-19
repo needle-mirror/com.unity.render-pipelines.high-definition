@@ -186,24 +186,24 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.parameters = rrParams;
                 passData.depthStencilBuffer = builder.ReadTexture(depthPyramid);
                 passData.flagMask = builder.ReadTexture(flagMask);
-                passData.rayCountTexture = builder.ReadWriteTexture(rayCountTexture);
-                passData.outputBuffer = builder.ReadWriteTexture(colorBuffer);
+                passData.rayCountTexture = builder.ReadTexture(builder.WriteTexture(rayCountTexture));
+                passData.outputBuffer = builder.ReadTexture(builder.WriteTexture(colorBuffer));
                 // Right now the debug buffer is written to independently of what is happening. This must be changed
                 // TODO RENDERGRAPH
                 passData.debugBuffer = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
-                { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "Recursive Rendering Debug Texture" }));
+                    { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "Recursive Rendering Debug Texture" }));
 
                 builder.SetRenderFunc(
-                (RecursiveRenderingPassData data, RenderGraphContext ctx) =>
-                {
-                    RecursiveRendererResources rrResources = new RecursiveRendererResources();
-                    rrResources.depthStencilBuffer = data.depthStencilBuffer;
-                    rrResources.flagMask = data.flagMask;
-                    rrResources.debugBuffer = data.debugBuffer;
-                    rrResources.rayCountTexture = data.rayCountTexture;
-                    rrResources.outputBuffer = data.outputBuffer;
-                    ExecuteRecursiveRendering(ctx.cmd, data.parameters, rrResources);
-                });
+                    (RecursiveRenderingPassData data, RenderGraphContext ctx) =>
+                    {
+                        RecursiveRendererResources rrResources = new RecursiveRendererResources();
+                        rrResources.depthStencilBuffer = data.depthStencilBuffer;
+                        rrResources.flagMask = data.flagMask;
+                        rrResources.debugBuffer = data.debugBuffer;
+                        rrResources.rayCountTexture = data.rayCountTexture;
+                        rrResources.outputBuffer = data.outputBuffer;
+                        ExecuteRecursiveRendering(ctx.cmd, data.parameters, rrResources);
+                    });
 
                 PushFullScreenDebugTexture(m_RenderGraph, passData.debugBuffer, FullScreenDebugMode.RecursiveRayTracing);
 

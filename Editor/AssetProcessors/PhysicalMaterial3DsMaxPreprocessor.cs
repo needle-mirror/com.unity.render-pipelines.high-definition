@@ -13,7 +13,7 @@ namespace UnityEditor.Rendering.HighDefinition
     {
         static readonly uint k_Version = 1;
         static readonly int k_Order = 4;
-        static readonly string k_ShaderPath = "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/PhysicalMaterial3DsMax/PhysicalMaterial3DsMax.shadergraph";
+        static readonly string k_ShaderPath = "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/PhysicalMaterial3DsMax/PhysicalMaterial3DsMax.ShaderGraph";
 
         public override uint GetVersion()
         {
@@ -29,11 +29,9 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             float classIdA;
             float classIdB;
-            string originalMtl;
             description.TryGetProperty("ClassIDa", out classIdA);
             description.TryGetProperty("ClassIDb", out classIdB);
-            description.TryGetProperty("ORIGINAL_MTL", out originalMtl);
-            return classIdA == 1030429932 && classIdB == -559038463 || originalMtl == "PHYSICAL_MTL";
+            return classIdA == 1030429932 && classIdB == -559038463;
         }
 
         static bool Is3DsMaxSimplifiedPhysicalMaterial(MaterialDescription description)
@@ -183,7 +181,7 @@ namespace UnityEditor.Rendering.HighDefinition
             Vector4 vectorProperty;
             TexturePropertyDescription textureProperty;
 
-           
+
             var shader = AssetDatabase.LoadAssetAtPath<Shader>(k_ShaderPath);
             if (shader == null)
                 return;
@@ -292,7 +290,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 material.SetTexture(outPropName + "_MAP", textureProperty.texture);
                 material.SetColor(outPropName, Color.white);
             }
-            else if(description.TryGetProperty(inPropName, out Vector4 color))
+            else if (description.TryGetProperty(inPropName, out Vector4 color))
             {
                 material.SetColor(outPropName, color);
             }
@@ -306,7 +304,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 material.SetTexture(outPropName + "_MAP", textureProperty.texture);
                 material.SetFloat(outPropName, 1.0f);
             }
-            else if(description.TryGetProperty(inPropName, out float floatProperty))
+            else if (description.TryGetProperty(inPropName, out float floatProperty))
             {
                 material.SetFloat(outPropName, floatProperty);
             }
