@@ -96,7 +96,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         public override void OnInspectorGUI()
         {
-            DrawHeader("Model");
+            EditorGUILayout.LabelField("Model");
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -110,7 +110,8 @@ namespace UnityEditor.Rendering.HighDefinition
 
             PhysicallyBasedSkyModel type = (PhysicallyBasedSkyModel)m_Type.value.intValue;
 
-            DrawHeader("Planet");
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Planet");
 
             if (type == PhysicallyBasedSkyModel.EarthSimple)
                 PropertyField(m_SeaLevel);
@@ -144,7 +145,8 @@ namespace UnityEditor.Rendering.HighDefinition
 
             if (type != PhysicallyBasedSkyModel.EarthSimple)
             {
-                DrawHeader("Space");
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("Space");
                 PropertyField(m_SpaceRotation);
                 PropertyField(m_SpaceEmissionTexture);
                 PropertyField(m_SpaceEmissionMultiplier);
@@ -152,7 +154,8 @@ namespace UnityEditor.Rendering.HighDefinition
 
             if (type == PhysicallyBasedSkyModel.Custom)
             {
-                DrawHeader("Air");
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("Air");
                 PropertyField(m_AirMaximumAltitude);
                 PropertyField(m_AirDensityR);
                 PropertyField(m_AirDensityG);
@@ -160,7 +163,8 @@ namespace UnityEditor.Rendering.HighDefinition
                 PropertyField(m_AirTint);
             }
 
-            DrawHeader("Aerosols");
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Aerosols");
             PropertyField(m_AerosolDensity);
             PropertyField(m_AerosolTint);
             if (type != PhysicallyBasedSkyModel.EarthSimple)
@@ -170,7 +174,7 @@ namespace UnityEditor.Rendering.HighDefinition
             }
 
             EditorGUILayout.Space();
-            DrawHeader("Artistic Overrides");
+            EditorGUILayout.LabelField("Artistic Overrides");
             PropertyField(m_ColorSaturation);
             PropertyField(m_AlphaSaturation);
             PropertyField(m_AlphaMultiplier);
@@ -179,7 +183,7 @@ namespace UnityEditor.Rendering.HighDefinition
             PropertyField(m_ZenithTint);
 
             EditorGUILayout.Space();
-            DrawHeader("Miscellaneous");
+            EditorGUILayout.LabelField("Miscellaneous");
             PropertyField(m_NumberOfBounces);
 
             base.CommonSkySettingsGUI();

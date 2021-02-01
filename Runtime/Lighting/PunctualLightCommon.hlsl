@@ -25,11 +25,24 @@ void GetPunctualLightVectors(float3 positionWS, LightData light, out float3 L, o
 
     if (light.lightType == GPULIGHTTYPE_PROJECTOR_BOX)
     {
-        float dist = distances.w;
-        float distSq = dist * dist;
-
         L = -light.forward;
-        distances.xyz = float3(1.0f, distSq, 1.0);
+
+        float dist = -dot(lightToSample, L);
+        float distSq = dist * dist;
+        distances.y = distSq;
+        if (light.rangeAttenuationBias == 1.0) // Light uses range attenuation
+        {
+            float distRcp = rcp(dist);
+            distances.x = dist;
+            distances.z = distRcp;
+            ModifyDistancesForFillLighting(distances, light.size.x);
+        }
+        else // Light is directionnal
+        {
+            // Note we maintain distances.y as otherwise the windowing function will give wrong results.
+            // There won't be attenuation as the light attenuation scale and biases are set such that attenuation is prevented.
+            distances.xz = 1; // No distance or angle attenuation
+        }
     }
     else
     {

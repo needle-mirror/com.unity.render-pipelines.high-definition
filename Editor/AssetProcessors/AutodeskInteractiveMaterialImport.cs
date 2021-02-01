@@ -54,7 +54,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 if (description.TryGetProperty("base_color", out vectorProperty))
                     material.SetColor("_Color", vectorProperty);
                 if (description.TryGetProperty("emissive", out vectorProperty))
-                    material.SetColor("_Emissive", vectorProperty);
+                    material.SetColor("_EmissionColor", vectorProperty);
 
                 if (description.TryGetProperty("roughness", out floatProperty))
                     material.SetFloat("_Roughness", floatProperty);

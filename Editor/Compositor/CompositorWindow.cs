@@ -1,20 +1,21 @@
-using UnityEditor.SceneManagement;
-using UnityEditor.ShaderGraph;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Rendering.HighDefinition.Compositor;
 
+using UnityEditor;
+using UnityEditorInternal;
+using UnityEditor.ShaderGraph;
+using UnityEditor.SceneManagement;
+
 namespace UnityEditor.Rendering.HighDefinition.Compositor
 {
-    [HDRPHelpURLAttribute("Compositor-User-Guide")]
-    internal class CompositorWindow : EditorWindowWithHelpButton
+    internal class CompositorWindow : EditorWindow
     {
-        static class Styles
+        static partial class Styles
         {
-            static public GUIContent windowTitle { get; } = EditorGUIUtility.TrTextContent("Graphics Compositor");
-            static public GUIContent enableCompositor { get; } = EditorGUIUtility.TrTextContent("Enable Compositor", "Enabled the compositor and creates a default composition profile.");
-            static public GUIContent removeCompositor { get; } = EditorGUIUtility.TrTextContent("Remove compositor from scene", "Removes the compositor and any composition settings from the scene.");
+            static public readonly GUIContent k_EnableCompositor = EditorGUIUtility.TrTextContent("Enable Compositor", "Enabled the compositor and creates a default composition profile.");
+            static public readonly GUIContent k_RemoveCompositor = EditorGUIUtility.TrTextContent("Remove compositor from scene", "Removes the compositor and any composition settings from the scene.");
         }
 
         static CompositorWindow s_Window;
@@ -27,15 +28,12 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
         bool m_RequiresRedraw = false;
         float m_TimeSinceLastRepaint = 0;
 
-        [MenuItem("Window/Rendering/Graphics Compositor", false, 10400)]
+        [MenuItem("Window/Render Pipeline/Graphics Compositor", false, 10400)]
         static void Init()
         {
             // Get existing open window or if none, make a new one:
-            s_Window = GetWindow(typeof(CompositorWindow)) as CompositorWindow;
-            if (s_Window == null)
-                return;
-
-            s_Window.titleContent = Styles.windowTitle;
+            s_Window = (CompositorWindow)EditorWindow.GetWindow(typeof(CompositorWindow));
+            s_Window.titleContent = new GUIContent("Graphics Compositor");
             s_Window.Show();
         }
 
@@ -69,7 +67,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                         {
                             compositor.Repaint();
 #if UNITY_2021_1_OR_NEWER
-                            // [case 1290622] For version 2021.1 we have to explicitly request an update of the gameview with the following call
+                            // [case 1290622] For version 2021.1 we have to explicitely request an update of the gameview with the following call
                             UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
 #endif
                         }
@@ -89,7 +87,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
             }
 
             bool enableCompositorCached = enableCompositor;
-            enableCompositor = EditorGUILayout.Toggle(Styles.enableCompositor, enableCompositor);
+            enableCompositor = EditorGUILayout.Toggle(Styles.k_EnableCompositor, enableCompositor);
 
             // Track if the user changed the compositor enable state and mark the scene dirty if necessary
             if (enableCompositorCached != enableCompositor && compositor != null)
@@ -116,20 +114,20 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 Undo.RegisterCreatedObjectUndo(compositor.outputCamera.gameObject, "Create Compositor");
                 Undo.RegisterCreatedObjectUndo(go, "Create Compositor");
             }
-            else if (compositor && (compositor.enabled != enableCompositor))
+            else if (compositor)
             {
                 string message = enableCompositor ? "Enable Compositor" : "Disable Compositor";
                 Undo.RecordObject(compositor, message);
                 compositor.enabled = enableCompositor;
             }
-            else if (!compositor)
+            else
             {
                 return;
             }
 
             if (compositor && !compositor.enabled)
             {
-                if (GUILayout.Button(new GUIContent(Styles.removeCompositor)))
+                if (GUILayout.Button(new GUIContent(Styles.k_RemoveCompositor)))
                 {
                     if (compositor.outputCamera)
                     {
@@ -180,9 +178,6 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 if (m_Editor)
                 {
                     m_Editor.OnInspectorGUI();
-
-                    // Remember which layer was selected / drawn in the last draw call
-                    s_SelectionIndex = m_Editor.selectionIndex;
                 }
             }
             GUILayout.EndScrollView();
@@ -219,11 +214,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
 
             m_Editor.CacheSerializedObjects();
             m_RequiresRedraw = true;
-
-            // After undo, set the selection index to the last shown layer, because the Unity Editor resets the value to the last layer in the list
-            m_Editor.defaultSelection = s_SelectionIndex;
-            m_Editor.selectionIndex = s_SelectionIndex;
-
+            s_SelectionIndex = m_Editor.selectionIndex;
 
             CompositionManager compositor = CompositionManager.GetInstance();
             // The compositor might be null even if the CompositionManagerEditor is not (in case the user switches from a scene with a compositor to a scene without one)
@@ -232,10 +223,6 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 // Some properties were changed, mark the profile as dirty so it can be saved if the user saves the scene
                 EditorUtility.SetDirty(compositor);
                 EditorUtility.SetDirty(compositor.profile);
-
-                // Clean-up existing cameras after undo, we will re-allocate the layer resources
-                CompositorCameraRegistry.GetInstance().CleanUpCameraOrphans(compositor.layers);
-                compositor.DeleteLayerRTs();
                 compositor.UpdateLayerSetup();
             }
         }

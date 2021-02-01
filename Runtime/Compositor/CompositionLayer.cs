@@ -259,7 +259,6 @@ namespace UnityEngine.Rendering.HighDefinition.Compositor
                     m_LayerCamera = newCameraGameObject.AddComponent<Camera>();
                     newCameraGameObject.AddComponent<HDAdditionalCameraData>();
                     CopyInternalCameraData();
-                    CompositorCameraRegistry.GetInstance().RegisterInternalCamera(m_LayerCamera);
 
                     m_LayerCamera.name = "Compositor" + layerID;
                     m_LayerCamera.gameObject.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy | HideFlags.HideAndDontSave;
@@ -422,7 +421,6 @@ namespace UnityEngine.Rendering.HighDefinition.Compositor
                         CoreUtils.Destroy(cameraData);
                     }
                     m_LayerCamera.targetTexture = null;
-                    CompositorCameraRegistry.GetInstance().UnregisterInternalCamera(m_LayerCamera);
                     CoreUtils.Destroy(m_LayerCamera);
                     m_LayerCamera = null;
                 }

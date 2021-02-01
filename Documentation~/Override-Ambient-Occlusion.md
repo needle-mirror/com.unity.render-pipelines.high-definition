@@ -22,8 +22,6 @@ The property to enable in your Frame Settings is: **Lighting > Screen Space Ambi
 2. In the Inspector, navigate to **Add Override > Lighting** and click on **Ambient Occlusion**.
    HDRP now applies **Ambient Occlusion** to any Camera this Volume affects.
 
-[!include[](snippets/volume-override-api.md)]
-
 ## Properties
 
 [!include[](snippets/Volume-Override-Enable-Properties.md)]

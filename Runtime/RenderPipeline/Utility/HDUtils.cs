@@ -43,7 +43,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 if (m_ClearTexture3D == null)
                 {
-                    m_ClearTexture3D = new Texture3D(1, 1, 1, GraphicsFormat.R8G8B8A8_SRGB, TextureCreationFlags.None) { name = "Transparent Texture 3D" };
+                    m_ClearTexture3D = new Texture3D(1, 1, 1, TextureFormat.ARGB32, false) { name = "Transparent Texture 3D" };
                     m_ClearTexture3D.SetPixel(0, 0, 0, Color.clear);
                     m_ClearTexture3D.Apply();
 
@@ -80,7 +80,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns></returns>
         public static Material GetBlitMaterial(TextureDimension dimension, bool singleSlice = false)
         {
-            return Blitter.GetBlitMaterial(dimension, singleSlice);
+            HDRenderPipeline hdPipeline = RenderPipelineManager.currentPipeline as HDRenderPipeline;
+            if (hdPipeline != null)
+            {
+                return hdPipeline.GetBlitMaterial(dimension == TextureDimension.Tex2DArray, singleSlice);
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -93,6 +99,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 return HDRenderPipeline.currentAsset.currentPlatformRenderPipelineSettings;
             }
         }
+
+        static MaterialPropertyBlock s_PropertyBlock = new MaterialPropertyBlock();
 
         internal static List<RenderPipelineMaterial> GetRenderPipelineMaterialList()
         {
@@ -132,49 +140,35 @@ namespace UnityEngine.Rendering.HighDefinition
         internal static float ProjectionMatrixAspect(in Matrix4x4 matrix)
             => - matrix.m11 / matrix.m00;
 
-        internal static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(float verticalFoV, Vector2 lensShift, Vector4 screenSize, Matrix4x4 worldToViewMatrix, bool renderToCubemap, float aspectRatio = -1, bool isOrthographic = false)
+        internal static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(float verticalFoV, Vector2 lensShift, Vector4 screenSize, Matrix4x4 worldToViewMatrix, bool renderToCubemap, float aspectRatio = -1)
         {
-            Matrix4x4 viewSpaceRasterTransform;
+            aspectRatio = aspectRatio < 0 ? screenSize.x * screenSize.w : aspectRatio;
 
-            if (isOrthographic)
+            // Compose the view space version first.
+            // V = -(X, Y, Z), s.t. Z = 1,
+            // X = (2x / resX - 1) * tan(vFoV / 2) * ar = x * [(2 / resX) * tan(vFoV / 2) * ar] + [-tan(vFoV / 2) * ar] = x * [-m00] + [-m20]
+            // Y = (2y / resY - 1) * tan(vFoV / 2)      = y * [(2 / resY) * tan(vFoV / 2)]      + [-tan(vFoV / 2)]      = y * [-m11] + [-m21]
+
+            float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
+
+            // Compose the matrix.
+            float m21 = (1.0f - 2.0f * lensShift.y) * tanHalfVertFoV;
+            float m11 = -2.0f * screenSize.w * tanHalfVertFoV;
+
+            float m20 = (1.0f - 2.0f * lensShift.x) * tanHalfVertFoV * aspectRatio;
+            float m00 = -2.0f * screenSize.z * tanHalfVertFoV * aspectRatio;
+
+            if (renderToCubemap)
             {
-                // For ortho cameras, project the skybox with no perspective
-                // the same way as builtin does (case 1264647)
-                viewSpaceRasterTransform = new Matrix4x4(
-                    new Vector4(-2.0f * screenSize.z, 0.0f, 0.0f, 0.0f),
-                    new Vector4(0.0f, -2.0f * screenSize.w, 0.0f, 0.0f),
-                    new Vector4(1.0f, 1.0f, -1.0f, 0.0f),
-                    new Vector4(0.0f, 0.0f, 0.0f, 0.0f));
+                // Flip Y.
+                m11 = -m11;
+                m21 = -m21;
             }
-            else
-            {
-                // Compose the view space version first.
-                // V = -(X, Y, Z), s.t. Z = 1,
-                // X = (2x / resX - 1) * tan(vFoV / 2) * ar = x * [(2 / resX) * tan(vFoV / 2) * ar] + [-tan(vFoV / 2) * ar] = x * [-m00] + [-m20]
-                // Y = (2y / resY - 1) * tan(vFoV / 2)      = y * [(2 / resY) * tan(vFoV / 2)]      + [-tan(vFoV / 2)]      = y * [-m11] + [-m21]
 
-                aspectRatio = aspectRatio < 0 ? screenSize.x * screenSize.w : aspectRatio;
-                float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
-
-                // Compose the matrix.
-                float m21 = (1.0f - 2.0f * lensShift.y) * tanHalfVertFoV;
-                float m11 = -2.0f * screenSize.w * tanHalfVertFoV;
-
-                float m20 = (1.0f - 2.0f * lensShift.x) * tanHalfVertFoV * aspectRatio;
-                float m00 = -2.0f * screenSize.z * tanHalfVertFoV * aspectRatio;
-
-                if (renderToCubemap)
-                {
-                    // Flip Y.
-                    m11 = -m11;
-                    m21 = -m21;
-                }
-
-                viewSpaceRasterTransform = new Matrix4x4(new Vector4(m00, 0.0f, 0.0f, 0.0f),
-                    new Vector4(0.0f, m11, 0.0f, 0.0f),
-                    new Vector4(m20, m21, -1.0f, 0.0f),
-                    new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-            }
+            var viewSpaceRasterTransform = new Matrix4x4(new Vector4(m00, 0.0f, 0.0f, 0.0f),
+                new Vector4(0.0f, m11, 0.0f, 0.0f),
+                new Vector4(m20, m21, -1.0f, 0.0f),
+                new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 
             // Remove the translation component.
             var homogeneousZero = new Vector4(0, 0, 0, 1);
@@ -204,7 +198,11 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="bilinear">Enable bilinear filtering.</param>
         public static void BlitQuad(CommandBuffer cmd, Texture source, Vector4 scaleBiasTex, Vector4 scaleBiasRT, int mipLevelTex, bool bilinear)
         {
-            Blitter.BlitQuad(cmd, source, scaleBiasTex, scaleBiasRT, mipLevelTex, bilinear);
+            s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, source);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBiasTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBiasRt, scaleBiasRT);
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevelTex);
+            cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), bilinear ? 3 : 2, MeshTopology.Quads, 4, 1, s_PropertyBlock);
         }
 
         /// <summary>
@@ -220,7 +218,16 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="paddingInPixels">Padding in pixels.</param>
         public static void BlitQuadWithPadding(CommandBuffer cmd, Texture source, Vector2 textureSize, Vector4 scaleBiasTex, Vector4 scaleBiasRT, int mipLevelTex, bool bilinear, int paddingInPixels)
         {
-            Blitter.BlitQuadWithPadding(cmd, source, textureSize, scaleBiasTex, scaleBiasRT, mipLevelTex, bilinear, paddingInPixels);
+            s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, source);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBiasTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBiasRt, scaleBiasRT);
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevelTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitTextureSize, textureSize);
+            s_PropertyBlock.SetInt(HDShaderIDs._BlitPaddingSize, paddingInPixels);
+            if (source.wrapMode == TextureWrapMode.Repeat)
+                cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), bilinear ? 7 : 6, MeshTopology.Quads, 4, 1, s_PropertyBlock);
+            else
+                cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), bilinear ? 5 : 4, MeshTopology.Quads, 4, 1, s_PropertyBlock);
         }
 
         /// <summary>
@@ -236,7 +243,16 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="paddingInPixels">Padding in pixels.</param>
         public static void BlitQuadWithPaddingMultiply(CommandBuffer cmd, Texture source, Vector2 textureSize, Vector4 scaleBiasTex, Vector4 scaleBiasRT, int mipLevelTex, bool bilinear, int paddingInPixels)
         {
-            Blitter.BlitQuadWithPaddingMultiply(cmd, source, textureSize, scaleBiasTex, scaleBiasRT, mipLevelTex, bilinear, paddingInPixels);
+            s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, source);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBiasTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBiasRt, scaleBiasRT);
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevelTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitTextureSize, textureSize);
+            s_PropertyBlock.SetInt(HDShaderIDs._BlitPaddingSize, paddingInPixels);
+            if (source.wrapMode == TextureWrapMode.Repeat)
+                cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), bilinear ? 12 : 11, MeshTopology.Quads, 4, 1, s_PropertyBlock);
+            else
+                cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), bilinear ? 10 : 9, MeshTopology.Quads, 4, 1, s_PropertyBlock);
         }
 
         /// <summary>
@@ -252,7 +268,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="paddingInPixels">Padding in pixels.</param>
         public static void BlitOctahedralWithPadding(CommandBuffer cmd, Texture source, Vector2 textureSize, Vector4 scaleBiasTex, Vector4 scaleBiasRT, int mipLevelTex, bool bilinear, int paddingInPixels)
         {
-            Blitter.BlitOctahedralWithPadding(cmd, source, textureSize, scaleBiasTex, scaleBiasRT, mipLevelTex, bilinear, paddingInPixels);
+            s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, source);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBiasTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBiasRt, scaleBiasRT);
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevelTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitTextureSize, textureSize);
+            s_PropertyBlock.SetInt(HDShaderIDs._BlitPaddingSize, paddingInPixels);
+            cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), 8, MeshTopology.Quads, 4, 1, s_PropertyBlock);
         }
 
         /// <summary>
@@ -268,7 +290,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="paddingInPixels">Padding in pixels.</param>
         public static void BlitOctahedralWithPaddingMultiply(CommandBuffer cmd, Texture source, Vector2 textureSize, Vector4 scaleBiasTex, Vector4 scaleBiasRT, int mipLevelTex, bool bilinear, int paddingInPixels)
         {
-            Blitter.BlitOctahedralWithPaddingMultiply(cmd, source, textureSize, scaleBiasTex, scaleBiasRT, mipLevelTex, bilinear, paddingInPixels);
+            s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, source);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBiasTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBiasRt, scaleBiasRT);
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevelTex);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitTextureSize, textureSize);
+            s_PropertyBlock.SetInt(HDShaderIDs._BlitPaddingSize, paddingInPixels);
+            cmd.DrawProcedural(Matrix4x4.identity, GetBlitMaterial(source.dimension), 13, MeshTopology.Quads, 4, 1, s_PropertyBlock);
         }
 
         /// <summary>
@@ -281,20 +309,8 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="bilinear">Enable bilinear filtering.</param>
         public static void BlitTexture(CommandBuffer cmd, RTHandle source, Vector4 scaleBias, float mipLevel, bool bilinear)
         {
-            Blitter.BlitTexture(cmd, source, scaleBias, mipLevel, bilinear);
-        }
-
-        /// <summary>
-        /// Blit a RTHandle texture 2D.
-        /// </summary>
-        /// <param name="cmd">Command Buffer used for rendering.</param>
-        /// <param name="source">Source RTHandle.</param>
-        /// <param name="scaleBias">Scale and bias for sampling the input texture.</param>
-        /// <param name="mipLevel">Mip level to blit.</param>
-        /// <param name="bilinear">Enable bilinear filtering.</param>
-        public static void BlitTexture2D(CommandBuffer cmd, RTHandle source, Vector4 scaleBias, float mipLevel, bool bilinear)
-        {
-            Blitter.BlitTexture2D(cmd, source, scaleBias, mipLevel, bilinear);
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevel);
+            BlitTexture(cmd, source, scaleBias, GetBlitMaterial(TextureXR.dimension), bilinear ? 1 : 0);
         }
 
         /// <summary>
@@ -308,7 +324,18 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="bilinear">Enable bilinear filtering.</param>
         internal static void BlitColorAndDepth(CommandBuffer cmd, Texture sourceColor, RenderTexture sourceDepth, Vector4 scaleBias, float mipLevel, bool blitDepth)
         {
-            Blitter.BlitColorAndDepth(cmd, sourceColor, sourceDepth, scaleBias, mipLevel, blitDepth);
+            HDRenderPipeline hdPipeline = RenderPipelineManager.currentPipeline as HDRenderPipeline;
+            if (hdPipeline != null)
+            {
+                Material mat = hdPipeline.GetBlitColorAndDepthMaterial();
+
+                s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevel);
+                s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBias);
+                s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, sourceColor);
+                if (blitDepth)
+                    s_PropertyBlock.SetTexture(HDShaderIDs._InputDepth, sourceDepth, RenderTextureSubElement.Depth);
+                cmd.DrawProcedural(Matrix4x4.identity, mat, blitDepth ? 1 : 0, MeshTopology.Triangles, 3, 1, s_PropertyBlock);
+            }
         }
 
         /// <summary>
@@ -321,7 +348,9 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="pass">Pass idx within the material to invoke.</param>
         static void BlitTexture(CommandBuffer cmd, RTHandle source, Vector4 scaleBias, Material material, int pass)
         {
-            Blitter.BlitTexture(cmd, source, scaleBias, material, pass);
+            s_PropertyBlock.SetVector(HDShaderIDs._BlitScaleBias, scaleBias);
+            s_PropertyBlock.SetTexture(HDShaderIDs._BlitTexture, source);
+            cmd.DrawProcedural(Matrix4x4.identity, material, pass, MeshTopology.Triangles, 3, 1, s_PropertyBlock);
         }
 
         // In the context of HDRP, the internal render targets used during the render loop are the same for all cameras, no matter the size of the camera.
@@ -339,21 +368,10 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="bilinear">Enable bilinear filtering.</param>
         public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, float mipLevel = 0.0f, bool bilinear = false)
         {
-            Blitter.BlitCameraTexture(cmd, source, destination, mipLevel, bilinear);
-        }
-
-        /// <summary>
-        /// Blit a RThandle Texture2D RTHandle to another RTHandle.
-        /// This will properly account for partial usage (in term of resolution) of the texture for the current viewport.
-        /// </summary>
-        /// <param name="cmd">Command Buffer used for rendering.</param>
-        /// <param name="source">Source RTHandle.</param>
-        /// <param name="destination">Destination RTHandle.</param>
-        /// <param name="mipLevel">Mip level to blit.</param>
-        /// <param name="bilinear">Enable bilinear filtering.</param>
-        public static void BlitCameraTexture2D(CommandBuffer cmd, RTHandle source, RTHandle destination, float mipLevel = 0.0f, bool bilinear = false)
-        {
-            Blitter.BlitCameraTexture2D(cmd, source, destination, mipLevel, bilinear);
+            Vector2 viewportScale = new Vector2(source.rtHandleProperties.rtHandleScale.x, source.rtHandleProperties.rtHandleScale.y);
+            // Will set the correct camera viewport as well.
+            CoreUtils.SetRenderTarget(cmd, destination);
+            BlitTexture(cmd, source, viewportScale, mipLevel, bilinear);
         }
 
         /// <summary>
@@ -368,7 +386,10 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="pass">pass to use of the provided material</param>
         public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, Material material, int pass)
         {
-            Blitter.BlitCameraTexture(cmd, source, destination, material, pass);
+            Vector2 viewportScale = new Vector2(source.rtHandleProperties.rtHandleScale.x, source.rtHandleProperties.rtHandleScale.y);
+            // Will set the correct camera viewport as well.
+            CoreUtils.SetRenderTarget(cmd, destination);
+            BlitTexture(cmd, source, viewportScale, material, pass);
         }
 
         /// <summary>
@@ -384,7 +405,9 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="bilinear">Enable bilinear filtering.</param>
         public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, Vector4 scaleBias, float mipLevel = 0.0f, bool bilinear = false)
         {
-            Blitter.BlitCameraTexture(cmd, source, destination, scaleBias, mipLevel, bilinear);
+            // Will set the correct camera viewport as well.
+            CoreUtils.SetRenderTarget(cmd, destination);
+            BlitTexture(cmd, source, scaleBias, mipLevel, bilinear);
         }
 
         /// <summary>
@@ -400,7 +423,10 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="bilinear">Enable bilinear filtering.</param>
         public static void BlitCameraTexture(CommandBuffer cmd, RTHandle source, RTHandle destination, Rect destViewport, float mipLevel = 0.0f, bool bilinear = false)
         {
-            Blitter.BlitCameraTexture(cmd, source, destination, destViewport, mipLevel, bilinear);
+            Vector2 viewportScale = new Vector2(source.rtHandleProperties.rtHandleScale.x, source.rtHandleProperties.rtHandleScale.y);
+            CoreUtils.SetRenderTarget(cmd, destination);
+            cmd.SetViewport(destViewport);
+            BlitTexture(cmd, source, viewportScale, mipLevel, bilinear);
         }
 
         // These method should be used to render full screen triangles sampling auto-scaling RTs.
@@ -568,7 +594,6 @@ namespace UnityEngine.Rendering.HighDefinition
         internal struct PackedMipChainInfo
         {
             public Vector2Int textureSize;
-            public Vector2Int hardwareTextureSize;
             public int mipLevelCount;
             public Vector2Int[] mipLevelSizes;
             public Vector2Int[] mipLevelOffsets;
@@ -591,15 +616,12 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (viewportSize == mipLevelSizes[0])
                     return;
 
-                bool isHardwareDrsOn = DynamicResolutionHandler.instance.HardwareDynamicResIsEnabled();
-                hardwareTextureSize = isHardwareDrsOn ? DynamicResolutionHandler.instance.ApplyScalesOnSize(viewportSize) : viewportSize;
-                Vector2 textureScale = isHardwareDrsOn ? new Vector2((float)viewportSize.x / (float)hardwareTextureSize.x, (float)viewportSize.y / (float)hardwareTextureSize.y) : new Vector2(1.0f, 1.0f);
-
-                mipLevelSizes[0] = hardwareTextureSize;
+                textureSize = viewportSize;
+                mipLevelSizes[0] = viewportSize;
                 mipLevelOffsets[0] = Vector2Int.zero;
 
                 int mipLevel = 0;
-                Vector2Int mipSize = hardwareTextureSize;
+                Vector2Int mipSize = viewportSize;
 
                 do
                 {
@@ -629,12 +651,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
                     mipLevelOffsets[mipLevel] = mipBegin;
 
-                    hardwareTextureSize.x = Math.Max(hardwareTextureSize.x, mipBegin.x + mipSize.x);
-                    hardwareTextureSize.y = Math.Max(hardwareTextureSize.y, mipBegin.y + mipSize.y);
+                    textureSize.x = Math.Max(textureSize.x, mipBegin.x + mipSize.x);
+                    textureSize.y = Math.Max(textureSize.y, mipBegin.y + mipSize.y);
                 }
                 while ((mipSize.x > 1) || (mipSize.y > 1));
-
-                textureSize = new Vector2Int((int)((float)hardwareTextureSize.x * textureScale.x), (int)((float)hardwareTextureSize.y * textureScale.y));
 
                 mipLevelCount = mipLevel + 1;
                 m_OffsetBufferWillNeedUpdate = true;
@@ -695,11 +715,8 @@ namespace UnityEngine.Rendering.HighDefinition
             return (graphicDevice == GraphicsDeviceType.Direct3D11 ||
                 graphicDevice == GraphicsDeviceType.Direct3D12 ||
                 graphicDevice == GraphicsDeviceType.PlayStation4 ||
-                graphicDevice == GraphicsDeviceType.PlayStation5 ||
                 graphicDevice == GraphicsDeviceType.XboxOne ||
                 graphicDevice == GraphicsDeviceType.XboxOneD3D12 ||
-                graphicDevice == GraphicsDeviceType.GameCoreXboxOne ||
-                graphicDevice == GraphicsDeviceType.GameCoreXboxSeries ||
                 graphicDevice == GraphicsDeviceType.Metal ||
                 graphicDevice == GraphicsDeviceType.Vulkan
                 // Switch isn't supported currently (19.3)
@@ -717,10 +734,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 buildTarget == UnityEditor.BuildTarget.StandaloneOSX ||
                 buildTarget == UnityEditor.BuildTarget.WSAPlayer ||
                 buildTarget == UnityEditor.BuildTarget.XboxOne ||
-                buildTarget == UnityEditor.BuildTarget.GameCoreXboxOne ||
-                buildTarget == UnityEditor.BuildTarget.GameCoreXboxSeries  ||
                 buildTarget == UnityEditor.BuildTarget.PS4 ||
-                buildTarget == UnityEditor.BuildTarget.PS5 ||
                 // buildTarget == UnityEditor.BuildTarget.iOS || // IOS isn't supported
                 // buildTarget == UnityEditor.BuildTarget.Switch || // Switch isn't supported
                 buildTarget == UnityEditor.BuildTarget.CloudRendering);
@@ -1140,11 +1154,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 msg += "To do this, go to Project Settings > Player > Other Settings and modify the Graphics APIs for " + os + " list.";
 
             return msg;
-        }
-
-        internal static int GetTextureHash(Texture texture)
-        {
-            return CoreUtils.GetTextureHash(texture);
         }
 
         internal static void ReleaseComponentSingletons()

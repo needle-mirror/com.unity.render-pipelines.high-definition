@@ -3,8 +3,8 @@ using System;
 
 namespace UnityEngine.Rendering.HighDefinition
 {
-    [HDRPHelpURL("Default-Settings-Window")]
-    partial class HDRenderPipelineEditorResources : HDRenderPipelineResources
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "HDRP-Asset" + Documentation.endURL)]
+    public partial class HDRenderPipelineEditorResources : ScriptableObject
     {
         [Reload(new[]
         {
@@ -20,7 +20,6 @@ namespace UnityEngine.Rendering.HighDefinition
         [Serializable, ReloadGroup]
         public sealed class ShaderResources
         {
-            // Terrain
             public Shader terrainDetailLitShader;
             public Shader terrainDetailGrassShader;
             public Shader terrainDetailGrassBillboardShader;
@@ -52,14 +51,12 @@ namespace UnityEngine.Rendering.HighDefinition
         [Serializable, ReloadGroup]
         public sealed class ShaderGraphResources
         {
-            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractive.shadergraph")]
+            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractive.ShaderGraph")]
             public Shader autodeskInteractive;
-            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveMasked.shadergraph")]
+            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveMasked.ShaderGraph")]
             public Shader autodeskInteractiveMasked;
-            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.shadergraph")]
+            [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.ShaderGraph")]
             public Shader autodeskInteractiveTransparent;
-            [Reload("Runtime/Material/Nature/SpeedTree8.shadergraph")]
-            public Shader defaultSpeedTree8Shader;
         }
 
         [Serializable, ReloadGroup]
@@ -74,6 +71,25 @@ namespace UnityEngine.Rendering.HighDefinition
         public TextureResources textures;
         public ShaderGraphResources shaderGraphs;
         public LookDevResources lookDev;
+    }
+
+    [UnityEditor.CustomEditor(typeof(HDRenderPipelineEditorResources))]
+    class HDRenderPipelineEditorResourcesEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+
+            // Add a "Reload All" button in inspector when we are in developer's mode
+            if (UnityEditor.EditorPrefs.GetBool("DeveloperMode")
+                && GUILayout.Button("Reload All"))
+            {
+                foreach (var field in typeof(HDRenderPipelineEditorResources).GetFields())
+                    field.SetValue(target, null);
+
+                ResourceReloader.ReloadAllNullIn(target, HDUtils.GetHDRenderPipelinePath());
+            }
+        }
     }
 }
 #endif

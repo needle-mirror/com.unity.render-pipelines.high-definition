@@ -85,14 +85,6 @@ void GetPropertiesDataDebug(uint paramId, inout float3 result, inout bool needLi
             result = float3(0.0, 0.0, 0.0);
 #endif
             break;
-
-        case DEBUGVIEWPROPERTIES_DEFERRED_MATERIALS:
-#ifdef _DEFERRED_CAPABLE_MATERIAL
-            result = _DebugIsLitShaderModeDeferred ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0);
-#else
-            result = float3(1.0, 0.0, 0.0);
-#endif
-            break;
     }
 }
 
@@ -103,19 +95,19 @@ float3 GetTextureDataDebug(uint paramId, float2 uv, Texture2D tex, float4 texelS
     switch (paramId)
     {
     case DEBUGMIPMAPMODE_MIP_RATIO:
-        outColor = GetDebugMipColorIncludingMipReduction(originalColor, TEXTURE2D_ARGS(tex, s_point_clamp_sampler), texelSize, uv, mipInfo);
+        outColor = GetDebugMipColorIncludingMipReduction(originalColor, tex, texelSize, uv, mipInfo);
         break;
     case DEBUGMIPMAPMODE_MIP_COUNT:
-        outColor = GetDebugMipCountColor(originalColor, TEXTURE2D_ARGS(tex, s_point_clamp_sampler));
+        outColor = GetDebugMipCountColor(originalColor, tex);
         break;
     case DEBUGMIPMAPMODE_MIP_COUNT_REDUCTION:
-        outColor = GetDebugMipReductionColor(TEXTURE2D_ARGS(tex, s_point_clamp_sampler), mipInfo);
+        outColor = GetDebugMipReductionColor(tex, mipInfo);
         break;
     case DEBUGMIPMAPMODE_STREAMING_MIP_BUDGET:
-        outColor = GetDebugStreamingMipColor(TEXTURE2D_ARGS(tex, s_point_clamp_sampler), mipInfo);
+        outColor = GetDebugStreamingMipColor(tex, mipInfo);
         break;
     case DEBUGMIPMAPMODE_STREAMING_MIP:
-        outColor = GetDebugStreamingMipColorBlended(originalColor, TEXTURE2D_ARGS(tex, s_point_clamp_sampler), mipInfo);
+        outColor = GetDebugStreamingMipColorBlended(originalColor, tex, mipInfo);
         break;
     }
 

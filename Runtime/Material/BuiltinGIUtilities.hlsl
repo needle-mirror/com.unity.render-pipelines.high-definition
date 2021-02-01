@@ -4,51 +4,20 @@
 // Include the IndirectDiffuseMode enum
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/ScreenSpaceLighting/ScreenSpaceGlobalIllumination.cs.hlsl"
 
-// We need to define this before including ProbeVolume.hlsl as that file expects this function to be defined.
-real3 EvaluateAmbientProbe(real3 normalWS)
-{
-    real4 SHCoefficients[7];
-    SHCoefficients[0] = unity_SHAr;
-    SHCoefficients[1] = unity_SHAg;
-    SHCoefficients[2] = unity_SHAb;
-    SHCoefficients[3] = unity_SHBr;
-    SHCoefficients[4] = unity_SHBg;
-    SHCoefficients[5] = unity_SHBb;
-    SHCoefficients[6] = unity_SHC;
+#ifdef SHADERPASS
+#if ((SHADEROPTIONS_ENABLE_PROBE_VOLUMES == 1) && (SHADERPASS == SHADERPASS_DEFERRED_LIGHTING || SHADERPASS == SHADERPASS_FORWARD))
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/ProbeVolume/ProbeVolume.hlsl"
+#endif
+#endif // #ifdef SHADERPASS
 
-    return SampleSH9(SHCoefficients, normalWS);
-}
+#if SHADEROPTIONS_ENABLE_PROBE_VOLUMES == 1
 
-#if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
-#include "Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeVolume.hlsl"
-
-// y channel is reserved for potential payload information to carry alongside the unintialized flag.
 #define UNINITIALIZED_GI float3((1 << 11), 1, (1 << 10))
 
 bool IsUninitializedGI(float3 bakedGI)
 {
     const float3 unitializedGI = UNINITIALIZED_GI;
-    return all(bakedGI.xz == unitializedGI.xz);
-}
-
-
-void SetAsUninitializedGI(out float3 bakedGI)
-{
-    bakedGI = UNINITIALIZED_GI;
-}
-
-float ExtractPayloadFromUninitializedGI(float3 inputBakedGI)
-{
-    float payload = 1.0f;
-    if (IsUninitializedGI(inputBakedGI))
-        payload = inputBakedGI.y;
-
-    return payload;
-}
-
-void EncodePayloadWithUninitGI(float payload, inout float3 bakedGI)
-{
-    bakedGI.y = payload;
+    return all(bakedGI == unitializedGI);
 }
 #endif
 
@@ -90,31 +59,27 @@ void EvaluateLightmap(float3 positionRWS, float3 normalWS, float3 backNormalWS, 
 #define SHADOWMASK_SAMPLE_EXTRA_ARGS uv
 #endif
 
-
-#if defined(SHADER_STAGE_FRAGMENT) || defined(SHADER_STAGE_RAY_TRACING)
-
-    #ifdef LIGHTMAP_ON
-    #ifdef DIRLIGHTMAP_COMBINED
-        SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME),
+#ifdef LIGHTMAP_ON
+#ifdef DIRLIGHTMAP_COMBINED
+    SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME),
             TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_INDIRECTION_NAME, LIGHTMAP_SAMPLER_NAME),
             LIGHTMAP_SAMPLE_EXTRA_ARGS, unity_LightmapST, normalWS, backNormalWS, useRGBMLightmap, decodeInstructions, bakeDiffuseLighting, backBakeDiffuseLighting);
-    #else
-        float3 illuminance = SampleSingleLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME), LIGHTMAP_SAMPLE_EXTRA_ARGS, unity_LightmapST, useRGBMLightmap, decodeInstructions);
-        bakeDiffuseLighting += illuminance;
-        backBakeDiffuseLighting += illuminance;
-    #endif
-    #endif
+#else
+    float3 illuminance = SampleSingleLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME), LIGHTMAP_SAMPLE_EXTRA_ARGS, unity_LightmapST, useRGBMLightmap, decodeInstructions);
+    bakeDiffuseLighting += illuminance;
+    backBakeDiffuseLighting += illuminance;
+#endif
+#endif
 
-    #ifdef DYNAMICLIGHTMAP_ON
-    #ifdef DIRLIGHTMAP_COMBINED
-        SampleDirectionalLightmap(TEXTURE2D_ARGS(unity_DynamicLightmap, samplerunity_DynamicLightmap),
-            TEXTURE2D_ARGS(unity_DynamicDirectionality, samplerunity_DynamicLightmap),
-            uvDynamicLightmap, unity_DynamicLightmapST, normalWS, backNormalWS, false, decodeInstructions, bakeDiffuseLighting, backBakeDiffuseLighting);
-    #else
-        float3 illuminance = SampleSingleLightmap(TEXTURE2D_ARGS(unity_DynamicLightmap, samplerunity_DynamicLightmap), uvDynamicLightmap, unity_DynamicLightmapST, false, decodeInstructions);
-        bakeDiffuseLighting += illuminance;
-        backBakeDiffuseLighting += illuminance;
-    #endif
+#ifdef DYNAMICLIGHTMAP_ON
+#ifdef DIRLIGHTMAP_COMBINED
+    SampleDirectionalLightmap(TEXTURE2D_ARGS(unity_DynamicLightmap, samplerunity_DynamicLightmap),
+        TEXTURE2D_ARGS(unity_DynamicDirectionality, samplerunity_DynamicLightmap),
+        uvDynamicLightmap, unity_DynamicLightmapST, normalWS, backNormalWS, false, decodeInstructions, bakeDiffuseLighting, backBakeDiffuseLighting);
+#else
+    float3 illuminance += SampleSingleLightmap(TEXTURE2D_ARGS(unity_DynamicLightmap, samplerunity_DynamicLightmap), uvDynamicLightmap, unity_DynamicLightmapST, false, decodeInstructions);
+    bakeDiffuseLighting += illuminance;
+    backBakeDiffuseLighting += illuminance;
 #endif
 #endif
 }
@@ -123,8 +88,18 @@ void EvaluateLightProbeBuiltin(float3 positionRWS, float3 normalWS, float3 backN
 {
     if (unity_ProbeVolumeParams.x == 0.0)
     {
-        bakeDiffuseLighting += EvaluateAmbientProbe(normalWS);
-        backBakeDiffuseLighting += EvaluateAmbientProbe(backNormalWS);
+        // TODO: pass a tab of coefficient instead!
+        real4 SHCoefficients[7];
+        SHCoefficients[0] = unity_SHAr;
+        SHCoefficients[1] = unity_SHAg;
+        SHCoefficients[2] = unity_SHAb;
+        SHCoefficients[3] = unity_SHBr;
+        SHCoefficients[4] = unity_SHBg;
+        SHCoefficients[5] = unity_SHBb;
+        SHCoefficients[6] = unity_SHC;
+
+        bakeDiffuseLighting += SampleSH9(SHCoefficients, normalWS);
+        backBakeDiffuseLighting += SampleSH9(SHCoefficients, backNormalWS);
     }
     else
     {
@@ -166,15 +141,15 @@ void SampleBakedGI(
     EvaluateLightmap(positionRWS, normalWS, backNormalWS, uvStaticLightmap, uvDynamicLightmap, bakeDiffuseLighting, backBakeDiffuseLighting);
 #endif
 
-#if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+#if SHADEROPTIONS_ENABLE_PROBE_VOLUMES == 1
     // If probe volumes are evaluated in the lightloop, we place a sentinel value to detect that no lightmap data is present at the current pixel,
     // and we can safely overwrite baked data value with value from probe volume evaluation in light loop.
 #if !SAMPLE_LIGHTMAP
-    SetAsUninitializedGI(bakeDiffuseLighting);
+    bakeDiffuseLighting = UNINITIALIZED_GI;
     return;
 #endif
 
-#elif SAMPLE_PROBEVOLUME_BUILTIN // SAMPLE_PROBEVOLUME_BUILTIN && !(defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
+#elif SAMPLE_PROBEVOLUME_BUILTIN // SAMPLE_PROBEVOLUME_BUILTIN && SHADEROPTIONS_ENABLE_PROBE_VOLUMES == 0
 
     EvaluateLightProbeBuiltin(positionRWS, normalWS, backNormalWS, bakeDiffuseLighting, backBakeDiffuseLighting);
 

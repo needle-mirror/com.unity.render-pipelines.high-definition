@@ -23,7 +23,6 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/NormalBuffer.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Builtin/BuiltinData.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/PostProcessing/Shaders/TemporalAntialiasing.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/Denoising/DenoisingUtils.hlsl"
 
 #pragma only_renderers d3d11
 // #pragma enable_d3d11_debug_symbols
@@ -33,9 +32,6 @@
 
 // Depth buffer of the current frame
 TEXTURE2D_X(_DepthTexture);
-// Stencil buffer of the current frame
-TEXTURE2D_X_UINT2(_StencilTexture);
-int _ObjectMotionStencilBit;
 // Depth buffer of the previous frame
 TEXTURE2D_X(_HistoryDepthTexture);
 // Normal buffer of the previous frame
@@ -49,6 +45,10 @@ float _PixelSpreadAngleTangent;
 // Value that tells us if the current history should be discarded based on scene-level data
 float _HistoryValidity;
 
+// The maximal world space distance for temporal reprojection
+#define MAX_WORLD_SPACE_DISTANCE 0.1
+// The maximal pixel reprojection distance
+#define PIXEL_RADIUS_TOLERANCE_THRESHOLD 4
 // The maximal normal difference threshold
 #define MAX_NORMAL_DIFFERENCE 0.65
 // The minimal motion distance
@@ -95,6 +95,7 @@ void ValidateHistory(uint3 dispatchThreadId : SV_DispatchThreadID, uint2 groupTh
         return;
     }
 
+
     // Real the normal data for this pixel
     NormalData normalData;
     DecodeFromNormalBuffer(centerCoord, normalData);
@@ -103,7 +104,10 @@ void ValidateHistory(uint3 dispatchThreadId : SV_DispatchThreadID, uint2 groupTh
     float3 historyPositionWS = ComputeWorldSpacePosition(posInputs.positionNDC - velocity, historyDepth, UNITY_MATRIX_PREV_I_VP);
 
     // Compute the max reprojection distance. This is evaluated as the max between a fixed radius value and an approximation of the footprint of the pixel.
-    float maxRadius = ComputeMaxReprojectionWorldRadius(posInputs.positionWS, normalData.normalWS, _PixelSpreadAngleTangent);
+    const float3 viewWS = GetWorldSpaceNormalizeViewDir(posInputs.positionWS);
+    float parallelPixelFootPrint = _PixelSpreadAngleTangent * length(posInputs.positionWS);
+    float realPixelFootPrint = parallelPixelFootPrint / abs(dot(normalData.normalWS, viewWS));
+    float maxRadius = max(MAX_WORLD_SPACE_DISTANCE, realPixelFootPrint * PIXEL_RADIUS_TOLERANCE_THRESHOLD);
 
     // Is it too far from the current position?
     if (length(historyPositionWS - posInputs.positionWS) > maxRadius)
@@ -124,9 +128,9 @@ void ValidateHistory(uint3 dispatchThreadId : SV_DispatchThreadID, uint2 groupTh
         return;
     }
 
-    // Was the object of this pixel moving?
-    uint stencilValue = GetStencilValue(LOAD_TEXTURE2D_X(_StencilTexture, centerCoord));
-    if ((stencilValue & _ObjectMotionStencilBit) != 0)
+    // We sample the velocity buffer, if not null
+    float sampleVelocity = LOAD_TEXTURE2D_X(_VelocityBuffer, centerCoord).r;
+    if (sampleVelocity > MINIMAL_MOTION_DISTANCE)
     {
         _ValidationBufferRW[COORD_TEXTURE2D_X(centerCoord)] = 0;
         return;
@@ -207,22 +211,19 @@ void TEMPORAL_ACCUMULATION(uint3 dispatchThreadId : SV_DispatchThreadID, uint2 g
 #endif
 
     // Get the velocity of the current sample
-    float movingIntersection = LOAD_TEXTURE2D_X(_VelocityBuffer, centerCoord).r > MINIMAL_MOTION_DISTANCE;
+    float sampleVelocity = LOAD_TEXTURE2D_X(_VelocityBuffer, centerCoord).r;
 
     // Accumulation factor that tells us how much we need to keep the history data
     float accumulationFactor = 0.0;
 
-    // Combine the history validity from both sources
-    bool historyInvalid = (_ValidationBuffer[COORD_TEXTURE2D_X(centerCoord)].x * _HistoryValidity) < 1.0f;
-
     // If the history is invalid or the history was flagged as moving (sampleCount == 0.0)
-    if (historyInvalid || sampleCount == 0.0 || movingIntersection)
+    if (_ValidationBuffer[COORD_TEXTURE2D_X(centerCoord)].x < 1.0 || sampleCount == 0.0)
     {
         // We only take the current value
         accumulationFactor = 0.0;
         history = 0.0;
         // And the sample count of history becomes 1 (or 0 if the previous sample was mooving)
-        sampleCount = movingIntersection ? 0.0 : 1.0;
+        sampleCount = sampleVelocity > MINIMAL_MOTION_DISTANCE ? 0.0 : 1.0;
     }
     else
     {

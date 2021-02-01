@@ -13,7 +13,6 @@ namespace UnityEditor.Rendering.HighDefinition
     internal struct SerializeableGUIDs
     {
         public string[] GUIDArray;
-        public bool[] withUV;
     }
 
     /// <summary>
@@ -33,7 +32,7 @@ namespace UnityEditor.Rendering.HighDefinition
             new LayerListUIBlock(MaterialUIBlock.ExpandableBit.MaterialReferences),
             new LayersUIBlock(),
             new EmissionUIBlock(MaterialUIBlock.ExpandableBit.Emissive, features: emissionFeatures),
-            new LitAdvancedOptionsUIBlock(MaterialUIBlock.ExpandableBit.Advance),
+            new AdvancedOptionsUIBlock(MaterialUIBlock.ExpandableBit.Advance),
         };
 
         protected override void OnMaterialGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -166,6 +165,12 @@ namespace UnityEditor.Rendering.HighDefinition
                 : (material.HasProperty(kReceivesSSRTransparent) ? material.GetInt(kReceivesSSRTransparent) != 0 : false);
             BaseLitGUI.SetupStencil(material, receiveSSR, material.GetMaterialId() == MaterialId.LitSSS);
 
+            if (material.HasProperty(kAddPrecomputedVelocity))
+            {
+                CoreUtils.SetKeyword(material, "_ADD_PRECOMPUTED_VELOCITY", material.GetInt(kAddPrecomputedVelocity) != 0);
+            }
+
+
             for (int i = 0; i < kMaxLayerCount; ++i)
             {
                 NormalMapSpace normalMapSpace = ((NormalMapSpace)material.GetFloat(kNormalMapSpace + i));
@@ -249,27 +254,37 @@ namespace UnityEditor.Rendering.HighDefinition
             AssetImporter materialImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(material.GetInstanceID()));
 
             Material[] layers = null;
-            bool[] withUV = null;
 
             // Material importer can be null when the selected material doesn't exists as asset (Material saved inside the scene)
             if (materialImporter != null)
-                InitializeMaterialLayers(material, ref layers, ref withUV);
+                InitializeMaterialLayers(material, ref layers);
 
             // We could have no userData in the assets, so test if we have load something
-            if (layers != null && withUV != null)
+            if (layers != null)
             {
                 for (int i = 0; i < layerCount; ++i)
                 {
-                    SynchronizeLayerProperties(material, i, layers[i], withUV[i]);
+                    SynchronizeLayerProperties(material, layers, i, true);
                 }
+            }
+        }
+
+        public static void SynchronizeAllLayersProperties(Material material, Material[] materialLayers, bool excludeUVMappingProperties)
+        {
+            int numLayer = material.GetLayerCount();
+
+            for (int i = 0; i < numLayer; ++i)
+            {
+                SynchronizeLayerProperties(material, materialLayers, i, excludeUVMappingProperties);
             }
         }
 
         // This function will look for all referenced lit material, and assign value from Lit to layered lit layers.
         // This is based on the naming of the variables, i.E BaseColor will match BaseColor0, if a properties shouldn't be override
         // put the name in the exclusionList below
-        public static void SynchronizeLayerProperties(Material material, int layerIndex, Material layerMaterial, bool includeUVMappingProperties)
+        public static void SynchronizeLayerProperties(Material material, Material[] layers, int layerIndex, bool excludeUVMappingProperties)
         {
+            Material layerMaterial = layers[layerIndex];
             string[] exclusionList = { kTexWorldScale, kUVBase, kUVMappingMask, kUVDetail, kUVDetailsMappingMask };
 
             if (layerMaterial != null)
@@ -281,7 +296,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     string propertyName = ShaderUtil.GetPropertyName(layerShader, i);
                     string layerPropertyName = propertyName + layerIndex;
 
-                    if (includeUVMappingProperties || !exclusionList.Contains(propertyName))
+                    if (!exclusionList.Contains(propertyName) || !excludeUVMappingProperties)
                     {
                         if (material.HasProperty(layerPropertyName))
                         {
@@ -307,7 +322,7 @@ namespace UnityEditor.Rendering.HighDefinition
                                 case ShaderUtil.ShaderPropertyType.TexEnv:
                                 {
                                     material.SetTexture(layerPropertyName, layerMaterial.GetTexture(propertyName));
-                                    if (includeUVMappingProperties)
+                                    if (!excludeUVMappingProperties)
                                     {
                                         material.SetTextureOffset(layerPropertyName, layerMaterial.GetTextureOffset(propertyName));
                                         material.SetTextureScale(layerPropertyName, layerMaterial.GetTextureScale(propertyName));
@@ -323,14 +338,10 @@ namespace UnityEditor.Rendering.HighDefinition
 
         // We use the user data to save a string that represent the referenced lit material
         // so we can keep reference during serialization
-        public static void InitializeMaterialLayers(Material material, ref Material[] layers, ref bool[] withUV)
+        public static void InitializeMaterialLayers(Material material, ref Material[] layers)
         {
             AssetImporter materialImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(material.GetInstanceID()));
-            InitializeMaterialLayers(materialImporter, ref layers, ref withUV);
-        }
 
-        public static void InitializeMaterialLayers(AssetImporter materialImporter, ref Material[] layers, ref bool[] withUV)
-        {
             if (materialImporter.userData != string.Empty)
             {
                 SerializeableGUIDs layersGUID = JsonUtility.FromJson<SerializeableGUIDs>(materialImporter.userData);
@@ -342,40 +353,19 @@ namespace UnityEditor.Rendering.HighDefinition
                         layers[i] = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(layersGUID.GUIDArray[i]), typeof(Material)) as Material;
                     }
                 }
-                if (layersGUID.withUV != null && layersGUID.withUV.Length > 0)
-                {
-                    withUV = new bool[layersGUID.withUV.Length];
-                    for (int i = 0; i < layersGUID.withUV.Length; ++i)
-                        withUV[i] = layersGUID.withUV[i];
-                }
-            }
-            else
-            {
-                if (layers != null)
-                {
-                    for (int i = 0; i < layers.Length; ++i)
-                        layers[i] = null;
-                }
-                if (withUV != null)
-                {
-                    for (int i = 0; i < withUV.Length; ++i)
-                        withUV[i] = true;
-                }
             }
         }
 
-        public static void SaveMaterialLayers(Material material, Material[] materialLayers, bool[] withUV)
+        public static void SaveMaterialLayers(Material material, Material[] materialLayers)
         {
             AssetImporter materialImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(material.GetInstanceID()));
 
             SerializeableGUIDs layersGUID;
             layersGUID.GUIDArray = new string[materialLayers.Length];
-            layersGUID.withUV = new bool[withUV.Length];
             for (int i = 0; i < materialLayers.Length; ++i)
             {
                 if (materialLayers[i] != null)
                     layersGUID.GUIDArray[i] = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(materialLayers[i].GetInstanceID()));
-                layersGUID.withUV[i] = withUV[i];
             }
 
             materialImporter.userData = JsonUtility.ToJson(layersGUID);

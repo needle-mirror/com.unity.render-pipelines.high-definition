@@ -44,7 +44,6 @@ namespace UnityEngine.Rendering.HighDefinition
         };
 
         public static readonly string[] s_MaterialDecalPassNames = Enum.GetNames(typeof(MaterialDecalPass));
-        public static readonly string s_AtlasSizeWarningMessage = "Decal texture atlas out of space, decals on transparent geometry might not render correctly, atlas size can be changed in HDRenderPipelineAsset";
 
         public class CullResult : IDisposable
         {
@@ -860,9 +859,9 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 get
                 {
-                    if (this.m_Material.HasProperty(HDShaderIDs._DrawOrder))
+                    if (m_IsHDRenderPipelineDecal)
                     {
-                        return this.m_Material.GetInt(HDShaderIDs._DrawOrder);
+                        return this.m_Material.GetInt("_DrawOrder");
                     }
                     else
                     {
@@ -1108,7 +1107,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 if (!m_AllocationSuccess && m_PrevAllocationSuccess) // still failed to allocate, decal atlas size needs to increase, debounce so that we don't spam the console with warnings
                 {
-                    Debug.LogWarning(s_AtlasSizeWarningMessage);
+                    Debug.LogWarning("Decal texture atlas out of space, decals on transparent geometry might not render correctly, atlas size can be changed in HDRenderPipelineAsset");
                 }
             }
             m_PrevAllocationSuccess = m_AllocationSuccess;
@@ -1161,11 +1160,17 @@ namespace UnityEngine.Rendering.HighDefinition
             m_Atlas = null;
         }
 
-        public void RenderDebugOverlay(HDCamera hdCamera, CommandBuffer cmd, int mipLevel, DebugOverlay debugOverlay)
+        public void RenderDebugOverlay(HDCamera hdCamera, CommandBuffer cmd, DebugDisplaySettings debugDisplaySettings, DebugOverlay debugOverlay)
         {
-            debugOverlay.SetViewport(cmd);
-            HDUtils.BlitQuad(cmd, Atlas.AtlasTexture, new Vector4(1, 1, 0, 0), new Vector4(1, 1, 0, 0), mipLevel, true);
-            debugOverlay.Next();
+            if (debugDisplaySettings.data.decalsDebugSettings.displayAtlas)
+            {
+                using (new ProfilingScope(cmd, ProfilingSampler.Get(HDProfileId.DisplayDebugDecalsAtlas)))
+                {
+                    debugOverlay.SetViewport(cmd);
+                    HDUtils.BlitQuad(cmd, Atlas.AtlasTexture, new Vector4(1, 1, 0, 0), new Vector4(1, 1, 0, 0), (int)debugDisplaySettings.data.decalsDebugSettings.mipLevel, true);
+                    debugOverlay.Next();
+                }
+            }
         }
 
         public void LoadCullResults(CullResult cullResult)
@@ -1180,11 +1185,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     decalSet.SetCullResult(cullResult.requests[enumerator.Current.Key]);
                 }
             }
-        }
-
-        public bool IsAtlasAllocatedSuccessfully()
-        {
-            return m_AllocationSuccess;
         }
     }
 }

@@ -4,7 +4,6 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
@@ -78,7 +77,7 @@ namespace UnityEditor.Rendering.HighDefinition
             if (inputData.shaderKeywordSet.IsEnabled(m_LodFadeCrossFade) && !hdrpAsset.currentPlatformRenderPipelineSettings.supportDitheringCrossFade)
                 return true;
 
-            if (inputData.shaderKeywordSet.IsEnabled(m_WriteMSAADepth) && (hdrpAsset.currentPlatformRenderPipelineSettings.supportedLitShaderMode == RenderPipelineSettings.SupportedLitShaderMode.DeferredOnly))
+            if (inputData.shaderKeywordSet.IsEnabled(m_WriteMSAADepth) && !hdrpAsset.currentPlatformRenderPipelineSettings.supportMSAA)
                 return true;
 
             // Note that this is only going to affect the deferred shader and for a debug case, so it won't save much.
@@ -169,15 +168,6 @@ namespace UnityEditor.Rendering.HighDefinition
                     return true;
             }
 
-            // Global Illumination
-            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL1) &&
-                (!hdrpAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdrpAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL1))
-                return true;
-
-            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL2) &&
-                (!hdrpAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdrpAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL2))
-                return true;
-
             return false;
         }
     }
@@ -246,8 +236,6 @@ namespace UnityEditor.Rendering.HighDefinition
         protected ShaderKeyword m_MSAA = new ShaderKeyword("ENABLE_MSAA");
         protected ShaderKeyword m_ScreenSpaceShadowOFFKeywords = new ShaderKeyword("SCREEN_SPACE_SHADOWS_OFF");
         protected ShaderKeyword m_ScreenSpaceShadowONKeywords = new ShaderKeyword("SCREEN_SPACE_SHADOWS_ON");
-        protected ShaderKeyword m_ProbeVolumesL1 = new ShaderKeyword("PROBE_VOLUMES_L1");
-        protected ShaderKeyword m_ProbeVolumesL2 = new ShaderKeyword("PROBE_VOLUMES_L2");
 
         public int callbackOrder { get { return 0; } }
 
@@ -288,27 +276,18 @@ namespace UnityEditor.Rendering.HighDefinition
             if (inputData.shaderKeywordSet.IsEnabled(m_ScreenSpaceShadowOFFKeywords) && shadowInitParams.supportScreenSpaceShadows)
                 return true;
 
-            if (inputData.shaderKeywordSet.IsEnabled(m_MSAA) && (hdAsset.currentPlatformRenderPipelineSettings.supportedLitShaderMode == RenderPipelineSettings.SupportedLitShaderMode.DeferredOnly))
-            {
-                return true;
-            }
-
             if (inputData.shaderKeywordSet.IsEnabled(m_ScreenSpaceShadowONKeywords) && !shadowInitParams.supportScreenSpaceShadows)
                 return true;
 
-            if (inputData.shaderKeywordSet.IsEnabled(m_EnableAlpha) && !hdAsset.currentPlatformRenderPipelineSettings.SupportsAlpha())
+            if (inputData.shaderKeywordSet.IsEnabled(m_MSAA) && !hdAsset.currentPlatformRenderPipelineSettings.supportMSAA)
             {
                 return true;
             }
 
-            // Global Illumination
-            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL1) &&
-                (!hdAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL1))
+            if (inputData.shaderKeywordSet.IsEnabled(m_EnableAlpha) && !hdAsset.currentPlatformRenderPipelineSettings.supportsAlpha)
+            {
                 return true;
-
-            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL2) &&
-                (!hdAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL2))
-                return true;
+            }
 
             return false;
         }
@@ -318,11 +297,8 @@ namespace UnityEditor.Rendering.HighDefinition
             if (HDRenderPipeline.currentAsset == null)
                 return;
 
-            if (HDRenderPipelineGlobalSettings.Ensure(canCreateNewAsset: false) == null)
-                return;
-
             var exportLog = ShaderBuildPreprocessor.hdrpAssets.Count > 0
-                && (HDRenderPipelineGlobalSettings.instance.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled);
+                && ShaderBuildPreprocessor.hdrpAssets.Any(hdrpAsset => hdrpAsset.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled);
 
             Stopwatch shaderStripingWatch = new Stopwatch();
             shaderStripingWatch.Start();
@@ -367,13 +343,13 @@ namespace UnityEditor.Rendering.HighDefinition
                         inputData.RemoveAt(i);
                 }
 
-                if (HDRenderPipelineGlobalSettings.instance.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled)
+                foreach (var hdAsset in hdPipelineAssets)
                 {
-                    foreach (var hdAsset in hdPipelineAssets)
+                    if (hdAsset.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled)
                     {
                         m_TotalVariantsInputCount += preStrippingCount;
                         m_TotalVariantsOutputCount += (uint)inputData.Count;
-                        LogShaderVariants(shader, kernelName, HDRenderPipelineGlobalSettings.instance.shaderVariantLogLevel, preStrippingCount, (uint)inputData.Count);
+                        LogShaderVariants(shader, kernelName, hdAsset.shaderVariantLogLevel, preStrippingCount, (uint)inputData.Count);
                     }
                 }
             }
@@ -476,11 +452,8 @@ namespace UnityEditor.Rendering.HighDefinition
             if (HDRenderPipeline.currentAsset == null)
                 return;
 
-            if (HDRenderPipelineGlobalSettings.Ensure(canCreateNewAsset: false) == null)
-                return;
-
             var exportLog = ShaderBuildPreprocessor.hdrpAssets.Count > 0
-                && (HDRenderPipelineGlobalSettings.instance.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled);
+                && ShaderBuildPreprocessor.hdrpAssets.Any(hdrpAsset => hdrpAsset.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled);
 
             Stopwatch shaderStripingWatch = new Stopwatch();
             shaderStripingWatch.Start();
@@ -541,13 +514,13 @@ namespace UnityEditor.Rendering.HighDefinition
                     for (int i = inputData.Count - 1; i >= inputShaderVariantCount; --i)
                         inputData.RemoveAt(i);
 
-                if (HDRenderPipelineGlobalSettings.instance.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled)
+                foreach (var hdAsset in hdPipelineAssets)
                 {
-                    foreach (var hdAsset in hdPipelineAssets)
+                    if (hdAsset.shaderVariantLogLevel != ShaderVariantLogLevel.Disabled)
                     {
                         m_TotalVariantsInputCount += preStrippingCount;
                         m_TotalVariantsOutputCount += (uint)inputData.Count;
-                        LogShaderVariants(shader, snippet, HDRenderPipelineGlobalSettings.instance.shaderVariantLogLevel, preStrippingCount, (uint)inputData.Count);
+                        LogShaderVariants(shader, snippet, hdAsset.shaderVariantLogLevel, preStrippingCount, (uint)inputData.Count);
                     }
                 }
             }

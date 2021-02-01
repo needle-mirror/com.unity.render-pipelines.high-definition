@@ -187,8 +187,9 @@ namespace UnityEditor.Rendering.HighDefinition
 
             if (shadowPlaneDistance > 0)
             {
-                var shadowDiscRadius = shadowPlaneDistance * Mathf.Tan(outerAngle * Mathf.Deg2Rad * 0.5f);
-                Handles.DrawWireDisc(Vector3.forward * shadowPlaneDistance, Vector3.forward, shadowDiscRadius);
+                var shadowDiscRadius = shadowPlaneDistance * Mathf.Sin(outerAngle * Mathf.Deg2Rad * 0.5f);
+                var shadowDiscDistance = Mathf.Cos(Mathf.Deg2Rad * outerAngle / 2) * shadowPlaneDistance;
+                Handles.DrawWireDisc(Vector3.forward * shadowDiscDistance, Vector3.forward, shadowDiscRadius);
             }
         }
 
@@ -527,7 +528,6 @@ namespace UnityEditor.Rendering.HighDefinition
         public static void DrawHandles(HDAdditionalLightData additionalData, Editor owner)
         {
             Light light = additionalData.legacyLight;
-            float shadowNearPlane = light.shadows != LightShadows.None ? additionalData.shadowNearPlane : 0.0f;
 
             Color wireframeColorAbove = (owner as HDLightEditor).legacyLightColor;
             Color handleColorAbove = GetLightHandleColor(wireframeColorAbove);
@@ -550,10 +550,10 @@ namespace UnityEditor.Rendering.HighDefinition
                                 Vector3 outterAngleInnerAngleRange = new Vector3(light.spotAngle, light.spotAngle * additionalData.innerSpotPercent01, light.range);
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.Greater;
                                 Handles.color = wireframeColorBehind;
-                                DrawSpotlightWireframe(outterAngleInnerAngleRange, shadowNearPlane);
+                                DrawSpotlightWireframe(outterAngleInnerAngleRange, additionalData.shadowNearPlane);
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
                                 Handles.color = wireframeColorAbove;
-                                DrawSpotlightWireframe(outterAngleInnerAngleRange, shadowNearPlane);
+                                DrawSpotlightWireframe(outterAngleInnerAngleRange, additionalData.shadowNearPlane);
                                 EditorGUI.BeginChangeCheck();
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.Greater;
                                 Handles.color = handleColorBehind;
@@ -578,10 +578,10 @@ namespace UnityEditor.Rendering.HighDefinition
                                 Vector4 aspectFovMaxRangeMinRange = new Vector4(additionalData.aspectRatio, light.spotAngle, light.range);
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.Greater;
                                 Handles.color = wireframeColorBehind;
-                                DrawSpherePortionWireframe(aspectFovMaxRangeMinRange, shadowNearPlane);
+                                DrawSpherePortionWireframe(aspectFovMaxRangeMinRange, additionalData.shadowNearPlane);
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
                                 Handles.color = wireframeColorAbove;
-                                DrawSpherePortionWireframe(aspectFovMaxRangeMinRange, shadowNearPlane);
+                                DrawSpherePortionWireframe(aspectFovMaxRangeMinRange, additionalData.shadowNearPlane);
                                 EditorGUI.BeginChangeCheck();
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.Greater;
                                 Handles.color = handleColorBehind;
@@ -606,10 +606,10 @@ namespace UnityEditor.Rendering.HighDefinition
                                 Vector4 widthHeightMaxRangeMinRange = new Vector4(additionalData.shapeWidth, additionalData.shapeHeight, light.range);
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.Greater;
                                 Handles.color = wireframeColorBehind;
-                                DrawOrthoFrustumWireframe(widthHeightMaxRangeMinRange, shadowNearPlane);
+                                DrawOrthoFrustumWireframe(widthHeightMaxRangeMinRange, additionalData.shadowNearPlane);
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
                                 Handles.color = wireframeColorAbove;
-                                DrawOrthoFrustumWireframe(widthHeightMaxRangeMinRange, shadowNearPlane);
+                                DrawOrthoFrustumWireframe(widthHeightMaxRangeMinRange, additionalData.shadowNearPlane);
                                 EditorGUI.BeginChangeCheck();
                                 Handles.zTest = UnityEngine.Rendering.CompareFunction.Greater;
                                 Handles.color = handleColorBehind;

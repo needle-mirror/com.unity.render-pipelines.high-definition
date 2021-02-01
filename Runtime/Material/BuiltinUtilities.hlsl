@@ -95,14 +95,9 @@ void ModifyBakedDiffuseLighting(float3 V, PositionInputs posInput, SurfaceData s
 void PostInitBuiltinData(   float3 V, PositionInputs posInput, SurfaceData surfaceData,
                             inout BuiltinData builtinData)
 {
-#if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+#if SHADEROPTIONS_ENABLE_PROBE_VOLUMES == 1
     if (IsUninitializedGI(builtinData.bakeDiffuseLighting))
-    {
-#ifdef HAS_PAYLOAD_WITH_UNINIT_GI
-        EncodePayloadWithUninitGI(GetUninitializedGIPayload(surfaceData), builtinData.bakeDiffuseLighting);
-#endif
         return;
-    }
 #else
     // Apply control from the indirect lighting volume settings - This is apply here so we don't affect emissive
     // color in case of lit deferred for example and avoid material to have to deal with it

@@ -71,8 +71,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
             foreach (var target in serializedObject.targetObjects)
                 s_Editors[(Component)target] = this;
-
-            HDProbeUI.RegisterEditor(this);
         }
 
         protected virtual void OnDisable()
@@ -82,8 +80,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 if (target != null && !target.Equals(null))
                     s_Editors.Remove((Component)target);
             }
-
-            HDProbeUI.UnregisterEditor(this);
         }
 
         protected virtual void Draw(TSerialized serialized, Editor owner)
@@ -100,12 +96,14 @@ namespace UnityEditor.Rendering.HighDefinition
                     HDProbeUI.Drawer<TProvider>.DrawInfluenceSettings,
                     HDProbeUI.Drawer_DifferentShapeError
                     ),
-                CoreEditorDrawer<TSerialized>.AdditionalPropertiesFoldoutGroup(HDProbeUI.k_CaptureSettingsHeader, HDProbeUI.Expandable.Capture, HDProbeUI.k_ExpandedState, HDProbeUI.AdditionalProperties.Capture, HDProbeUI.k_AdditionalPropertiesState,
+                CoreEditorDrawer<TSerialized>.AdvancedFoldoutGroup(HDProbeUI.k_CaptureSettingsHeader, HDProbeUI.Expandable.Capture, HDProbeUI.k_ExpandedState,
+                    (s, o) => s.GetEditorOnlyData(SerializedHDProbe.EditorOnlyData.CaptureSettingsIsAdvanced),
+                    (s, o) => s.ToggleEditorOnlyData(SerializedHDProbe.EditorOnlyData.CaptureSettingsIsAdvanced),
                     CoreEditorDrawer<TSerialized>.Group(
                         DrawAdditionalCaptureSettings,
                         HDProbeUI.Drawer<TProvider>.DrawCaptureSettings
                         ),
-                    HDProbeUI.Drawer<TProvider>.DrawCaptureSettingsAdditionalProperties
+                    HDProbeUI.Drawer<TProvider>.DrawAdvancedCaptureSettings
                     ),
                 CoreEditorDrawer<TSerialized>.FoldoutGroup(HDProbeUI.k_CustomSettingsHeader, HDProbeUI.Expandable.Custom, HDProbeUI.k_ExpandedState,
                     HDProbeUI.Drawer<TProvider>.DrawCustomSettings),

@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 using UnityEngine.Serialization;
 using UnityEngine.Experimental.Rendering;
 
@@ -115,26 +114,6 @@ namespace UnityEngine.Rendering.HighDefinition
     }
 
     /// <summary>
-    /// Possible values for one element of the Local Volumetric Fog atlas.
-    /// </summary>
-    [Serializable]
-    public enum LocalVolumetricFogResolution
-    {
-        /// <summary>3D volume of 32x32x32 voxels.</summary>
-        [InspectorName("32x32x32")]
-        Resolution32 = 32,
-        /// <summary>3D volume of 64x64x64 voxels.</summary>
-        [InspectorName("64x64x64")]
-        Resolution64 = 64,
-        /// <summary>3D volume of 128x128x128 voxels.</summary>
-        [InspectorName("128x128x128")]
-        Resolution128 = 128,
-        /// <summary>3D volume of 256x256x256 voxels.</summary>
-        [InspectorName("256x256x256")]
-        Resolution256 = 256,
-    }
-
-    /// <summary>
     /// Global Light Loop Settings.
     /// </summary>
     [Serializable]
@@ -169,8 +148,6 @@ namespace UnityEngine.Rendering.HighDefinition
             maxDecalsOnScreen = 512,
             maxPlanarReflectionOnScreen = 16,
             maxLightsPerClusterCell = 8,
-            maxLocalVolumetricFogSize = LocalVolumetricFogResolution.Resolution32,
-            maxLocalVolumetricFogOnScreen = 64, // 8MB texture atlas allocated by default
         };
 
         /// <summary>Cookie atlas resolution.</summary>
@@ -186,7 +163,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>Last valid mip for cookie atlas.</summary>
         public int cookieAtlasLastValidMip;
         // We keep this property for the migration code (we need to know how many cookies we could have before).
-        [SerializeField, Obsolete("There is no more texture array for cookies, use cookie atlases properties instead.", false)]
+        [SerializeField, Obsolete("There is no more texture array for cookies, use cookie atlases properties instead.")]
         internal int cookieTexArraySize;
 
         /// <summary>Planar reflections atlas resolution.</summary>
@@ -222,12 +199,5 @@ namespace UnityEngine.Rendering.HighDefinition
         public int maxPlanarReflectionOnScreen;
         /// <summary>Maximum number of lights per ray tracing light cluster cell.</summary>
         public int maxLightsPerClusterCell;
-
-        /// <summary>Maximum size of one Local Volumetric Fog texture.</summary>
-        public LocalVolumetricFogResolution maxLocalVolumetricFogSize;
-
-        /// <summary>Maximum number of Local Volumetric Fog at the same time on screen.</summary>
-        [Range(1, HDRenderPipeline.k_MaxVisibleLocalVolumetricFogCount)]
-        public int maxLocalVolumetricFogOnScreen;
     }
 }

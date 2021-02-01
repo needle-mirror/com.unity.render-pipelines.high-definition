@@ -6,7 +6,8 @@ namespace UnityEngine.Rendering.HighDefinition
     {
         CopyDepthBuffer,
         CopyDepthInTargetTexture,
-        BuildCoarseStencilAndResolveIfNeeded,
+        CoarseStencilGeneration,
+        ResolveStencilBuffer,
         AmbientOcclusion,
         HorizonSSAO,
         UpSampleSSAO,
@@ -17,8 +18,7 @@ namespace UnityEngine.Rendering.HighDefinition
         Distortion,
         AccumulateDistortion,
         ApplyDistortion,
-        ForwardDepthPrepass,
-        DeferredDepthPrepass,
+        DepthPrepass,
         TransparentDepthPrepass,
         GBuffer,
         DBufferRender,
@@ -37,8 +37,8 @@ namespace UnityEngine.Rendering.HighDefinition
         SSGITrace,
         SSGIDenoise,
         SSGIUpscale,
-        SSGIConvert,
 
+        ForwardEmissive,
         ForwardOpaque,
         ForwardOpaqueDebug,
         ForwardTransparent,
@@ -54,7 +54,7 @@ namespace UnityEngine.Rendering.HighDefinition
         ColorPyramid,
         DepthPyramid,
         PostProcessing,
-        AfterPostProcessingObjects,
+        AfterPostProcessing,
         RenderFullScreenDebug,
         ClearBuffers,
         ClearStencil,
@@ -71,8 +71,8 @@ namespace UnityEngine.Rendering.HighDefinition
         FilterCubemapCharlie,
         FilterCubemapGGX,
         DisplayPlanarReflectionProbeAtlas,
+        BlitTextureInPotAtlas,
         AreaLightCookieConvolution,
-        DisplayLocalVolumetricFogAtlas,
 
         UpdateSkyEnvironmentConvolution,
         RenderSkyToCubemap,
@@ -80,23 +80,13 @@ namespace UnityEngine.Rendering.HighDefinition
         UpdateSkyAmbientProbe,
         PreRenderSky,
         RenderSky,
-        RenderClouds,
         OpaqueAtmosphericScattering,
         InScatteredRadiancePrecomputation,
 
         VolumeVoxelization,
         VolumetricLighting,
         VolumetricLightingFiltering,
-        PrepareVisibleLocalVolumetricFogList,
-        UpdateLocalVolumetricFogAtlas,
-
-        VolumetricClouds,
-        VolumetricCloudsPrepare,
-        VolumetricCloudsTrace,
-        VolumetricCloudsReproject,
-        VolumetricCloudsUpscaleAndCombine,
-        VolumetricCloudsShadow,
-        VolumetricCloudMapGeneration,
+        PrepareVisibleDensityVolumeList,
 
         // RT Cluster
         RaytracingBuildCluster,
@@ -132,12 +122,10 @@ namespace UnityEngine.Rendering.HighDefinition
         // Other ray tracing
         RaytracingDebugOverlay,
         RayTracingRecursiveRendering,
-        RayTracingDepthPrepass,
-        RayTracingFlagMask,
+        RayTracingPrepass,
         // RT Deferred Lighting
         RaytracingDeferredLighting,
         // Denoisers
-        HistoryValidity,
         TemporalFilter,
         DiffuseFilter,
 

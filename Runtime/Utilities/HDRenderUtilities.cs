@@ -341,15 +341,13 @@ namespace UnityEngine.Rendering.HighDefinition
         [Obsolete("Use CreateReflectionProbeRenderTarget with explicit format instead", true)]
         public static RenderTexture CreateReflectionProbeRenderTarget(int cubemapSize)
         {
-            RenderTexture rt = new RenderTexture(cubemapSize, cubemapSize, 1, GraphicsFormat.R16G16B16A16_SFloat)
+            return new RenderTexture(cubemapSize, cubemapSize, 1, GraphicsFormat.R16G16B16A16_SFloat)
             {
                 dimension = TextureDimension.Cube,
                 enableRandomWrite = true,
                 useMipMap = true,
                 autoGenerateMips = false
             };
-            rt.Create();
-            return rt;
         }
 
         /// <summary>
@@ -360,15 +358,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>The texture to use as reflection probe target.</returns>
         public static RenderTexture CreateReflectionProbeRenderTarget(int cubemapSize, GraphicsFormat format)
         {
-            RenderTexture rt = new RenderTexture(cubemapSize, cubemapSize, 1, format)
+            return new RenderTexture(cubemapSize, cubemapSize, 1, format)
             {
                 dimension = TextureDimension.Cube,
                 enableRandomWrite = true,
                 useMipMap = true,
                 autoGenerateMips = false
             };
-            rt.Create();
-            return rt;
         }
 
         /// <summary>
@@ -379,15 +375,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>The texture used as planar reflection probe target</returns>
         public static RenderTexture CreatePlanarProbeRenderTarget(int planarSize, GraphicsFormat format)
         {
-            RenderTexture rt = new RenderTexture(planarSize, planarSize, 1, format)
+            return new RenderTexture(planarSize, planarSize, 1, format)
             {
                 dimension = TextureDimension.Tex2D,
                 enableRandomWrite = true,
                 useMipMap = true,
                 autoGenerateMips = false
             };
-            rt.Create();
-            return rt;
         }
 
         /// <summary>
@@ -397,15 +391,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>The texture used as planar reflection probe target</returns>
         public static RenderTexture CreatePlanarProbeDepthRenderTarget(int planarSize)
         {
-            RenderTexture rt = new RenderTexture(planarSize, planarSize, 1, GraphicsFormat.R32_SFloat)
+            return new RenderTexture(planarSize, planarSize, 1, GraphicsFormat.R32_SFloat)
             {
                 dimension = TextureDimension.Tex2D,
                 enableRandomWrite = true,
                 useMipMap = true,
                 autoGenerateMips = false
             };
-            rt.Create();
-            return rt;
         }
 
         /// <summary>

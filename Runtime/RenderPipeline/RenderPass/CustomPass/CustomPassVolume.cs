@@ -10,7 +10,7 @@ namespace UnityEngine.Rendering.HighDefinition
     /// It provides
     /// </summary>
     [ExecuteAlways]
-    [HDRPHelpURLAttribute("Custom-Pass")]
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Custom-Pass" + Documentation.endURL)]
     public class CustomPassVolume : MonoBehaviour
     {
         /// <summary>
@@ -88,11 +88,12 @@ namespace UnityEngine.Rendering.HighDefinition
         void OnDisable()
         {
             UnRegister(this);
-            CleanupPasses();
 #if UNITY_EDITOR
             UnityEditor.SceneVisibilityManager.visibilityChanged -= UpdateCustomPassVolumeVisibility;
 #endif
         }
+
+        void OnDestroy() => CleanupPasses();
 
 #if UNITY_EDITOR
         void UpdateCustomPassVolumeVisibility()

@@ -59,7 +59,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // Update all quality levels with the right max lod so that meshes can be stripped.
             // We don't take lod bias into account because it can be overridden per camera.
-            int currentQualityLevel = QualitySettings.GetQualityLevel();
             int qualityLevelCount = QualitySettings.names.Length;
             for (int i = 0; i < qualityLevelCount; ++i)
             {
@@ -74,7 +73,6 @@ namespace UnityEditor.Rendering.HighDefinition
                     QualitySettings.maximumLODLevel = GetMinimumMaxLoDValue(hdPipelineAsset);
                 }
             }
-            QualitySettings.SetQualityLevel(currentQualityLevel, false);
         }
     }
 }
