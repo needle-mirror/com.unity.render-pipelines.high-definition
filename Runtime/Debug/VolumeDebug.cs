@@ -130,7 +130,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 if (s_ComponentTypes == null)
                 {
-                    s_ComponentTypes = VolumeManager.instance.baseComponentTypeArray
+                    s_ComponentTypes = VolumeManager.instance.baseComponentTypes
                         .Where(t => !t.IsDefined(typeof(VolumeComponentDeprecated), false))
                         .OrderBy(t => ComponentDisplayName(t))
                         .ToList();

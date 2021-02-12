@@ -91,8 +91,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
         {
             context.AddAssetDependency(kSourceCodeGuid, AssetCollection.Flags.SourceDependency);
             context.AddAssetDependency(subTargetAssetGuid, AssetCollection.Flags.SourceDependency);
-            if (!context.HasCustomEditorForRenderPipeline(typeof(HDRenderPipelineAsset)))
-                context.AddCustomEditorForRenderPipeline(customInspector, typeof(HDRenderPipelineAsset));
+            context.AddCustomEditorForRenderPipeline(customInspector, typeof(HDRenderPipelineAsset));
 
             if (migrationSteps.Migrate(this))
                 OnBeforeSerialize();

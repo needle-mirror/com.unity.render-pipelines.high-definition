@@ -44,9 +44,10 @@ namespace UnityEngine.Rendering.HighDefinition
             CoreUtils.Destroy(m_DepthResolveMaterial);
         }
 
-        bool NeedClearGBuffer(HDCamera hdCamera)
+        bool NeedClearGBuffer()
         {
-            return m_CurrentDebugDisplaySettings.IsDebugDisplayEnabled() || hdCamera.frameSettings.IsEnabled(FrameSettingsField.ClearGBuffers);
+            // TODO: Add an option to force clear
+            return m_CurrentDebugDisplaySettings.IsDebugDisplayEnabled();
         }
 
         HDUtils.PackedMipChainInfo GetDepthBufferMipChainInfo()
@@ -107,7 +108,7 @@ namespace UnityEngine.Rendering.HighDefinition
             return renderGraph.CreateTexture(depthDesc);
         }
 
-        TextureHandle CreateNormalBuffer(RenderGraph renderGraph, HDCamera hdCamera, bool msaa)
+        TextureHandle CreateNormalBuffer(RenderGraph renderGraph, bool msaa)
         {
 #if UNITY_2020_2_OR_NEWER
             FastMemoryDesc fastMemDesc;
@@ -118,7 +119,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
             TextureDesc normalDesc = new TextureDesc(Vector2.one, true, true)
             {
-                colorFormat = GraphicsFormat.R8G8B8A8_UNorm, clearBuffer = NeedClearGBuffer(hdCamera), clearColor = Color.black, bindTextureMS = msaa, enableMSAA = msaa, enableRandomWrite = !msaa, name = msaa ? "NormalBufferMSAA" : "NormalBuffer"
+                colorFormat = GraphicsFormat.R8G8B8A8_UNorm, clearBuffer = NeedClearGBuffer(), clearColor = Color.black, bindTextureMS = msaa, enableMSAA = msaa, enableRandomWrite = !msaa, name = msaa ? "NormalBufferMSAA" : "NormalBuffer"
 #if UNITY_2020_2_OR_NEWER
                 , fastMemoryDesc = fastMemDesc
 #endif
@@ -249,10 +250,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 bool mip1FromDownsampleForLowResTrans = SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation4 ||
                     SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation5 ||
                     SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
-                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12 ||
-                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.GameCoreXboxOne ||
-                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.GameCoreXboxSeries;
-
+                    SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12;
                 mip1FromDownsampleForLowResTrans = mip1FromDownsampleForLowResTrans && hdCamera.frameSettings.IsEnabled(FrameSettingsField.LowResTransparent);
 
                 DownsampleDepthForLowResTransparency(renderGraph, hdCamera, mip1FromDownsampleForLowResTrans, ref result);
@@ -315,7 +313,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 decalBuffer = renderGraph.defaultResources.blackTextureXR;
                 output.depthAsColor = renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
                     { colorFormat = GraphicsFormat.R32_SFloat, clearBuffer = true, clearColor = Color.black, bindTextureMS = true, enableMSAA = true, name = "DepthAsColorMSAA" });
-                output.normalBuffer = CreateNormalBuffer(renderGraph, hdCamera, msaa);
+                output.normalBuffer = CreateNormalBuffer(renderGraph, msaa);
                 return false;
             }
 
@@ -327,7 +325,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.hasDepthDeferredPass = depthPrepassParameters.hasDepthDeferredPass;
 
                 passData.depthBuffer = builder.UseDepthBuffer(output.depthBuffer, DepthAccess.ReadWrite);
-                passData.normalBuffer = builder.WriteTexture(CreateNormalBuffer(renderGraph, hdCamera, msaa));
+                passData.normalBuffer = builder.WriteTexture(CreateNormalBuffer(renderGraph, msaa));
                 if (decalLayersEnabled)
                     passData.decalBuffer = builder.WriteTexture(CreateDecalPrepassBuffer(renderGraph, msaa));
                 // This texture must be used because reading directly from an MSAA Depth buffer is way to expensive.
@@ -475,7 +473,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         void SetupGBufferTargets(RenderGraph renderGraph, HDCamera hdCamera, GBufferPassData passData, TextureHandle sssBuffer, TextureHandle vtFeedbackBuffer, ref PrepassOutput prepassOutput, FrameSettings frameSettings, RenderGraphBuilder builder)
         {
-            bool clearGBuffer = NeedClearGBuffer(hdCamera);
+            bool clearGBuffer = NeedClearGBuffer();
             bool lightLayers = frameSettings.IsEnabled(FrameSettingsField.LightLayers);
             bool shadowMasks = frameSettings.IsEnabled(FrameSettingsField.Shadowmask);
 
@@ -540,15 +538,6 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             for (int i = 0; i < dBufferOutput.dBufferCount; ++i)
                 ctx.cmd.SetGlobalTexture(HDShaderIDs._DBufferTexture[i], dBufferOutput.mrt[i]);
-        }
-
-        static GBufferOutput ReadGBuffer(GBufferOutput gBufferOutput, RenderGraphBuilder builder)
-        {
-            // We do the reads "in place" because we don't want to allocate a struct with dynamic arrays each time we do that and we want to keep loops for code sanity.
-            for (int i = 0; i < gBufferOutput.gBufferCount; ++i)
-                gBufferOutput.mrt[i] = builder.ReadTexture(gBufferOutput.mrt[i]);
-
-            return gBufferOutput;
         }
 
         // RenderGBuffer do the gbuffer pass. This is only called with deferred. If we use a depth prepass, then the depth prepass will perform the alpha testing for opaque alpha tested and we don't need to do it anymore
@@ -620,7 +609,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 passData.depthBuffer = builder.UseDepthBuffer(CreateDepthBuffer(renderGraph, true, false), DepthAccess.Write);
                 passData.depthValuesBuffer = builder.UseColorBuffer(depthValuesBuffer, 0);
-                passData.normalBuffer = builder.UseColorBuffer(CreateNormalBuffer(renderGraph, hdCamera, false), 1);
+                passData.normalBuffer = builder.UseColorBuffer(CreateNormalBuffer(renderGraph, false), 1);
                 if (passData.needMotionVectors)
                     passData.motionVectorsBuffer = builder.UseColorBuffer(CreateMotionVectorBuffer(renderGraph, false, false), 2);
                 else
@@ -817,9 +806,7 @@ namespace UnityEngine.Rendering.HighDefinition
             bool canReadBoundDepthBuffer = SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation4 ||
                 SystemInfo.graphicsDeviceType == GraphicsDeviceType.PlayStation5 ||
                 SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOne ||
-                SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12 ||
-                SystemInfo.graphicsDeviceType == GraphicsDeviceType.GameCoreXboxOne ||
-                SystemInfo.graphicsDeviceType == GraphicsDeviceType.GameCoreXboxSeries;
+                SystemInfo.graphicsDeviceType == GraphicsDeviceType.XboxOneD3D12;
 
             if (!canReadBoundDepthBuffer)
             {

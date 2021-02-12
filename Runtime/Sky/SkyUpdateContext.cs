@@ -8,10 +8,11 @@ namespace UnityEngine.Rendering.HighDefinition
         public SkyRenderer  skyRenderer { get; private set; }
         public int          cachedSkyRenderingContextId = -1;
 
+        CloudSettings           m_CloudSettings;
+        public CloudRenderer    cloudRenderer { get; private set; }
+
         public int          skyParametersHash = -1;
         public float        currentUpdateTime = 0.0f;
-
-        public bool settingsHadBigDifferenceWithPrev { get; private set; }
 
         public SkySettings skySettings
         {
@@ -26,11 +27,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     skyRenderer.Cleanup();
                     skyRenderer = null;
                 }
-
-                if (m_SkySettings == null)
-                    settingsHadBigDifferenceWithPrev = true;
-                else
-                    settingsHadBigDifferenceWithPrev = m_SkySettings.SignificantlyDivergesFrom(value);
 
                 if (m_SkySettings == value)
                     return;
@@ -48,12 +44,39 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
+        public CloudSettings cloudSettings
+        {
+            get { return m_CloudSettings; }
+            set
+            {
+                if (cloudRenderer != null && (value == null || value.GetCloudRendererType() != cloudRenderer.GetType()))
+                {
+                    cloudRenderer.Cleanup();
+                    cloudRenderer = null;
+                }
+
+                if (m_CloudSettings == value)
+                    return;
+
+                skyParametersHash = -1;
+                m_CloudSettings = value;
+
+                if (m_CloudSettings != null && cloudRenderer == null)
+                {
+                    var rendererType = m_CloudSettings.GetCloudRendererType();
+                    cloudRenderer = (CloudRenderer)Activator.CreateInstance(rendererType);
+                    cloudRenderer.Build();
+                }
+            }
+        }
+
         public void Cleanup()
         {
             if (skyRenderer != null)
-            {
                 skyRenderer.Cleanup();
-            }
+
+            if (cloudRenderer != null)
+                cloudRenderer.Cleanup();
 
             HDRenderPipeline hdrp = HDRenderPipeline.currentPipeline;
             if (hdrp != null)
@@ -64,6 +87,11 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             // We need to check m_SkySettings because it can be "nulled" when destroying the volume containing the settings (as it's a ScriptableObject) without the context knowing about it.
             return m_SkySettings != null;
+        }
+
+        public bool HasClouds()
+        {
+            return m_CloudSettings != null;
         }
     }
 }

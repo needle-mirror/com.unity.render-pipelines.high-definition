@@ -96,11 +96,11 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             {
                 var includes = new IncludeCollection();
 
-                includes.Add(CoreIncludes.kPickingSpaceTransforms, IncludeLocation.Pregraph);
                 includes.Add(CoreIncludes.CorePregraph);
                 includes.Add(CoreIncludes.kPassPlaceholder, IncludeLocation.Pregraph);
                 includes.Add(CoreIncludes.CoreUtility);
                 includes.Add(CoreIncludes.kShaderGraphFunctions, IncludeLocation.Pregraph);
+                includes.Add(CoreIncludes.kPickingSpaceTransforms, IncludeLocation.Pregraph);
                 includes.Add(CoreIncludes.kPassDepthOnly, IncludeLocation.Postgraph);
 
                 return includes;
@@ -860,7 +860,6 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 referenceName = "SHADERPASS_RAYTRACING_INDIRECT",
                 lightMode = "IndirectDXR",
                 useInPreview = false,
-                requiredFields = supportLighting ? CoreRequiredFields.LitMinimal : null,
 
                 // Collections
                 pragmas = CorePragmas.RaytracingBasic,
@@ -973,7 +972,6 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 referenceName = "SHADERPASS_RAYTRACING_FORWARD",
                 lightMode = "ForwardDXR",
                 useInPreview = false,
-                requiredFields = supportLighting ? CoreRequiredFields.LitMinimal : null,
 
                 // Port Mask
                 // validVertexBlocks = CoreBlockMasks.Vertex,
@@ -1039,7 +1037,6 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 referenceName = "SHADERPASS_RAYTRACING_GBUFFER",
                 lightMode = "GBufferDXR",
                 useInPreview = false,
-                requiredFields = supportLighting ? CoreRequiredFields.LitMinimal : null,
 
                 // Port Mask
                 // validVertexBlocks = CoreBlockMasks.Vertex,
@@ -1153,7 +1150,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 
         #region Raytracing Subsurface
 
-        public static PassDescriptor GenerateRaytracingSubsurface(bool supportLighting)
+        public static PassDescriptor GenerateRaytracingSubsurface()
         {
             return new PassDescriptor
             {
@@ -1162,7 +1159,6 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 referenceName = "SHADERPASS_RAYTRACING_SUB_SURFACE",
                 lightMode = "SubSurfaceDXR",
                 useInPreview = false,
-                requiredFields = supportLighting ? CoreRequiredFields.LitMinimal : null,
 
                 // Template
                 // passTemplatePath = passTemplatePath,

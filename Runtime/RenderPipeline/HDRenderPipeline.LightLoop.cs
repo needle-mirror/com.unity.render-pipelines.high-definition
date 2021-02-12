@@ -227,6 +227,7 @@ namespace UnityEngine.Rendering.HighDefinition
         class PushGlobalCameraParamPassData
         {
             public HDCamera                 hdCamera;
+            public int                      frameCount;
             public ShaderVariablesGlobal    globalCB;
             public ShaderVariablesXR        xrCB;
         }
@@ -236,13 +237,14 @@ namespace UnityEngine.Rendering.HighDefinition
             using (var builder = renderGraph.AddRenderPass<PushGlobalCameraParamPassData>("Push Global Camera Parameters", out var passData))
             {
                 passData.hdCamera = hdCamera;
+                passData.frameCount = m_FrameCount;
                 passData.globalCB = m_ShaderVariablesGlobalCB;
                 passData.xrCB = m_ShaderVariablesXRCB;
 
                 builder.SetRenderFunc(
                     (PushGlobalCameraParamPassData data, RenderGraphContext context) =>
                     {
-                        data.hdCamera.UpdateShaderVariablesGlobalCB(ref data.globalCB);
+                        data.hdCamera.UpdateShaderVariablesGlobalCB(ref data.globalCB, data.frameCount);
                         ConstantBuffer.PushGlobal(context.cmd, data.globalCB, HDShaderIDs._ShaderVariablesGlobal);
                         data.hdCamera.UpdateShaderVariablesXRCB(ref data.xrCB);
                         ConstantBuffer.PushGlobal(context.cmd, data.xrCB, HDShaderIDs._ShaderVariablesXR);
@@ -440,7 +442,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 result = RenderRayTracedReflections(renderGraph, hdCamera,
                     prepassOutput.depthBuffer, prepassOutput.stencilBuffer, prepassOutput.normalBuffer, prepassOutput.resolvedMotionVectorsBuffer, clearCoatMask, skyTexture, rayCountTexture,
-                    m_ShaderVariablesRayTracingCB, transparent);
+                    m_FrameCount, m_ShaderVariablesRayTracingCB, transparent);
             }
             else
             {
@@ -742,10 +744,8 @@ namespace UnityEngine.Rendering.HighDefinition
                                 FilterVolumetricLighting(data.parameters, data.lightingBuffer, ctx.cmd);
                         });
 
-                    if (parameters.enableReprojection && hdCamera.volumetricValidFrames > 1)
+                    if (parameters.enableReprojection)
                         hdCamera.volumetricHistoryIsValid = true; // For the next frame..
-                    else
-                        hdCamera.volumetricValidFrames++;
 
                     return passData.lightingBuffer;
                 }

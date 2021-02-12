@@ -91,13 +91,13 @@ The StackLit Shader improves on the Lit Shader in favor of quality over performa
 
 ![](Images/HDRPFeatures-HairShader.png)
 
-The Hair Shader is purpose-built to accurately render realistic hair in your Unity Project. It uses an improved Kajiya Kay lighting model which features better energy conservation and provides you with more flexibility. For more information, including a full list of Shader properties, see the [Hair Shader](hair-shader.md) and [Hair Master Stack](master-stack-hair.md) documentation.
+The Hair Shader is purpose-built to accurately render realistic hair in your Unity Project. It uses an improved Kajiya Kay lighting model which features better energy conservation and provides you with more flexibility. For more information, including a full list of Shader properties, see the [Hair Shader documentation](Master-Node-Hair.md).
 
 ### Fabric Shader
 
 ![](Images/HDRPFeatures-FabricShader.png)
 
-The Fabric Shader allows you to render realistic fabric Materials in HDRP. You can use the cotton wool or silk lighting model to create a wide variety of fabrics. For more information, including a full list of Shader properties, see the [Cotton/Wool Shader](cotton-wool-shader.md), [Silk Shader](silk-shader.md), and [Fabric Master Stack](master-stack-fabric.md) documentation.
+The Fabric Shader allows you to render realistic fabric Materials in HDRP. You can use the cotton wool or silk lighting model to create a wide variety of fabrics. For more information, including a full list of Shader properties, see the [Fabric Shader documentation](Master-Node-Fabric.md).
 
 ### AxF Shader
 
@@ -247,6 +247,14 @@ In HDRP, you set up the sky inside a [Volume](Volumes.md), so you can change sky
 - [Procedural Sky](Override-Procedural-Sky.md): Produces an environment based on the values you choose within the Procedural Sky Volume component. This is similar to Unity’s [built-in render pipeline procedural sky](https://docs.unity3d.com/Manual/class-Skybox). This sky type has been deprecated, but you can still use it in your HDRP Project. For information on how, see [Upgrading to 2019.3](Upgrading-from-2019.2-to-2019.3.md).
 
 HDRP is able to handle multiple skies seen by different Cameras.
+
+### Clouds
+
+![](Images/HDRPFeatures-CloudLayer.png)
+
+In HDRP, you set up clouds inside a [Volume](Volumes.md), so you can change clouds settings, or even the type of clouds itself, depending on the position of the Camera in the Scene. HDRP allows you to separate the clouds in the visual sky from the clouds that you use for environment lighting. HDRP includes the following built-in cloud type for you to use in your Unity Project:
+
+- [Cloud Layer](Override-Cloud-Layer.md): Renders a cloud texture with options to simulate clouds self-shadows and projected shadows on the ground.
 
 ### Fog
 

@@ -204,7 +204,8 @@ namespace UnityEngine.Rendering.HighDefinition
             var lightingDebug = debugParameters.debugDisplaySettings.data.lightingDebugSettings;
             if (lightingDebug.tileClusterDebug == TileClusterDebug.None
                 && !lightingDebug.displayCookieAtlas
-                && !lightingDebug.displayPlanarReflectionProbeAtlas)
+                && !lightingDebug.displayPlanarReflectionProbeAtlas
+                && !lightingDebug.displayDensityVolumeAtlas)
                 return;
 
             using (var builder = renderGraph.AddRenderPass<DebugLightLoopOverlayPassData>("RenderLightLoopDebugOverlay", out var passData))
@@ -226,25 +227,6 @@ namespace UnityEngine.Rendering.HighDefinition
                     (DebugLightLoopOverlayPassData data, RenderGraphContext ctx) =>
                     {
                         RenderLightLoopDebugOverlay(data.debugParameters, ctx.cmd, data.tileList, data.lightList, data.perVoxelLightList, data.dispatchIndirect, data.depthPyramidTexture);
-                    });
-            }
-        }
-
-        void RenderProbeVolumeDebugOverlay(RenderGraph renderGraph, in DebugParameters debugParameters, TextureHandle colorBuffer, TextureHandle depthBuffer)
-        {
-            if (!m_SupportProbeVolume || debugParameters.debugDisplaySettings.data.lightingDebugSettings.probeVolumeDebugMode == ProbeVolumeDebugMode.None)
-                return;
-
-            using (var builder = renderGraph.AddRenderPass<DebugLightLoopOverlayPassData>("RenderProbeVolumeDebugOverlay", out var passData))
-            {
-                passData.debugParameters = debugParameters;
-                passData.colorBuffer = builder.UseColorBuffer(colorBuffer, 0);
-                passData.depthBuffer = builder.UseDepthBuffer(depthBuffer, DepthAccess.ReadWrite);
-
-                builder.SetRenderFunc(
-                    (DebugLightLoopOverlayPassData data, RenderGraphContext ctx) =>
-                    {
-                        RenderProbeVolumeDebugOverlay(data.debugParameters, ctx.cmd);
                     });
             }
         }
@@ -316,7 +298,6 @@ namespace UnityEngine.Rendering.HighDefinition
             RenderSkyReflectionOverlay(renderGraph, debugParameters, colorBuffer, depthBuffer);
             RenderRayCountOverlay(renderGraph, debugParameters, colorBuffer, depthBuffer, rayCountTexture);
             RenderLightLoopDebugOverlay(renderGraph, debugParameters, colorBuffer, depthBuffer, lightLists, depthPyramidTexture);
-            RenderProbeVolumeDebugOverlay(renderGraph, debugParameters, colorBuffer, depthBuffer);
             RenderShadowsDebugOverlay(renderGraph, debugParameters, colorBuffer, depthBuffer, shadowResult);
             RenderDecalOverlay(renderGraph, debugParameters, colorBuffer, depthBuffer);
         }
@@ -495,17 +476,12 @@ namespace UnityEngine.Rendering.HighDefinition
             public Material debugGBufferMaterial;
             public FrameSettings frameSettings;
 
-            public bool decalsEnabled;
-            public ComputeBufferHandle perVoxelOffset;
-            public DBufferOutput dbuffer;
-            public GBufferOutput gbuffer;
-
             public Texture clearColorTexture;
             public RenderTexture clearDepthTexture;
             public bool clearDepth;
         }
 
-        TextureHandle RenderDebugViewMaterial(RenderGraph renderGraph, CullingResults cull, HDCamera hdCamera, BuildGPULightListOutput lightLists, DBufferOutput dbuffer, GBufferOutput gbuffer)
+        TextureHandle RenderDebugViewMaterial(RenderGraph renderGraph, CullingResults cull, HDCamera hdCamera)
         {
             bool msaa = hdCamera.frameSettings.IsEnabled(FrameSettingsField.MSAA);
 
@@ -527,17 +503,10 @@ namespace UnityEngine.Rendering.HighDefinition
                 {
                     passData.debugGBufferMaterial = m_currentDebugViewMaterialGBuffer;
                     passData.outputColor = builder.WriteTexture(output);
-                    passData.gbuffer = ReadGBuffer(gbuffer, builder);
 
                     builder.SetRenderFunc(
                         (DebugViewMaterialData data, RenderGraphContext context) =>
                         {
-                            var gbufferHandles = data.gbuffer;
-                            for (int i = 0; i < gbufferHandles.gBufferCount; ++i)
-                            {
-                                data.debugGBufferMaterial.SetTexture(HDShaderIDs._GBufferTexture[i], gbufferHandles.mrt[i]);
-                            }
-
                             HDUtils.DrawFullScreen(context.cmd, data.debugGBufferMaterial, data.outputColor);
                         });
                 }
@@ -561,10 +530,6 @@ namespace UnityEngine.Rendering.HighDefinition
                             rendererConfiguration: m_CurrentRendererConfigurationBakedLighting,
                             stateBlock: m_DepthStateOpaque)));
 
-                    passData.decalsEnabled = (hdCamera.frameSettings.IsEnabled(FrameSettingsField.Decals)) && (DecalSystem.m_DecalDatasCount > 0);
-                    passData.perVoxelOffset = builder.ReadComputeBuffer(lightLists.perVoxelOffset);
-                    passData.dbuffer = ReadDBuffer(dbuffer, builder);
-
                     passData.clearColorTexture = Compositor.CompositionManager.GetClearTextureForStackedCamera(hdCamera);   // returns null if is not a stacked camera
                     passData.clearDepthTexture = Compositor.CompositionManager.GetClearDepthForStackedCamera(hdCamera);     // returns null if is not a stacked camera
                     passData.clearDepth = hdCamera.clearDepth;
@@ -579,14 +544,7 @@ namespace UnityEngine.Rendering.HighDefinition
                             {
                                 HDUtils.BlitColorAndDepth(context.cmd, data.clearColorTexture, data.clearDepthTexture, new Vector4(1, 1, 0, 0), 0, !data.clearDepth);
                             }
-
-                            BindDBufferGlobalData(data.dbuffer, context);
                             DrawOpaqueRendererList(context, data.frameSettings, data.opaqueRendererList);
-
-                            if (data.decalsEnabled)
-                                DecalSystem.instance.SetAtlas(context.cmd); // for clustered decals
-                            if (data.perVoxelOffset.IsValid())
-                                context.cmd.SetGlobalBuffer(HDShaderIDs.g_vLayeredOffsetsBuffer, data.perVoxelOffset);
                             DrawTransparentRendererList(context, data.frameSettings, data.transparentRendererList);
                         });
                 }

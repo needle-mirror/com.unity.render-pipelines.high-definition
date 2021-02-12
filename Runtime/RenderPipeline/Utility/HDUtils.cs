@@ -140,49 +140,35 @@ namespace UnityEngine.Rendering.HighDefinition
         internal static float ProjectionMatrixAspect(in Matrix4x4 matrix)
             => - matrix.m11 / matrix.m00;
 
-        internal static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(float verticalFoV, Vector2 lensShift, Vector4 screenSize, Matrix4x4 worldToViewMatrix, bool renderToCubemap, float aspectRatio = -1, bool isOrthographic = false)
+        internal static Matrix4x4 ComputePixelCoordToWorldSpaceViewDirectionMatrix(float verticalFoV, Vector2 lensShift, Vector4 screenSize, Matrix4x4 worldToViewMatrix, bool renderToCubemap, float aspectRatio = -1)
         {
-            Matrix4x4 viewSpaceRasterTransform;
+            aspectRatio = aspectRatio < 0 ? screenSize.x * screenSize.w : aspectRatio;
 
-            if (isOrthographic)
+            // Compose the view space version first.
+            // V = -(X, Y, Z), s.t. Z = 1,
+            // X = (2x / resX - 1) * tan(vFoV / 2) * ar = x * [(2 / resX) * tan(vFoV / 2) * ar] + [-tan(vFoV / 2) * ar] = x * [-m00] + [-m20]
+            // Y = (2y / resY - 1) * tan(vFoV / 2)      = y * [(2 / resY) * tan(vFoV / 2)]      + [-tan(vFoV / 2)]      = y * [-m11] + [-m21]
+
+            float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
+
+            // Compose the matrix.
+            float m21 = (1.0f - 2.0f * lensShift.y) * tanHalfVertFoV;
+            float m11 = -2.0f * screenSize.w * tanHalfVertFoV;
+
+            float m20 = (1.0f - 2.0f * lensShift.x) * tanHalfVertFoV * aspectRatio;
+            float m00 = -2.0f * screenSize.z * tanHalfVertFoV * aspectRatio;
+
+            if (renderToCubemap)
             {
-                // For ortho cameras, project the skybox with no perspective
-                // the same way as builtin does (case 1264647)
-                viewSpaceRasterTransform = new Matrix4x4(
-                    new Vector4(-2.0f * screenSize.z, 0.0f, 0.0f, 0.0f),
-                    new Vector4(0.0f, -2.0f * screenSize.w, 0.0f, 0.0f),
-                    new Vector4(1.0f, 1.0f, -1.0f, 0.0f),
-                    new Vector4(0.0f, 0.0f, 0.0f, 0.0f));
+                // Flip Y.
+                m11 = -m11;
+                m21 = -m21;
             }
-            else
-            {
-                // Compose the view space version first.
-                // V = -(X, Y, Z), s.t. Z = 1,
-                // X = (2x / resX - 1) * tan(vFoV / 2) * ar = x * [(2 / resX) * tan(vFoV / 2) * ar] + [-tan(vFoV / 2) * ar] = x * [-m00] + [-m20]
-                // Y = (2y / resY - 1) * tan(vFoV / 2)      = y * [(2 / resY) * tan(vFoV / 2)]      + [-tan(vFoV / 2)]      = y * [-m11] + [-m21]
 
-                aspectRatio = aspectRatio < 0 ? screenSize.x * screenSize.w : aspectRatio;
-                float tanHalfVertFoV = Mathf.Tan(0.5f * verticalFoV);
-
-                // Compose the matrix.
-                float m21 = (1.0f - 2.0f * lensShift.y) * tanHalfVertFoV;
-                float m11 = -2.0f * screenSize.w * tanHalfVertFoV;
-
-                float m20 = (1.0f - 2.0f * lensShift.x) * tanHalfVertFoV * aspectRatio;
-                float m00 = -2.0f * screenSize.z * tanHalfVertFoV * aspectRatio;
-
-                if (renderToCubemap)
-                {
-                    // Flip Y.
-                    m11 = -m11;
-                    m21 = -m21;
-                }
-
-                viewSpaceRasterTransform = new Matrix4x4(new Vector4(m00, 0.0f, 0.0f, 0.0f),
-                    new Vector4(0.0f, m11, 0.0f, 0.0f),
-                    new Vector4(m20, m21, -1.0f, 0.0f),
-                    new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-            }
+            var viewSpaceRasterTransform = new Matrix4x4(new Vector4(m00, 0.0f, 0.0f, 0.0f),
+                new Vector4(0.0f, m11, 0.0f, 0.0f),
+                new Vector4(m20, m21, -1.0f, 0.0f),
+                new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 
             // Remove the translation component.
             var homogeneousZero = new Vector4(0, 0, 0, 1);
@@ -608,7 +594,6 @@ namespace UnityEngine.Rendering.HighDefinition
         internal struct PackedMipChainInfo
         {
             public Vector2Int textureSize;
-            public Vector2Int hardwareTextureSize;
             public int mipLevelCount;
             public Vector2Int[] mipLevelSizes;
             public Vector2Int[] mipLevelOffsets;
@@ -631,15 +616,12 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (viewportSize == mipLevelSizes[0])
                     return;
 
-                bool isHardwareDrsOn = DynamicResolutionHandler.instance.HardwareDynamicResIsEnabled();
-                hardwareTextureSize = isHardwareDrsOn ? DynamicResolutionHandler.instance.ApplyScalesOnSize(viewportSize) : viewportSize;
-                Vector2 textureScale = isHardwareDrsOn ? new Vector2((float)viewportSize.x / (float)hardwareTextureSize.x, (float)viewportSize.y / (float)hardwareTextureSize.y) : new Vector2(1.0f, 1.0f);
-
-                mipLevelSizes[0] = hardwareTextureSize;
+                textureSize = viewportSize;
+                mipLevelSizes[0] = viewportSize;
                 mipLevelOffsets[0] = Vector2Int.zero;
 
                 int mipLevel = 0;
-                Vector2Int mipSize = hardwareTextureSize;
+                Vector2Int mipSize = viewportSize;
 
                 do
                 {
@@ -669,12 +651,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
                     mipLevelOffsets[mipLevel] = mipBegin;
 
-                    hardwareTextureSize.x = Math.Max(hardwareTextureSize.x, mipBegin.x + mipSize.x);
-                    hardwareTextureSize.y = Math.Max(hardwareTextureSize.y, mipBegin.y + mipSize.y);
+                    textureSize.x = Math.Max(textureSize.x, mipBegin.x + mipSize.x);
+                    textureSize.y = Math.Max(textureSize.y, mipBegin.y + mipSize.y);
                 }
                 while ((mipSize.x > 1) || (mipSize.y > 1));
-
-                textureSize = new Vector2Int((int)((float)hardwareTextureSize.x * textureScale.x), (int)((float)hardwareTextureSize.y * textureScale.y));
 
                 mipLevelCount = mipLevel + 1;
                 m_OffsetBufferWillNeedUpdate = true;
@@ -738,8 +718,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 graphicDevice == GraphicsDeviceType.PlayStation5 ||
                 graphicDevice == GraphicsDeviceType.XboxOne ||
                 graphicDevice == GraphicsDeviceType.XboxOneD3D12 ||
-                graphicDevice == GraphicsDeviceType.GameCoreXboxOne ||
-                graphicDevice == GraphicsDeviceType.GameCoreXboxSeries ||
                 graphicDevice == GraphicsDeviceType.Metal ||
                 graphicDevice == GraphicsDeviceType.Vulkan
                 // Switch isn't supported currently (19.3)
@@ -757,8 +735,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 buildTarget == UnityEditor.BuildTarget.StandaloneOSX ||
                 buildTarget == UnityEditor.BuildTarget.WSAPlayer ||
                 buildTarget == UnityEditor.BuildTarget.XboxOne ||
-                buildTarget == UnityEditor.BuildTarget.GameCoreXboxOne ||
-                buildTarget == UnityEditor.BuildTarget.GameCoreXboxSeries  ||
                 buildTarget == UnityEditor.BuildTarget.PS4 ||
                 buildTarget == UnityEditor.BuildTarget.PS5 ||
                 // buildTarget == UnityEditor.BuildTarget.iOS || // IOS isn't supported

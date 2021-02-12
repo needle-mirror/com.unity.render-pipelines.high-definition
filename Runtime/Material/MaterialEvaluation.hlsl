@@ -124,7 +124,7 @@ void ApplyAmbientOcclusionFactor(AmbientOcclusionFactor aoFactor, inout BuiltinD
     lighting.direct.specular *= aoFactor.directSpecularOcclusion;
 }
 
-#if defined(DEBUG_DISPLAY) && defined(HAS_LIGHTLOOP) && !defined(_ENABLE_SHADOW_MATTE)
+#if defined(DEBUG_DISPLAY) && defined(HAS_LIGHTLOOP)
 // mipmapColor is color use to store texture streaming information in XXXData.hlsl (look for DEBUGMIPMAPMODE_NONE)
 void PostEvaluateBSDFDebugDisplay(  AmbientOcclusionFactor aoFactor, BuiltinData builtinData, AggregateLighting lighting, float3 mipmapColor,
                                     inout LightLoopOutput lightLoopOutput)
@@ -187,17 +187,6 @@ void PostEvaluateBSDFDebugDisplay(  AmbientOcclusionFactor aoFactor, BuiltinData
     {
         lightLoopOutput.diffuseLighting = mipmapColor;
         lightLoopOutput.specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
-    }
-    else if (_DebugProbeVolumeMode != PROBEVOLUMEDEBUGMODE_NONE)
-    {
-        switch (_DebugProbeVolumeMode)
-        {
-        case PROBEVOLUMEDEBUGMODE_VISUALIZE_DEBUG_COLORS:
-        case PROBEVOLUMEDEBUGMODE_VISUALIZE_VALIDITY:
-            lightLoopOutput.diffuseLighting = builtinData.bakeDiffuseLighting;
-            lightLoopOutput.specularLighting = float3(0.0, 0.0, 0.0);
-            break;
-        }
     }
 }
 #endif

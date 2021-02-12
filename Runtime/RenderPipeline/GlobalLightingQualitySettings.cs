@@ -219,6 +219,8 @@ namespace UnityEngine.Rendering.HighDefinition
         public float[] RTGIDenoiserRadius = new float[s_QualitySettingCount];
         /// <summary>Flag that enables the second denoising pass.</summary>
         public bool[] RTGISecondDenoise = new bool[s_QualitySettingCount];
+        /// <summary>Flag that defines the radius of the second denoiser.</summary>
+        public float[] RTGISecondDenoiserRadius = new float[s_QualitySettingCount];
 
         // Ray Traced Reflections
         /// <summary>Controls the minimal smoothness.</summary>

@@ -109,6 +109,7 @@ Shader "Hidden/HDRP/DebugLightCluster"
 
             struct AttributesDefault
             {
+                float3 positionOS : POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -179,6 +180,7 @@ Shader "Hidden/HDRP/DebugLightCluster"
 
             struct AttributesDefault
             {
+                float3 positionOS : POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 

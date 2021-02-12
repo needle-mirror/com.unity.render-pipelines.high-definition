@@ -61,14 +61,9 @@ namespace UnityEditor.Rendering.HighDefinition
                     uiBlock.UpdateMaterialProperties(properties);
                     uiBlock.OnGUI();
                 }
-                // Never catch ExitGUIException as they are used to handle color picker and object pickers.
-                catch (ExitGUIException)
-                {
-                    throw;
-                }
                 catch (Exception e)
                 {
-                    Debug.LogException(e);
+                    Debug.LogError(e);
                 }
             }
         }

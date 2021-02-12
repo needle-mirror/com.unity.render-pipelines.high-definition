@@ -82,9 +82,7 @@ Shader "Hidden/HDRP/CameraMotionVectors"
                 ReadMask [_StencilMask]
                 Ref [_StencilRef]
                 Comp NotEqual
-                // This line is intentionally commented, we keep the objectmotionvector information
-                // as it is used to do history rejection for numerous temporal accumulation based effects.
-                // Fail Zero   // We won't need the bit anymore.
+                Fail Zero   // We won't need the bit anymore.
             }
 
             Cull Off ZWrite Off

@@ -224,23 +224,23 @@ float GetDistantLightWeight(LightList list)
     return list.distantWeight / list.distantCount;
 }
 
-bool PickLocalLights(LightList list, inout float theSample)
+bool PickLocalLights(LightList list, inout float sample)
 {
-    if (theSample < list.localWeight)
+    if (sample < list.localWeight)
     {
         // We pick local lighting
-        theSample /= list.localWeight;
+        sample /= list.localWeight;
         return true;
     }
 
     // Otherwise, distant lighting
-    theSample = (theSample - list.localWeight) / list.distantWeight;
+    sample = (sample - list.localWeight) / list.distantWeight;
     return false;
  }
 
-bool PickDistantLights(LightList list, inout float theSample)
+bool PickDistantLights(LightList list, inout float sample)
 {
-    return !PickLocalLights(list, theSample);
+    return !PickLocalLights(list, sample);
 }
 
 float3 GetPunctualEmission(LightData lightData, float3 outgoingDir, float dist)

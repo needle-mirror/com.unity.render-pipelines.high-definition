@@ -54,7 +54,7 @@ namespace UnityEditor.Rendering.HighDefinition
             // Serialized object is lossing references after an undo
             if (m_SerializedHDLight.serializedObject.targetObject != null)
             {
-                m_SerializedHDLight.serializedObject.Update();
+                m_SerializedHDLight.serializedObject.ApplyModifiedProperties();
                 foreach (var hdLightData in m_AdditionalLightDatas)
                     if (hdLightData != null)
                         hdLightData.UpdateAreaLightEmissiveMesh();

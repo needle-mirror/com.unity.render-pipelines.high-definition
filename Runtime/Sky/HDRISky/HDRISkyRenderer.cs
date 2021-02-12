@@ -93,10 +93,6 @@ namespace UnityEngine.Rendering.HighDefinition
         public override void PreRenderSky(BuiltinSkyParameters builtinParams)
         {
             var hdriSky = builtinParams.skySettings as HDRISky;
-            if (hdriSky.enableBackplate.value == false)
-            {
-                return;
-            }
 
             float intensity, phi, backplatePhi;
             GetParameters(out intensity, out phi, out backplatePhi, builtinParams, hdriSky);
@@ -146,15 +142,20 @@ namespace UnityEngine.Rendering.HighDefinition
                 else
                     m_SkyHDRIMaterial.DisableKeyword("USE_FLOWMAP");
 
-                var hdCamera = builtinParams.hdCamera;
                 float rot = -Mathf.Deg2Rad * hdriSky.scrollDirection.value;
                 bool upperHemisphereOnly = hdriSky.upperHemisphereOnly.value || hdriSky.procedural.value;
                 Vector4 flowmapParam = new Vector4(upperHemisphereOnly ? 1.0f : 0.0f, scrollFactor, Mathf.Cos(rot), Mathf.Sin(rot));
 
                 m_SkyHDRIMaterial.SetVector(HDShaderIDs._FlowmapParam, flowmapParam);
 
-                scrollFactor += hdCamera.animateMaterials ? hdriSky.scrollSpeed.value * (hdCamera.time - lastTime) * 0.01f : 0.0f;
-                lastTime = hdCamera.time;
+#if UNITY_EDITOR
+                // Time.time is not always updated in editor
+                float time = (float)EditorApplication.timeSinceStartup;
+#else
+                float time = Time.time;
+#endif
+                scrollFactor += hdriSky.scrollSpeed.value * (time - lastTime) * 0.01f;
+                lastTime = time;
             }
             else
                 m_SkyHDRIMaterial.DisableKeyword("SKY_MOTION");
