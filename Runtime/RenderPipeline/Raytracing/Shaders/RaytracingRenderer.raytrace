@@ -19,7 +19,7 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/ShaderVariablesRaytracing.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingIntersection.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingSampling.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/RayTracing/Shaders/Common/AtmosphericScatteringRayTracing.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/Common/AtmosphericScatteringRayTracing.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Debug/RayCountManager.cs.hlsl"
 
 // The target acceleration structure that we will evaluate the reflexion in
@@ -62,7 +62,7 @@ void RayGenRenderer()
     PositionInputs posInput = GetPositionInput(currentPixelCoord, _ScreenSize.zw, depthValue, UNITY_MATRIX_I_VP, GetWorldToViewMatrix(), 0);
 	float3 originWS = GetPrimaryCameraPosition();
 	float3 incidentWS = normalize(posInput.positionWS - originWS);
-	
+
 	// Create the ray descriptor for this pixel
 	RayDesc rayDescriptor;
 	rayDescriptor.Origin = originWS;
@@ -83,7 +83,7 @@ void RayGenRenderer()
 	// In order to achieve filtering for the textures, we need to compute the spread angle of the pixel
 	rayIntersection.cone.spreadAngle = _RaytracingPixelSpreadAngle;
 	rayIntersection.cone.width = 0.0f;
-	
+
 	// Evaluate the ray intersection
 	TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, RAYTRACINGRENDERERFLAG_RECURSIVE_RENDERING, 0, 1, 0, rayDescriptor, rayIntersection);
 
@@ -94,14 +94,14 @@ void RayGenRenderer()
         _RayCountTexture[counterIdx] = _RayCountTexture[counterIdx] + rayIntersection.rayCount;
     }
 
-	// Alright we are done :D 
+	// Alright we are done :D
 	_RaytracingPrimaryDebug[COORD_TEXTURE2D_X(currentPixelCoord)] = float4(rayIntersection.color * GetCurrentExposureMultiplier(), 1.0);
     _CameraColorTextureRW[COORD_TEXTURE2D_X(currentPixelCoord)] = float4(rayIntersection.color * GetCurrentExposureMultiplier(), 1.0);
 }
 
 [shader("closesthit")]
 void ClosestHitMain(inout RayIntersection rayIntersection : SV_RayPayload, AttributeData attributeData : SV_IntersectionAttributes)
-{   
+{
 	// When we do not hit any known closest hit, that means that no shader was specified for the target object meaning either it has nothing to do in the acceleration structure or we need to add raytracing subshaders to it
 	rayIntersection.color = float3(1.0, 0.0, 0.5);
 }
