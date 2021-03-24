@@ -11,19 +11,19 @@ namespace UnityEngine.Rendering.HighDefinition
             Ready
         }
 
-        int m_ProbeSize;
-        int m_CacheSize;
-        IBLFilterBSDF[] m_IBLFilterBSDF;
-        TextureCacheCubemap m_TextureCache;
-        RenderTexture m_TempRenderTexture;
-        RenderTexture[] m_ConvolutionTargetTextureArray;
-        ProbeFilteringState[] m_ProbeBakingState;
-        Material m_ConvertTextureMaterial;
-        Material m_CubeToPano;
-        MaterialPropertyBlock m_ConvertTextureMPB;
-        bool m_PerformBC6HCompression;
+        int                     m_ProbeSize;
+        int                     m_CacheSize;
+        IBLFilterBSDF[]         m_IBLFilterBSDF;
+        TextureCacheCubemap     m_TextureCache;
+        RenderTexture           m_TempRenderTexture;
+        RenderTexture[]         m_ConvolutionTargetTextureArray;
+        ProbeFilteringState[]   m_ProbeBakingState;
+        Material                m_ConvertTextureMaterial;
+        Material                m_CubeToPano;
+        MaterialPropertyBlock   m_ConvertTextureMPB;
+        bool                    m_PerformBC6HCompression;
 
-        GraphicsFormat m_ProbeFormat;
+        GraphicsFormat          m_ProbeFormat;
 
         public ReflectionProbeCache(RenderPipelineResources defaultResources, IBLFilterBSDF[] iblFilterBSDFArray, int cacheSize, int probeSize, GraphicsFormat probeFormat, bool isMipmaped)
         {
@@ -149,7 +149,7 @@ namespace UnityEngine.Rendering.HighDefinition
                     {
                         // Debug.LogWarningFormat("Baked Reflection Probe {0} does not match HDRP Reflection Probe Cache size of {1}. Consider baking it at the same size for better loading performance.", texture.name, m_ProbeSize);
                     }
-                    else if (cubeTexture.format == TextureFormat.BC6H)
+                    else if (cubeTexture.graphicsFormat == GraphicsFormat.RGB_BC6H_UFloat || cubeTexture.graphicsFormat == GraphicsFormat.RGB_BC6H_SFloat)
                     {
                         // Debug.LogWarningFormat("Baked Reflection Probe {0} is compressed but the HDRP Reflection Probe Cache is not. Consider removing compression from the input texture for better quality.", texture.name);
                     }

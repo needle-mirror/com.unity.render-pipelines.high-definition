@@ -110,7 +110,7 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         /// <summary>Type of the current component to debug.</summary>
-        public Type selectedComponentType
+        public Type     selectedComponentType
         {
             get { return componentTypes[selectedComponent - 1]; }
             set
@@ -130,7 +130,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 if (s_ComponentTypes == null)
                 {
-                    s_ComponentTypes = VolumeManager.instance.baseComponentTypeArray
+                    s_ComponentTypes = VolumeManager.instance.baseComponentTypes
                         .Where(t => !t.IsDefined(typeof(VolumeComponentDeprecated), false))
                         .OrderBy(t => ComponentDisplayName(t))
                         .ToList();
@@ -150,7 +150,7 @@ namespace UnityEngine.Rendering.HighDefinition
             return component.Name;
         }
 
-        internal static List<HDAdditionalCameraData> cameras { get; private set; } = new List<HDAdditionalCameraData>();
+        internal static List<HDAdditionalCameraData> cameras {get; private set; } = new List<HDAdditionalCameraData>();
 
         internal static void RegisterCamera(HDAdditionalCameraData camera)
         {

@@ -23,49 +23,48 @@ namespace UnityEditor.Rendering.HighDefinition
         public enum Features
         {
             /// <summary>Displays the minimum surface option fields.</summary>
-            None = 0,
+            None                        = 0,
             /// <summary>Displays the surface field.</summary>
-            Surface = 1 << 0,
+            Surface                     = 1 << 0,
             /// <summary>Displays the blend mode field.</summary>
-            BlendMode = 1 << 1,
+            BlendMode                   = 1 << 1,
             /// <summary>Displays the double sided field.</summary>
-            DoubleSided = 1 << 2,
+            DoubleSided                 = 1 << 2,
             /// <summary>Displays the alpha cutoff field.</summary>
-            AlphaCutoff = 1 << 3,
+            AlphaCutoff                 = 1 << 3,
             /// <summary>Displays the alpha cutoff threshold field.</summary>
-            AlphaCutoffThreshold = 1 << 4,
+            AlphaCutoffThreshold        = 1 << 4,
             /// <summary>Displays the alpha cutoff shadow treshold field.</summary>
-            AlphaCutoffShadowThreshold = 1 << 5,
+            AlphaCutoffShadowThreshold  = 1 << 5,
             /// <summary>Displays the double sided normal mode field.</summary>
-            DoubleSidedNormalMode = 1 << 6,
+            DoubleSidedNormalMode       = 1 << 6,
             /// <summary>Displays the back then front rendering field.</summary>
-            BackThenFrontRendering = 1 << 7,
+            BackThenFrontRendering      = 1 << 7,
             /// <summary>Displays the receive ssr field.</summary>
-            ReceiveSSR = 1 << 8,
+            ReceiveSSR                  = 1 << 8,
             /// <summary>Displays the receive decal field.</summary>
-            ReceiveDecal = 1 << 9,
+            ReceiveDecal                = 1 << 9,
             /// <summary>Displays the show after post process field.</summary>
-            ShowAfterPostProcessPass = 1 << 10,
+            ShowAfterPostProcessPass    = 1 << 10,
             /// <summary>Displays the alpha to mask field.</summary>
-            AlphaToMask = 1 << 11,
+            AlphaToMask                 = 1 << 11,
             /// <summary>Displays the show pre pass and post pass fields.</summary>
-            ShowPrePassAndPostPass = 1 << 12,
+            ShowPrePassAndPostPass      = 1 << 12,
             /// <summary>Displays the depth offset field.</summary>
-            ShowDepthOffsetOnly = 1 << 13,
+            ShowDepthOffsetOnly         = 1 << 13,
             /// <summary>Displays the preserve specular lighting field.</summary>
-            PreserveSpecularLighting = 1 << 14,
+            PreserveSpecularLighting    = 1 << 14,
             /// <summary>Displays all the Unlit Surface Option fields.</summary>
-            Unlit = Surface | BlendMode | DoubleSided | AlphaCutoff | AlphaCutoffThreshold | AlphaCutoffShadowThreshold | AlphaToMask | BackThenFrontRendering | ShowAfterPostProcessPass | ShowPrePassAndPostPass | ShowDepthOffsetOnly,
+            Unlit                       = Surface | BlendMode | DoubleSided | AlphaCutoff | AlphaCutoffThreshold | AlphaCutoffShadowThreshold | AlphaToMask | BackThenFrontRendering | ShowAfterPostProcessPass | ShowPrePassAndPostPass | ShowDepthOffsetOnly,
             /// <summary>Displays all the Lit Surface Option fields field.</summary>
-            Lit = All ^ SurfaceOptionUIBlock.Features.ShowAfterPostProcessPass ^ ShowDepthOffsetOnly, // Lit can't be display in after postprocess pass
+            Lit                         = All ^ SurfaceOptionUIBlock.Features.ShowAfterPostProcessPass ^ ShowDepthOffsetOnly, // Lit can't be display in after postprocess pass
             /// <summary>Displays all the fields.</summary>
-            All = ~0,
+            All                         = ~0,
         }
 
         internal static class Styles
         {
             public const string optionText = "Surface Options";
-            public const string surfaceTypeText = "Surface Type";
             public const string renderingPassText = "Rendering Pass";
             public const string blendModeText = "Blending Mode";
             public const string notSupportedInMultiEdition = "Multiple Different Values";
@@ -74,6 +73,7 @@ namespace UnityEditor.Rendering.HighDefinition
             public static readonly string[] blendModeNames = Enum.GetNames(typeof(BlendMode));
             public static readonly int[] blendModeValues = Enum.GetValues(typeof(BlendMode)) as int[];
 
+            public static GUIContent surfaceTypeText = new GUIContent("Surface Type", "Controls whether the Material supports transparency or not");
             public static GUIContent transparentPrepassText = new GUIContent("Appear in Refraction", "When enabled, HDRP handles objects with this Material before the refraction pass.");
 
             public static GUIContent doubleSidedEnableText = new GUIContent("Double-Sided", "When enabled, HDRP renders both faces of the polygons that make up meshes using this Material. Disables backface culling.");
@@ -98,11 +98,13 @@ namespace UnityEditor.Rendering.HighDefinition
             public static GUIContent transparentSortPriorityText = new GUIContent("Sorting Priority", "Sets the sort priority (from -100 to 100) of transparent meshes using this Material. HDRP uses this value to calculate the sorting order of all transparent meshes on screen.");
             public static GUIContent enableTransparentFogText = new GUIContent("Receive fog", "When enabled, this Material can receive fog.");
             public static GUIContent transparentCullModeText = new GUIContent("Cull Mode", "For transparent objects, change the cull mode of the object.");
-            public static GUIContent enableBlendModePreserveSpecularLightingText = new GUIContent("Preserve specular lighting", "When enabled, blending only affects diffuse lighting, allowing for correct specular lighting on transparent meshes that use this Material. This parameter is only supported when the material's refraction model is set to None.");
+            public static GUIContent enableBlendModePreserveSpecularLightingText = new GUIContent("Preserve specular lighting", "When enabled, blending only affects diffuse lighting, allowing for correct specular lighting on transparent meshes that use this Material.");
 
             // Lit properties
             public static GUIContent doubleSidedNormalModeText = new GUIContent("Normal Mode", "Specifies the method HDRP uses to modify the normal base.\nMirror: Mirrors the normals with the vertex normal plane.\nFlip: Flips the normal.");
             public static GUIContent depthOffsetEnableText = new GUIContent("Depth Offset", "When enabled, HDRP uses the Height Map to calculate the depth offset for this Material.");
+            public static GUIContent doubleSidedGIText = new GUIContent("Double-Sided GI", "When selecting Auto, Double-Sided GI is enabled if the material is Double-Sided, otherwise On enables it and Off disables it.\n" +
+                "When enabled, the lightmapper accounts for both sides of the geometry when calculating Global Illumination. Backfaces are not rendered or added to lightmaps, but get treated as valid when seen from other objects. When using the Progressive Lightmapper backfaces bounce light using the same emission and albedo as frontfaces. (Currently this setting is only available when baking with the Progressive Lightmapper backend.).");
 
             // Displacement mapping (POM, tessellation, per vertex)
             //public static GUIContent enablePerPixelDisplacementText = new GUIContent("Per Pixel Displacement", "");
@@ -175,7 +177,9 @@ namespace UnityEditor.Rendering.HighDefinition
         // Lit properties
         MaterialProperty doubleSidedNormalMode = null;
         const string kDoubleSidedNormalMode = "_DoubleSidedNormalMode";
-        MaterialProperty materialID = null;
+        MaterialProperty doubleSidedGIMode = null;
+        const string kDoubleSidedGIMode = "_DoubleSidedGIMode";
+        MaterialProperty materialID  = null;
         MaterialProperty supportDecals = null;
         const string kSupportDecals = "_SupportDecals";
         MaterialProperty enableGeometricSpecularAA = null;
@@ -291,9 +295,9 @@ namespace UnityEditor.Rendering.HighDefinition
         List<string> m_RenderingPassNames = new List<string>();
         List<int> m_RenderingPassValues = new List<int>();
 
-        ExpandableBit m_ExpandableBit;
-        Features m_Features;
-        int m_LayerCount;
+        ExpandableBit  m_ExpandableBit;
+        Features    m_Features;
+        int         m_LayerCount;
 
         /// <summary>
         /// Constructs a SurfaceOptionUIBlock based on the parameters.
@@ -357,7 +361,10 @@ namespace UnityEditor.Rendering.HighDefinition
             transmissionEnable = FindProperty(kTransmissionEnable);
 
             if ((m_Features & Features.DoubleSidedNormalMode) != 0)
+            {
                 doubleSidedNormalMode = FindProperty(kDoubleSidedNormalMode);
+            }
+            doubleSidedGIMode = FindProperty(kDoubleSidedGIMode);
             depthOffsetEnable = FindProperty(kDepthOffsetEnable);
 
             // MaterialID
@@ -373,7 +380,7 @@ namespace UnityEditor.Rendering.HighDefinition
             ppdMaxSamples = FindProperty(kPpdMaxSamples);
             ppdLodThreshold = FindProperty(kPpdLodThreshold);
             ppdPrimitiveLength = FindProperty(kPpdPrimitiveLength);
-            ppdPrimitiveWidth = FindProperty(kPpdPrimitiveWidth);
+            ppdPrimitiveWidth  = FindProperty(kPpdPrimitiveWidth);
             invPrimScale = FindProperty(kInvPrimScale);
 
             // tessellation specific, silent if not found
@@ -528,11 +535,19 @@ namespace UnityEditor.Rendering.HighDefinition
                 materialEditor.ShaderProperty(doubleSidedEnable, Styles.doubleSidedEnableText);
 
             // This follow double sided option
-            if (doubleSidedNormalMode != null && doubleSidedEnable != null && doubleSidedEnable.floatValue > 0.0f)
+            if (doubleSidedEnable != null && doubleSidedEnable.floatValue > 0.0f)
             {
-                EditorGUI.indentLevel++;
-                materialEditor.ShaderProperty(doubleSidedNormalMode, Styles.doubleSidedNormalModeText);
-                EditorGUI.indentLevel--;
+                if (doubleSidedNormalMode != null)
+                {
+                    EditorGUI.indentLevel++;
+                    materialEditor.ShaderProperty(doubleSidedNormalMode, Styles.doubleSidedNormalModeText);
+                    EditorGUI.indentLevel--;
+                }
+            }
+
+            if (doubleSidedGIMode != null)
+            {
+                materialEditor.ShaderProperty(doubleSidedGIMode, Styles.doubleSidedGIText);
             }
         }
 
@@ -576,14 +591,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 }
 
                 if (transparentSortPriority != null)
-                {
-                    EditorGUI.BeginChangeCheck();
-                    materialEditor.ShaderProperty(transparentSortPriority, Styles.transparentSortPriorityText);
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        transparentSortPriority.floatValue = HDRenderQueue.ClampsTransparentRangePriority((int)transparentSortPriority.floatValue);
-                    }
-                }
+                    IntegerShaderProperty(transparentSortPriority, Styles.transparentSortPriorityText, HDRenderQueue.ClampsTransparentRangePriority);
 
                 if (enableFogOnTransparent != null)
                     materialEditor.ShaderProperty(enableFogOnTransparent, Styles.enableTransparentFogText);
@@ -661,14 +669,7 @@ namespace UnityEditor.Rendering.HighDefinition
             // with default render-states.
             bool renderQueueTypeMismatchRenderQueue = HDRenderQueue.GetTypeByRenderQueueValue(material.renderQueue) != renderQueueType;
 
-            EditorGUI.showMixedValue = surfaceType.hasMixedValue;
-            var newMode = (SurfaceType)EditorGUILayout.Popup(Styles.surfaceTypeText, (int)mode, Styles.surfaceTypeNames);
-            if (newMode != mode) //EditorGUI.EndChangeCheck is called even if value remain the same after the popup. Prefer not to use it here
-            {
-                materialEditor.RegisterPropertyChangeUndo(Styles.surfaceTypeText);
-                surfaceType.floatValue = (float)newMode;
-            }
-            EditorGUI.showMixedValue = false;
+            var newMode = (SurfaceType)PopupShaderProperty(surfaceType, Styles.surfaceTypeText, Styles.surfaceTypeNames);
 
             bool isMixedRenderQueue = surfaceType.hasMixedValue || renderQueueHasMultipleDifferentValue;
             bool showAfterPostProcessPass = (m_Features & Features.ShowAfterPostProcessPass) != 0;
@@ -720,18 +721,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         void BlendModePopup()
         {
-            EditorGUI.showMixedValue = blendMode.hasMixedValue;
-            var mode = (BlendMode)blendMode.floatValue;
-
-            EditorGUI.BeginChangeCheck();
-            mode = (BlendMode)EditorGUILayout.IntPopup(Styles.blendModeText, (int)mode, Styles.blendModeNames, Styles.blendModeValues);
-            if (EditorGUI.EndChangeCheck())
-            {
-                materialEditor.RegisterPropertyChangeUndo("Blend Mode");
-                blendMode.floatValue = (float)mode;
-            }
-
-            EditorGUI.showMixedValue = false;
+            IntPopupShaderProperty(blendMode, Styles.blendModeText, Styles.blendModeNames, Styles.blendModeValues);
         }
 
         int DoOpaqueRenderingPassPopup(string text, int inputValue, bool afterPost)
@@ -865,15 +855,18 @@ namespace UnityEditor.Rendering.HighDefinition
                 {
                     EditorGUILayout.Space();
                     EditorGUI.indentLevel++;
-                    materialEditor.ShaderProperty(ppdMinSamples, Styles.ppdMinSamplesText);
-                    materialEditor.ShaderProperty(ppdMaxSamples, Styles.ppdMaxSamplesText);
+
+                    IntSliderShaderProperty(ppdMinSamples, Styles.ppdMinSamplesText);
+                    ppdMaxSamples.floatValue = Mathf.Max(ppdMinSamples.floatValue, ppdMaxSamples.floatValue);
+                    IntSliderShaderProperty(ppdMaxSamples, Styles.ppdMaxSamplesText);
                     ppdMinSamples.floatValue = Mathf.Min(ppdMinSamples.floatValue, ppdMaxSamples.floatValue);
+
                     materialEditor.ShaderProperty(ppdLodThreshold, Styles.ppdLodThresholdText);
-                    materialEditor.ShaderProperty(ppdPrimitiveLength, Styles.ppdPrimitiveLength);
-                    ppdPrimitiveLength.floatValue = Mathf.Max(0.01f, ppdPrimitiveLength.floatValue);
-                    materialEditor.ShaderProperty(ppdPrimitiveWidth, Styles.ppdPrimitiveWidth);
-                    ppdPrimitiveWidth.floatValue = Mathf.Max(0.01f, ppdPrimitiveWidth.floatValue);
+
+                    MinFloatShaderProperty(ppdPrimitiveLength, Styles.ppdPrimitiveLength, 0.01f);
+                    MinFloatShaderProperty(ppdPrimitiveWidth, Styles.ppdPrimitiveWidth, 0.01f);
                     invPrimScale.vectorValue = new Vector4(1.0f / ppdPrimitiveLength.floatValue, 1.0f / ppdPrimitiveWidth.floatValue); // Precompute
+
                     materialEditor.ShaderProperty(depthOffsetEnable, Styles.depthOffsetEnableText);
                     EditorGUI.indentLevel--;
                 }

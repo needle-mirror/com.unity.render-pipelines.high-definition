@@ -1,11 +1,9 @@
-using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
-using UnityEditor.ShortcutManagement;
-using UnityEditor.IMGUI.Controls;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Linq.Expressions;
+using UnityEditor.IMGUI.Controls;
+using UnityEditor.ShortcutManagement;
+using UnityEngine;
+using UnityEngine.Rendering.HighDefinition;
 using static UnityEditorInternal.EditMode;
 
 namespace UnityEditor.Rendering.HighDefinition
@@ -17,8 +15,6 @@ namespace UnityEditor.Rendering.HighDefinition
         const float k_Limit = 100000;
         const float k_LimitInv = 1 / k_Limit;
 
-        static object s_ColorPref;
-        static Func<Color> GetColorPref;
         static Color fullColor
         {
             get
@@ -31,7 +27,7 @@ namespace UnityEditor.Rendering.HighDefinition
         static Color s_LastColor;
         static void UpdateColorsInHandlesIfRequired()
         {
-            Color c = GetColorPref();
+            Color c = HDRenderPipelinePreferences.decalGizmoColor;
             if (c != s_LastColor)
             {
                 if (s_BoxHandle != null && !s_BoxHandle.Equals(null))
@@ -42,18 +38,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
                 s_LastColor = c;
             }
-        }
-
-        static DecalProjectorEditor()
-        {
-            // PrefColor is the type to use to have a Color that is customizable inside the Preference/Colors panel.
-            // Sadly it is internal so we must create it and grab color from it by reflection.
-            Type prefColorType = typeof(Editor).Assembly.GetType("UnityEditor.PrefColor");
-            s_ColorPref = Activator.CreateInstance(prefColorType, new object[] { "Scene/Decal", k_GizmoColorBase.r, k_GizmoColorBase.g, k_GizmoColorBase.b, k_GizmoColorBase.a });
-            PropertyInfo colorInfo = prefColorType.GetProperty("Color");
-            MemberExpression colorProperty = Expression.Property(Expression.Constant(s_ColorPref, prefColorType), colorInfo);
-            Expression<Func<Color>> colorLambda = Expression.Lambda<Func<Color>>(colorProperty);
-            GetColorPref = colorLambda.Compile();
         }
 
         MaterialEditor m_MaterialEditor = null;
@@ -134,7 +118,7 @@ namespace UnityEditor.Rendering.HighDefinition
             get
             {
                 if (s_uvHandles == null || s_uvHandles.Equals(null))
-                    s_uvHandles = new DisplacableRectHandles(s_LastColor, allowsNegative: true);
+                    s_uvHandles = new DisplacableRectHandles(s_LastColor);
                 return s_uvHandles;
             }
         }
@@ -502,7 +486,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 if (float.IsNaN(saved[axe]))
                 {
                     float oldSize = currentTarget.m_Size[axe];
-                    saved[axe] = Mathf.Abs(oldSize) <= Mathf.Epsilon ? 0f : currentTarget.m_Offset[axe] / oldSize;
+                    saved[axe] =  Mathf.Abs(oldSize) <= Mathf.Epsilon ? 0f : currentTarget.m_Offset[axe] / oldSize;
                     ratioSizePivotPositionSaved[currentTarget] = saved;
                 }
 

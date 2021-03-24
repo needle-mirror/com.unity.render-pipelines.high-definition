@@ -83,6 +83,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// Specifies the method that HDRP uses to change the exposure when the Camera moves from dark to light and vice versa.
         /// This parameter is only used when <see cref="ExposureMode.Automatic"/> or <see cref="ExposureMode.CurveMapping"/> is set.
         /// </summary>
+        [Header("Adaptation")]
         [Tooltip("Specifies the method that HDRP uses to change the exposure when the Camera moves from dark to light and vice versa.")]
         public AdaptationModeParameter adaptationMode = new AdaptationModeParameter(AdaptationMode.Progressive);
 
@@ -111,6 +112,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// find a stable average luminance. Values outside of this range will be discarded and won't
         /// contribute to the average luminance.
         /// </summary>
+        [Header("Histogram")]
         [Tooltip("Sets the range of values (in terms of percentages) of the histogram that are accepted while finding a stable average exposure. Anything outside the value is discarded.")]
         public FloatRangeParameter histogramPercentages = new FloatRangeParameter(new Vector2(40.0f, 90.0f), 0.0f, 100.0f);
 
@@ -131,6 +133,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Sets whether the procedural metering mask is centered around the exposure target (to be set on the camera)
         /// </summary>
+        [Header("Procedural Mask")]
         [Tooltip("Sets whether histogram exposure mode will remap the computed exposure with a curve remapping (akin to Curve Remapping mode).")]
         public BoolParameter centerAroundExposureTarget = new BoolParameter(false);
 
@@ -141,7 +144,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Sets the radii of the procedural mask, in terms of fraction of half the screen (i.e. 0.5 means a mask that stretch half of the screen in both directions).
         /// </summary>
-        public NoInterpVector2Parameter proceduralRadii = new NoInterpVector2Parameter(new Vector2(0.3f, 0.3f));
+        public NoInterpVector2Parameter proceduralRadii  = new NoInterpVector2Parameter(new Vector2(0.3f, 0.3f));
         /// <summary>
         /// All pixels below this threshold (in EV100 units) will be assigned a weight of 0 in the metering mask.
         /// </summary>

@@ -1,14 +1,12 @@
-using UnityEngine;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.UIElements;
-using UnityEditor.UIElements;
-using UnityEditor.Experimental;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
@@ -156,6 +154,23 @@ namespace UnityEditor.Rendering.HighDefinition
                 default:
                     throw new ArgumentException("Unrecognized option");
             }
+        }
+
+        void Repopulate()
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/" + HDProjectSettings.projectSettingsFolderPath))
+                AssetDatabase.CreateFolder("Assets", HDProjectSettings.projectSettingsFolderPath);
+
+            var hdrpAsset = ScriptableObject.CreateInstance<HDRenderPipelineAsset>();
+            hdrpAsset.name = "HDRenderPipelineAsset";
+
+            AssetDatabase.CreateAsset(hdrpAsset, "Assets/" + HDProjectSettings.projectSettingsFolderPath + "/" + hdrpAsset.name + ".asset");
+
+            GraphicsSettings.renderPipelineAsset = hdrpAsset;
+            if (!IsHdrpAssetRuntimeResourcesCorrect())
+                FixHdrpAssetRuntimeResources(true);
+            if (!IsHdrpAssetEditorResourcesCorrect())
+                FixHdrpAssetEditorResources(true);
         }
 
         #endregion
@@ -309,7 +324,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 base.CheckUpdate();
                 if (currentStatus)
                 {
-                    foreach (VisualElementUpdatable updatable in Children().Where(e => e is VisualElementUpdatable))
+                    foreach (VisualElementUpdatable updatable in Children())
                         updatable.CheckUpdate();
                 }
             }
@@ -395,7 +410,7 @@ namespace UnityEditor.Rendering.HighDefinition
                         this.Q(name: "StatusError").style.display = DisplayStyle.None;
                     }
                     this.Q(name: "Resolver").style.display = DisplayStyle.None;
-                    this.Q(className: "HelpBox").style.display = DisplayStyle.None;
+                    this.Q(name: "HelpBox").style.display = DisplayStyle.None;
                 }
                 else
                 {
@@ -405,7 +420,7 @@ namespace UnityEditor.Rendering.HighDefinition
                         this.Q(name: "StatusError").style.display = !statusOK ? (m_SkipErrorIcon ? DisplayStyle.None : DisplayStyle.Flex) : DisplayStyle.None;
                     }
                     this.Q(name: "Resolver").style.display = statusOK || !haveFixer ? DisplayStyle.None : DisplayStyle.Flex;
-                    this.Q(className: "HelpBox").style.display = statusOK ? DisplayStyle.None : DisplayStyle.Flex;
+                    this.Q(name: "HelpBox").style.display = statusOK ? DisplayStyle.None : DisplayStyle.Flex;
                 }
             }
         }
@@ -467,7 +482,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 this.label = new Label(message);
                 icon = new Image();
 
-                AddToClassList("HelpBox");
+                name = "HelpBox";
                 Add(icon);
                 Add(this.label);
 
@@ -491,29 +506,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
             protected override void UpdateDisplay(bool statusOK, bool haveFixer)
                 => this.Q(name: "FixAll").style.display = statusOK ? DisplayStyle.None : DisplayStyle.Flex;
-        }
-
-        class ScopeBox : VisualElementUpdatable
-        {
-            readonly Label label;
-            bool initTitleBackground;
-
-            public ScopeBox(string title) : base(null, false)
-            {
-                label = new Label(title);
-                label.name = "Title";
-                AddToClassList("ScopeBox");
-                Add(label);
-            }
-
-            public override void CheckUpdate()
-            {
-                foreach (VisualElementUpdatable updatable in Children().Where(e => e is VisualElementUpdatable))
-                    updatable.CheckUpdate();
-            }
-
-            protected override void UpdateDisplay(bool statusOK, bool haveFixer)
-            {}
         }
 
         #endregion

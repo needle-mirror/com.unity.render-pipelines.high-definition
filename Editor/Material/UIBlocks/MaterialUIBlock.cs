@@ -12,14 +12,14 @@ namespace UnityEditor.Rendering.HighDefinition
     public abstract class MaterialUIBlock
     {
         /// <summary>The current material editor.</summary>
-        protected MaterialEditor materialEditor;
+        protected MaterialEditor        materialEditor;
         /// <summary>The list of selected materials to edit.</summary>
-        protected Material[] materials;
+        protected Material[]            materials;
         /// <summary>The list of available properties in the selected materials.</summary>
-        protected MaterialProperty[] properties;
+        protected MaterialProperty[]    properties;
 
         /// <summary>Parent of the UI block.</summary>
-        protected MaterialUIBlockList parent;
+        protected MaterialUIBlockList   parent;
 
         /// <summary>Bit index used to store a foldout state in the editor preferences.</summary>
         [Flags]
@@ -138,9 +138,6 @@ namespace UnityEditor.Rendering.HighDefinition
             this.materialEditor = materialEditor;
             this.parent = parent;
             materials = materialEditor.targets.Select(target => target as Material).ToArray();
-
-            // We should always register the key used to keep collapsable state
-            materialEditor.InitExpandableState();
         }
 
         internal void UpdateMaterialProperties(MaterialProperty[] properties)
@@ -183,7 +180,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // If the layerCount is 1, then it means that the property we're fetching is not from a layered material
             // thus it doesn't have a prefix
-            string[] prefixes = (layerCount > 1) ? new[] { "0", "1", "2", "3" } : new[] { "" };
+            string[] prefixes = (layerCount > 1) ? new[] {"0", "1", "2", "3"} : new[] {""};
 
             for (int i = 0; i < layerCount; i++)
             {
@@ -202,5 +199,110 @@ namespace UnityEditor.Rendering.HighDefinition
         /// Renders the properties in the block.
         /// </summary>
         public abstract void OnGUI();
+
+
+        Rect GetRect(MaterialProperty prop)
+        {
+            return EditorGUILayout.GetControlRect(true, MaterialEditor.GetDefaultPropertyHeight(prop), EditorStyles.layerMaskField);
+        }
+
+        protected void IntegerShaderProperty(MaterialProperty prop, GUIContent label, Func<int, int> transform = null)
+        {
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            int newValue = EditorGUI.IntField(GetRect(prop), label, (int)prop.floatValue);
+            if (transform != null)
+                newValue = transform(newValue);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck())
+                prop.floatValue = newValue;
+        }
+
+        protected void IntSliderShaderProperty(MaterialProperty prop, GUIContent label)
+        {
+            var limits = prop.rangeLimits;
+            IntSliderShaderProperty(prop, (int)limits.x, (int)limits.y, label);
+        }
+
+        protected void IntSliderShaderProperty(MaterialProperty prop, int min, int max, GUIContent label)
+        {
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            int newValue = EditorGUI.IntSlider(GetRect(prop), label, (int)prop.floatValue, min, max);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck())
+            {
+                materialEditor.RegisterPropertyChangeUndo(label.text);
+                prop.floatValue = newValue;
+            }
+        }
+
+        protected void MinFloatShaderProperty(MaterialProperty prop, GUIContent label, float min)
+        {
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            float newValue = EditorGUI.FloatField(GetRect(prop), label, prop.floatValue);
+            newValue = Mathf.Max(min, newValue);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck())
+                prop.floatValue = newValue;
+        }
+
+        protected int PopupShaderProperty(MaterialProperty prop, GUIContent label, string[] options)
+        {
+            int value = (int)prop.floatValue;
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            int newValue = EditorGUILayout.Popup(label, value, options);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck() && (newValue != value))
+            {
+                materialEditor.RegisterPropertyChangeUndo(label.text);
+                prop.floatValue = value = newValue;
+            }
+
+            return value;
+        }
+
+        protected int IntPopupShaderProperty(MaterialProperty prop, string label, string[] displayedOptions, int[] optionValues)
+        {
+            int value = (int)prop.floatValue;
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = prop.hasMixedValue;
+            int newValue = EditorGUILayout.IntPopup(label, value, displayedOptions, optionValues);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck() && (newValue != value))
+            {
+                materialEditor.RegisterPropertyChangeUndo(label);
+                prop.floatValue = value = newValue;
+            }
+
+            return value;
+        }
+
+        protected void MinMaxShaderProperty(MaterialProperty min, MaterialProperty max, float minLimit, float maxLimit, GUIContent label)
+        {
+            float minValue = min.floatValue;
+            float maxValue = max.floatValue;
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.MinMaxSlider(label, ref minValue, ref maxValue, minLimit, maxLimit);
+            if (EditorGUI.EndChangeCheck())
+            {
+                min.floatValue = minValue;
+                max.floatValue = maxValue;
+            }
+        }
+
+        protected void MinMaxShaderProperty(MaterialProperty remapProp, float minLimit, float maxLimit, GUIContent label)
+        {
+            Vector2 remap = remapProp.vectorValue;
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.MinMaxSlider(label, ref remap.x, ref remap.y, minLimit, maxLimit);
+            if (EditorGUI.EndChangeCheck())
+                remapProp.vectorValue = remap;
+        }
     }
 }

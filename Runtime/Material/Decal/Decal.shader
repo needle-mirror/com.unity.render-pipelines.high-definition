@@ -71,14 +71,14 @@ Shader "HDRP/Decal"
     //-------------------------------------------------------------------------------------
     // Variant
     //-------------------------------------------------------------------------------------
-    #pragma shader_feature_local _COLORMAP
-    #pragma shader_feature_local _MASKMAP
+    #pragma shader_feature_local_fragment _COLORMAP
+    #pragma shader_feature_local_fragment _MASKMAP
     #pragma shader_feature_local _NORMALMAP
-    #pragma shader_feature_local _EMISSIVEMAP
+    #pragma shader_feature_local_fragment _EMISSIVEMAP
 
-    #pragma shader_feature_local _MATERIAL_AFFECTS_ALBEDO
-    #pragma shader_feature_local _MATERIAL_AFFECTS_NORMAL
-    #pragma shader_feature_local _MATERIAL_AFFECTS_MASKMAP
+    #pragma shader_feature_local_fragment _MATERIAL_AFFECTS_ALBEDO
+    #pragma shader_feature_local_fragment _MATERIAL_AFFECTS_NORMAL
+    #pragma shader_feature_local_fragment _MATERIAL_AFFECTS_MASKMAP
 
     #pragma multi_compile_instancing
 
@@ -136,7 +136,7 @@ Shader "HDRP/Decal"
 
             HLSLPROGRAM
 
-            #pragma multi_compile DECALS_3RT DECALS_4RT
+            #pragma multi_compile_fragment DECALS_3RT DECALS_4RT
             #define SHADERPASS SHADERPASS_DBUFFER_PROJECTOR
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Decal/DecalProperties.hlsl"
@@ -211,8 +211,7 @@ Shader "HDRP/Decal"
 
             HLSLPROGRAM
 
-            #pragma multi_compile DECALS_3RT DECALS_4RT
-            #pragma multi_compile _ DOTS_INSTANCING_ON
+            #pragma multi_compile_fragment DECALS_3RT DECALS_4RT
             // enable dithering LOD crossfade
             #pragma multi_compile _ LOD_FADE_CROSSFADE
 
@@ -247,7 +246,6 @@ Shader "HDRP/Decal"
             Blend 0 SrcAlpha One
 
             HLSLPROGRAM
-            #pragma multi_compile _ DOTS_INSTANCING_ON
             // enable dithering LOD crossfade
             #pragma multi_compile _ LOD_FADE_CROSSFADE
 

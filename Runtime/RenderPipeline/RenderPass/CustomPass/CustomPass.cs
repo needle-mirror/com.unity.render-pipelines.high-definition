@@ -26,7 +26,7 @@ namespace UnityEngine.Rendering.HighDefinition
         [SerializeField, FormerlySerializedAsAttribute("name")]
         string m_Name = "Custom Pass";
 
-        internal ProfilingSampler profilingSampler
+        internal ProfilingSampler   profilingSampler
         {
             get
             {
@@ -35,38 +35,36 @@ namespace UnityEngine.Rendering.HighDefinition
                 return m_ProfilingSampler;
             }
         }
-        ProfilingSampler m_ProfilingSampler;
+        ProfilingSampler            m_ProfilingSampler;
 
         /// <summary>
         /// Is the custom pass enabled or not
         /// </summary>
-        public bool enabled = true;
+        public bool             enabled = true;
 
         /// <summary>
         /// Target color buffer (Camera or Custom)
         /// </summary>
-        public TargetBuffer targetColorBuffer;
+        public TargetBuffer     targetColorBuffer;
 
         /// <summary>
         /// Target depth buffer (camera or custom)
         /// </summary>
-        public TargetBuffer targetDepthBuffer;
+        public TargetBuffer     targetDepthBuffer;
 
         /// <summary>
         /// What clear to apply when the color and depth buffer are bound
         /// </summary>
-        public ClearFlag clearFlags;
+        public ClearFlag        clearFlags;
 
         [SerializeField]
-        bool passFoldout;
+        bool                passFoldout;
         [System.NonSerialized]
-        bool isSetup = false;
-        bool isExecuting = false;
-        RenderTargets currentRenderTarget;
-        CustomPassVolume owner;
-        HDCamera currentHDCamera;
-
-        MaterialPropertyBlock userMaterialPropertyBlock;
+        bool                isSetup = false;
+        bool                isExecuting = false;
+        RenderTargets       currentRenderTarget;
+        CustomPassVolume    owner;
+        HDCamera            currentHDCamera;
 
         // TODO RENDERGRAPH: Remove this when we move things to render graph completely.
         MaterialPropertyBlock m_MSAAResolveMPB = null;
@@ -140,8 +138,6 @@ namespace UnityEngine.Rendering.HighDefinition
             public Lazy<RTHandle> customColorBuffer;
             public Lazy<RTHandle> customDepthBuffer;
 
-            // Render graph specific
-            // TODO RENDERGRAPH cleanup the other ones when we only have the render graph path.
             public TextureHandle colorBufferRG;
             public TextureHandle nonMSAAColorBufferRG;
             public TextureHandle depthBufferRG;
@@ -155,7 +151,7 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         [SerializeField]
-        Version m_Version = MigrationDescription.LastVersion<Version>();
+        Version     m_Version = MigrationDescription.LastVersion<Version>();
         Version IVersionable<Version>.version
         {
             get => m_Version;
@@ -242,9 +238,6 @@ namespace UnityEngine.Rendering.HighDefinition
                         {
                             customPass.Setup(ctx.renderContext, ctx.cmd);
                             customPass.isSetup = true;
-                            // TODO RENDERGRAPH: We still need to allocate this otherwise it would be null when switching off render graph (because isSetup stays true).
-                            // We can remove the member altogether when we remove the non render graph code path.
-                            customPass.userMaterialPropertyBlock = new MaterialPropertyBlock();
                         }
 
                         customPass.SetCustomPassTarget(ctx.cmd);

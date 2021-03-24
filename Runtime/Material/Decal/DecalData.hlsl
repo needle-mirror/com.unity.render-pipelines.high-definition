@@ -57,6 +57,7 @@ void GetSurfaceData(FragInputs input, float3 V, PositionInputs posInput, float a
 #ifdef _MATERIAL_AFFECTS_MASKMAP
     #ifdef _MASKMAP
     surfaceData.mask = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, texCoords);
+    maskMapBlend *= surfaceData.mask.z; // store before overwriting with smoothness
     #ifdef DECALS_4RT
     surfaceData.mask.x = lerp(_MetallicRemapMin, _MetallicRemapMax, surfaceData.mask.x);
     surfaceData.mask.y = lerp(_AORemapMin, _AORemapMax, surfaceData.mask.y);

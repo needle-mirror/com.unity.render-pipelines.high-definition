@@ -23,7 +23,7 @@ VertexDescriptionInputs AttributesMeshToVertexDescriptionInputs(AttributesMesh i
     $VertexDescriptionInputs.AbsoluteWorldSpacePosition:output.AbsoluteWorldSpacePosition =  GetAbsolutePositionWS(TransformObjectToWorld(input.positionOS));
     $VertexDescriptionInputs.WorldSpaceViewDirection:   output.WorldSpaceViewDirection =     GetWorldSpaceNormalizeViewDir(output.WorldSpacePosition);
     $VertexDescriptionInputs.ObjectSpaceViewDirection:  output.ObjectSpaceViewDirection =    TransformWorldToObjectDir(output.WorldSpaceViewDirection);
-    $VertexDescriptionInputs.ViewSpaceViewDirection:    output.ViewSpaceViewDirection =      length(output.WorldSpaceViewDirection) * TransformWorldToViewDir(output.WorldSpaceViewDirection);
+    $VertexDescriptionInputs.ViewSpaceViewDirection:    output.ViewSpaceViewDirection =      TransformWorldToViewDir(output.WorldSpaceViewDirection);
     $VertexDescriptionInputs.TangentSpaceViewDirection: float3x3 tangentSpaceTransform =     float3x3(output.WorldSpaceTangent,output.WorldSpaceBiTangent,output.WorldSpaceNormal);
     $VertexDescriptionInputs.TangentSpaceViewDirection: output.TangentSpaceViewDirection =   TransformWorldToTangent(output.WorldSpaceViewDirection, tangentSpaceTransform);
     $VertexDescriptionInputs.ScreenPosition:            output.ScreenPosition =              ComputeScreenPos(TransformWorldToHClip(output.WorldSpacePosition), _ProjectionParams.x);
@@ -39,7 +39,17 @@ VertexDescriptionInputs AttributesMeshToVertexDescriptionInputs(AttributesMesh i
     return output;
 }
 
-AttributesMesh ApplyMeshModification(AttributesMesh input, float3 timeParameters)
+// This is used for injecting the define below.
+$splice(CustomInterpolatorPreVertex)
+
+
+
+    AttributesMesh ApplyMeshModification(AttributesMesh input, float3 timeParameters
+#if defined(USE_CUSTOMINTERP_APPLYMESHMOD) // mirrored in VertMesh.hlsl and MotionVectorVertexShaderCommon.hlsl
+        // use ifdef via TESSELLATION_ON to use VaryingsMeshToDS (Domain varyings instead of pixel varyings) whenever SG is modified to support Tess.
+        , inout VaryingsMeshToPS varyings
+#endif
+    )
 {
     // build graph inputs
     VertexDescriptionInputs vertexDescriptionInputs = AttributesMeshToVertexDescriptionInputs(input);
@@ -53,6 +63,9 @@ AttributesMesh ApplyMeshModification(AttributesMesh input, float3 timeParameters
     $VertexDescription.Position: input.positionOS = vertexDescription.Position;
     $VertexDescription.Normal:   input.normalOS = vertexDescription.Normal;
     $VertexDescription.Tangent:  input.tangentOS.xyz = vertexDescription.Tangent;
+
+    // The purpose of the above ifdef, this allows shader graph custom interpolators to write directly to the varyings structs.
+    $splice(CustomInterpolatorVertexDefinitionToVaryings)
 
     return input;
 }

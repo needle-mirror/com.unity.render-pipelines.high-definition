@@ -43,7 +43,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 if (m_ClearTexture3D == null)
                 {
-                    m_ClearTexture3D = new Texture3D(1, 1, 1, TextureFormat.ARGB32, false) { name = "Transparent Texture 3D" };
+                    m_ClearTexture3D = new Texture3D(1, 1, 1, GraphicsFormat.R8G8B8A8_SRGB, TextureCreationFlags.None) { name = "Transparent Texture 3D" };
                     m_ClearTexture3D.SetPixel(0, 0, 0, Color.clear);
                     m_ClearTexture3D.Apply();
 
@@ -328,6 +328,20 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         /// <summary>
+        /// Blit a RTHandle texture 2D.
+        /// </summary>
+        /// <param name="cmd">Command Buffer used for rendering.</param>
+        /// <param name="source">Source RTHandle.</param>
+        /// <param name="scaleBias">Scale and bias for sampling the input texture.</param>
+        /// <param name="mipLevel">Mip level to blit.</param>
+        /// <param name="bilinear">Enable bilinear filtering.</param>
+        public static void BlitTexture2D(CommandBuffer cmd, RTHandle source, Vector4 scaleBias, float mipLevel, bool bilinear)
+        {
+            s_PropertyBlock.SetFloat(HDShaderIDs._BlitMipLevel, mipLevel);
+            BlitTexture(cmd, source, scaleBias, GetBlitMaterial(TextureDimension.Tex2D), bilinear ? 1 : 0);
+        }
+
+        /// <summary>
         /// Blit a 2D texture and depth buffer.
         /// </summary>
         /// <param name="cmd">Command Buffer used for rendering.</param>
@@ -386,6 +400,23 @@ namespace UnityEngine.Rendering.HighDefinition
             // Will set the correct camera viewport as well.
             CoreUtils.SetRenderTarget(cmd, destination);
             BlitTexture(cmd, source, viewportScale, mipLevel, bilinear);
+        }
+
+        /// <summary>
+        /// Blit a RThandle Texture2D RTHandle to another RTHandle.
+        /// This will properly account for partial usage (in term of resolution) of the texture for the current viewport.
+        /// </summary>
+        /// <param name="cmd">Command Buffer used for rendering.</param>
+        /// <param name="source">Source RTHandle.</param>
+        /// <param name="destination">Destination RTHandle.</param>
+        /// <param name="mipLevel">Mip level to blit.</param>
+        /// <param name="bilinear">Enable bilinear filtering.</param>
+        public static void BlitCameraTexture2D(CommandBuffer cmd, RTHandle source, RTHandle destination, float mipLevel = 0.0f, bool bilinear = false)
+        {
+            Vector2 viewportScale = new Vector2(source.rtHandleProperties.rtHandleScale.x, source.rtHandleProperties.rtHandleScale.y);
+            // Will set the correct camera viewport as well.
+            CoreUtils.SetRenderTarget(cmd, destination);
+            BlitTexture2D(cmd, source, viewportScale, mipLevel, bilinear);
         }
 
         /// <summary>
@@ -608,7 +639,6 @@ namespace UnityEngine.Rendering.HighDefinition
         internal struct PackedMipChainInfo
         {
             public Vector2Int textureSize;
-            public Vector2Int hardwareTextureSize;
             public int mipLevelCount;
             public Vector2Int[] mipLevelSizes;
             public Vector2Int[] mipLevelOffsets;
@@ -631,15 +661,12 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (viewportSize == mipLevelSizes[0])
                     return;
 
-                bool isHardwareDrsOn = DynamicResolutionHandler.instance.HardwareDynamicResIsEnabled();
-                hardwareTextureSize = isHardwareDrsOn ? DynamicResolutionHandler.instance.ApplyScalesOnSize(viewportSize) : viewportSize;
-                Vector2 textureScale = isHardwareDrsOn ? new Vector2((float)viewportSize.x / (float)hardwareTextureSize.x, (float)viewportSize.y / (float)hardwareTextureSize.y) : new Vector2(1.0f, 1.0f);
-
-                mipLevelSizes[0] = hardwareTextureSize;
+                textureSize = viewportSize;
+                mipLevelSizes[0] = viewportSize;
                 mipLevelOffsets[0] = Vector2Int.zero;
 
                 int mipLevel = 0;
-                Vector2Int mipSize = hardwareTextureSize;
+                Vector2Int mipSize = viewportSize;
 
                 do
                 {
@@ -669,12 +696,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
                     mipLevelOffsets[mipLevel] = mipBegin;
 
-                    hardwareTextureSize.x = Math.Max(hardwareTextureSize.x, mipBegin.x + mipSize.x);
-                    hardwareTextureSize.y = Math.Max(hardwareTextureSize.y, mipBegin.y + mipSize.y);
+                    textureSize.x = Math.Max(textureSize.x, mipBegin.x + mipSize.x);
+                    textureSize.y = Math.Max(textureSize.y, mipBegin.y + mipSize.y);
                 }
                 while ((mipSize.x > 1) || (mipSize.y > 1));
-
-                textureSize = new Vector2Int((int)((float)hardwareTextureSize.x * textureScale.x), (int)((float)hardwareTextureSize.y * textureScale.y));
 
                 mipLevelCount = mipLevel + 1;
                 m_OffsetBufferWillNeedUpdate = true;
@@ -929,15 +954,15 @@ namespace UnityEngine.Rendering.HighDefinition
         internal static Vector4 ConvertGUIDToVector4(string guid)
         {
             Vector4 vector;
-            byte[] bytes = new byte[16];
+            byte[]  bytes = new byte[16];
 
             for (int i = 0; i < 16; i++)
                 bytes[i] = byte.Parse(guid.Substring(i * 2, 2), System.Globalization.NumberStyles.HexNumber);
 
             unsafe
             {
-                fixed(byte* b = bytes)
-                vector = *(Vector4*)b;
+                fixed(byte * b = bytes)
+                vector = *(Vector4 *)b;
             }
 
             return vector;
@@ -948,7 +973,7 @@ namespace UnityEngine.Rendering.HighDefinition
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             unsafe
             {
-                byte* v = (byte*)&vector;
+                byte * v = (byte *)&vector;
                 for (int i = 0; i < 16; i++)
                     sb.Append(v[i].ToString("x2"));
                 var guidBytes = new byte[16];
@@ -1068,7 +1093,7 @@ namespace UnityEngine.Rendering.HighDefinition
             if (camera.scene.IsValid())
                 return EditorSceneManager.GetSceneCullingMask(camera.scene);
 
-#if UNITY_2020_1_OR_NEWER
+            #if UNITY_2020_1_OR_NEWER
             switch (camera.cameraType)
             {
                 case CameraType.SceneView:
@@ -1076,9 +1101,9 @@ namespace UnityEngine.Rendering.HighDefinition
                 default:
                     return SceneCullingMasks.GameViewObjects;
             }
-#else
+            #else
             return 0;
-#endif
+            #endif
 #else
             return 0;
 #endif
@@ -1180,6 +1205,28 @@ namespace UnityEngine.Rendering.HighDefinition
                 msg += "To do this, go to Project Settings > Player > Other Settings and modify the Graphics APIs for " + os + " list.";
 
             return msg;
+        }
+
+        internal static int GetTextureHash(Texture texture)
+        {
+            int hash = texture.GetHashCode();
+
+            unchecked
+            {
+#if UNITY_EDITOR
+                hash = 23 * hash + texture.imageContentsHash.GetHashCode();
+#endif
+                hash = 23 * hash + texture.GetInstanceID().GetHashCode();
+                hash = 23 * hash + texture.graphicsFormat.GetHashCode();
+                hash = 23 * hash + texture.wrapMode.GetHashCode();
+                hash = 23 * hash + texture.width.GetHashCode();
+                hash = 23 * hash + texture.height.GetHashCode();
+                hash = 23 * hash + texture.filterMode.GetHashCode();
+                hash = 23 * hash + texture.anisoLevel.GetHashCode();
+                hash = 23 * hash + texture.mipmapCount.GetHashCode();
+            }
+
+            return hash;
         }
 
         internal static void ReleaseComponentSingletons()

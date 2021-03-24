@@ -20,6 +20,7 @@ namespace UnityEngine.Rendering.HighDefinition
         [Serializable, ReloadGroup]
         public sealed class ShaderResources
         {
+            // Terrain
             public Shader terrainDetailLitShader;
             public Shader terrainDetailGrassShader;
             public Shader terrainDetailGrassBillboardShader;
@@ -57,8 +58,6 @@ namespace UnityEngine.Rendering.HighDefinition
             public Shader autodeskInteractiveMasked;
             [Reload("Runtime/RenderPipelineResources/ShaderGraph/AutodeskInteractiveTransparent.shadergraph")]
             public Shader autodeskInteractiveTransparent;
-            [Reload("Runtime/Material/Nature/SpeedTree8.shadergraph")]
-            public Shader defaultSpeedTree8Shader;
         }
 
         [Serializable, ReloadGroup]

@@ -5,26 +5,26 @@ namespace UnityEngine.Rendering.HighDefinition
     class IBLFilterGGX : IBLFilterBSDF
     {
         RenderTexture m_GgxIblSampleData;
-        int m_GgxIblMaxSampleCount = TextureCache.isMobileBuildTarget ? 34 : 89;   // Width
-        const int k_GgxIblMipCountMinusOne = 6;    // Height (UNITY_SPECCUBE_LOD_STEPS)
+        int           m_GgxIblMaxSampleCount          = TextureCache.isMobileBuildTarget ? 34 : 89;   // Width
+        const int     k_GgxIblMipCountMinusOne        = 6;    // Height (UNITY_SPECCUBE_LOD_STEPS)
 
         ComputeShader m_ComputeGgxIblSampleDataCS;
-        int m_ComputeGgxIblSampleDataKernel = -1;
+        int           m_ComputeGgxIblSampleDataKernel = -1;
 
         ComputeShader m_BuildProbabilityTablesCS;
-        int m_ConditionalDensitiesKernel = -1;
-        int m_MarginalRowDensitiesKernel = -1;
+        int           m_ConditionalDensitiesKernel    = -1;
+        int           m_MarginalRowDensitiesKernel    = -1;
 
         // Planar reflection filtering
         ComputeShader m_PlanarReflectionFilteringCS;
-        int m_PlanarReflectionDepthConversionKernel = -1;
-        int m_PlanarReflectionDownScaleKernel = -1;
-        int m_PlanarReflectionFilteringKernel = -1;
-        RTHandle m_PlanarReflectionFilterTex0;
-        RTHandle m_PlanarReflectionFilterTex1;
-        RTHandle m_PlanarReflectionFilterDepthTex0;
-        RTHandle m_PlanarReflectionFilterDepthTex1;
-        const int k_DefaultPlanarResolution = 512;
+        int           m_PlanarReflectionDepthConversionKernel = -1;
+        int           m_PlanarReflectionDownScaleKernel = -1;
+        int           m_PlanarReflectionFilteringKernel = -1;
+        RTHandle      m_PlanarReflectionFilterTex0;
+        RTHandle      m_PlanarReflectionFilterTex1;
+        RTHandle      m_PlanarReflectionFilterDepthTex0;
+        RTHandle      m_PlanarReflectionFilterDepthTex1;
+        const int     k_DefaultPlanarResolution = 512;
         // Intermediate variables
         Vector4 currentScreenSize = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
@@ -43,13 +43,13 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             if (!m_ComputeGgxIblSampleDataCS)
             {
-                m_ComputeGgxIblSampleDataCS = m_RenderPipelineResources.shaders.computeGgxIblSampleDataCS;
+                m_ComputeGgxIblSampleDataCS     = m_RenderPipelineResources.shaders.computeGgxIblSampleDataCS;
                 m_ComputeGgxIblSampleDataKernel = m_ComputeGgxIblSampleDataCS.FindKernel("ComputeGgxIblSampleData");
             }
 
             if (!m_BuildProbabilityTablesCS)
             {
-                m_BuildProbabilityTablesCS = m_RenderPipelineResources.shaders.buildProbabilityTablesCS;
+                m_BuildProbabilityTablesCS   = m_RenderPipelineResources.shaders.buildProbabilityTablesCS;
                 m_ConditionalDensitiesKernel = m_BuildProbabilityTablesCS.FindKernel("ComputeConditionalDensities");
                 m_MarginalRowDensitiesKernel = m_BuildProbabilityTablesCS.FindKernel("ComputeMarginalRowDensities");
             }
@@ -61,12 +61,12 @@ namespace UnityEngine.Rendering.HighDefinition
 
             if (!m_GgxIblSampleData)
             {
-                m_GgxIblSampleData = new RenderTexture(m_GgxIblMaxSampleCount, k_GgxIblMipCountMinusOne, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+                m_GgxIblSampleData = new RenderTexture(m_GgxIblMaxSampleCount, k_GgxIblMipCountMinusOne, 0, GraphicsFormat.R16G16B16A16_SFloat);
                 m_GgxIblSampleData.useMipMap = false;
                 m_GgxIblSampleData.autoGenerateMips = false;
                 m_GgxIblSampleData.enableRandomWrite = true;
                 m_GgxIblSampleData.filterMode = FilterMode.Point;
-                m_GgxIblSampleData.name = CoreUtils.GetRenderTargetAutoName(m_GgxIblMaxSampleCount, k_GgxIblMipCountMinusOne, 1, RenderTextureFormat.ARGBHalf, "GGXIblSampleData");
+                m_GgxIblSampleData.name = CoreUtils.GetRenderTargetAutoName(m_GgxIblMaxSampleCount, k_GgxIblMipCountMinusOne, 1, GraphicsFormat.R16G16B16A16_SFloat, "GGXIblSampleData");
                 m_GgxIblSampleData.hideFlags = HideFlags.HideAndDontSave;
                 m_GgxIblSampleData.Create();
 
@@ -75,7 +75,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
             if (!m_PlanarReflectionFilteringCS)
             {
-                m_PlanarReflectionFilteringCS = m_RenderPipelineResources.shaders.planarReflectionFilteringCS;
+                m_PlanarReflectionFilteringCS     = m_RenderPipelineResources.shaders.planarReflectionFilteringCS;
                 m_PlanarReflectionDepthConversionKernel = m_PlanarReflectionFilteringCS.FindKernel("DepthConversion");
                 m_PlanarReflectionDownScaleKernel = m_PlanarReflectionFilteringCS.FindKernel("DownScale");
                 m_PlanarReflectionFilteringKernel = m_PlanarReflectionFilteringCS.FindKernel("FilterPlanarReflection");

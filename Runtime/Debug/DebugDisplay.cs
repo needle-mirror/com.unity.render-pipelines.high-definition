@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine.Rendering.HighDefinition.Attributes;
+using UnityEngine.Experimental.Rendering.RenderGraphModule;
 
 namespace UnityEngine.Rendering.HighDefinition
 {
@@ -39,11 +40,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public int _MatcapMixAlbedo;
         public float _MatcapViewScale;
         public int _DebugSingleShadowIndex;
-
-        public int _DebugProbeVolumeMode;
-        public int _DebugAOVOutput;
         public int _DebugDisplayPad0;
-        public int _DebugDisplayPad1;
     }
 
     /// <summary>
@@ -86,6 +83,11 @@ namespace UnityEngine.Rendering.HighDefinition
         RecursiveRayTracing,
         /// <summary>Display ray-traced sub-surface scattering.</summary>
         RayTracedSubSurface,
+
+        // Volumetric Clouds
+        VolumetricClouds,
+        VolumetricCloudsShadow,
+
         /// <summary>Maximum Full Screen Lighting debug mode value (used internally).</summary>
         MaxLightingFullScreenDebug,
 
@@ -124,7 +126,10 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>Display Screen Space Reflections buffer of the previous frame accumulated.</summary>
         ScreenSpaceReflectionsPrev,
         /// <summary>Display Screen Space Reflections buffer of the current frame hit.</summary>
-        ScreenSpaceReflectionsAccum
+        ScreenSpaceReflectionsAccum,
+
+        /// <summary>Display the world space position.</summary>
+        WorldSpacePosition,
     }
 
     /// <summary>
@@ -269,8 +274,6 @@ namespace UnityEngine.Rendering.HighDefinition
             internal int debugCameraToFreezeEnumIndex;
             internal int volumeComponentEnumIndex;
             internal int volumeCameraEnumIndex;
-            internal int probeVolumeDebugModeEnumIndex;
-            internal int probeVolumeAtlasSliceModeEnumIndex;
 
             // When settings mutually exclusives enum values, we need to reset the other ones.
             internal void ResetExclusiveEnumIndices()
@@ -298,11 +301,6 @@ namespace UnityEngine.Rendering.HighDefinition
         public static GUIContent[] renderingFullScreenDebugStrings => s_RenderingFullScreenDebugStrings;
         /// <summary>List of Full Screen Rendering Debug mode values.</summary>
         public static int[] renderingFullScreenDebugValues => s_RenderingFullScreenDebugValues;
-
-        /// <summary>List of Full Screen Lighting Debug mode names.</summary>
-        public static GUIContent[] lightingFullScreenDebugStrings => s_LightingFullScreenDebugStrings;
-        /// <summary>List of Full Screen Lighting Debug mode values.</summary>
-        public static int[] lightingFullScreenDebugValues => s_LightingFullScreenDebugValues;
 
         internal DebugDisplaySettings()
         {
@@ -429,14 +427,6 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         /// <summary>
-        /// Returns the current Probe Volume Debug Mode.
-        /// </summary>
-        /// <returns>Current Probe Volume Debug Mode.</returns>
-        internal ProbeVolumeDebugMode GetProbeVolumeDebugMode()
-        {
-            return data.lightingDebugSettings.probeVolumeDebugMode;
-        }
-
         /// <summary>
         /// Returns true if camera visibility is frozen.
         /// </summary>
@@ -693,24 +683,6 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         /// <summary>
-        /// Set the current Probe Volume Debug Mode.
-        /// </summary>
-        /// <param name="value">Desired Probe Volume Debug Mode.</param>
-        internal void SetProbeVolumeDebugMode(ProbeVolumeDebugMode value)
-        {
-            data.lightingDebugSettings.probeVolumeDebugMode = value;
-        }
-
-        /// <summary>
-        /// Set the current Probe Volume Atlas Mode.
-        /// </summary>
-        /// <param name="value">Desired Probe Volume Atlas Mode.</param>
-        internal void SetProbeVolumeAtlasSliceMode(ProbeVolumeAtlasSliceMode value)
-        {
-            data.lightingDebugSettings.probeVolumeAtlasSliceMode = value;
-        }
-
-        /// <summary>
         /// Set the current Exposure Debug Mode.
         /// </summary>
         /// <param name="value">Desired Probe Volume Debug Mode.</param>
@@ -746,6 +718,10 @@ namespace UnityEngine.Rendering.HighDefinition
             m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.PrepareLightsForGPU));
             m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.VolumeVoxelization));
             m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.VolumetricLighting));
+            m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.VolumetricClouds));
+            m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.VolumetricCloudsTrace));
+            m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.VolumetricCloudsReproject));
+            m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.VolumetricCloudsUpscaleAndCombine));
             m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.RenderDeferredLightingCompute));
             m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.ForwardOpaque));
             m_RecordedSamplers.Add(ProfilingSampler.Get(HDProfileId.ForwardTransparent));
@@ -796,7 +772,8 @@ namespace UnityEngine.Rendering.HighDefinition
             m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.RaytracingDebugOverlay));
             m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.ForwardPreRefraction));
             m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.RayTracingRecursiveRendering));
-            m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.RayTracingPrepass));
+            m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.RayTracingDepthPrepass));
+            m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.RayTracingFlagMask));
             m_RecordedSamplersRT.Add(ProfilingSampler.Get(HDProfileId.RaytracingDeferredLighting));
         }
 
@@ -1042,7 +1019,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
         void RefreshRenderingDebug<T>(DebugUI.Field<T> field, T value)
         {
-            // Explicitly invoke the render debug unregister to handle render graph items.
             UnregisterDebugItems(k_PanelRendering, m_DebugRenderingItems);
             RegisterRenderingDebug();
         }
@@ -1115,18 +1091,6 @@ namespace UnityEngine.Rendering.HighDefinition
                         new DebugUI.BoolField { displayName = "Punctual Lights", getter = () => data.lightingDebugSettings.showPunctualLight, setter = value => data.lightingDebugSettings.showPunctualLight = value },
                         new DebugUI.BoolField { displayName = "Area Lights", getter = () => data.lightingDebugSettings.showAreaLight, setter = value => data.lightingDebugSettings.showAreaLight = value },
                         new DebugUI.BoolField { displayName = "Reflection Probes", getter = () => data.lightingDebugSettings.showReflectionProbe, setter = value => data.lightingDebugSettings.showReflectionProbe = value },
-                    }
-                });
-
-                lighting.children.Add(new DebugUI.Foldout
-                {
-                    displayName = "Probe Volumes",
-                    children =
-                    {
-                        new DebugUI.EnumField { displayName = "Probe Volume Debug Mode", getter = () => (int)data.lightingDebugSettings.probeVolumeDebugMode, setter = value => SetProbeVolumeDebugMode((ProbeVolumeDebugMode)value), autoEnum = typeof(ProbeVolumeDebugMode), onValueChanged = RefreshLightingDebug, getIndex = () => data.probeVolumeDebugModeEnumIndex, setIndex = value => data.probeVolumeDebugModeEnumIndex = value },
-                        new DebugUI.EnumField { displayName = "Probe Volume Atlas Slice Mode", getter = () => (int)data.lightingDebugSettings.probeVolumeAtlasSliceMode, setter = value => SetProbeVolumeAtlasSliceMode((ProbeVolumeAtlasSliceMode)value), autoEnum = typeof(ProbeVolumeAtlasSliceMode), onValueChanged = RefreshLightingDebug, getIndex = () => data.probeVolumeAtlasSliceModeEnumIndex, setIndex = value => data.probeVolumeAtlasSliceModeEnumIndex = value },
-                        new DebugUI.FloatField { displayName = "Probe Volume Range Min Value", getter = () => data.lightingDebugSettings.probeVolumeMinValue, setter = value => data.lightingDebugSettings.probeVolumeMinValue = value },
-                        new DebugUI.FloatField { displayName = "Probe Volume Range Max Value", getter = () => data.lightingDebugSettings.probeVolumeMaxValue, setter = value => data.lightingDebugSettings.probeVolumeMaxValue = value },
                     }
                 });
 
@@ -1426,7 +1390,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 list.Add(container);
             }
 
-            list.Add(new DebugUI.BoolField { displayName = "Display Cookie Atlas", getter = () => data.lightingDebugSettings.displayCookieAtlas, setter = value => data.lightingDebugSettings.displayCookieAtlas = value, onValueChanged = RefreshLightingDebug });
+            list.Add(new DebugUI.BoolField { displayName = "Display Cookie Atlas", getter = () => data.lightingDebugSettings.displayCookieAtlas, setter = value => data.lightingDebugSettings.displayCookieAtlas = value, onValueChanged = RefreshLightingDebug});
             if (data.lightingDebugSettings.displayCookieAtlas)
             {
                 list.Add(new DebugUI.Container
@@ -1439,7 +1403,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 });
             }
 
-            list.Add(new DebugUI.BoolField { displayName = "Display Planar Reflection Atlas", getter = () => data.lightingDebugSettings.displayPlanarReflectionProbeAtlas, setter = value => data.lightingDebugSettings.displayPlanarReflectionProbeAtlas = value, onValueChanged = RefreshLightingDebug });
+            list.Add(new DebugUI.BoolField { displayName = "Display Planar Reflection Atlas", getter = () => data.lightingDebugSettings.displayPlanarReflectionProbeAtlas, setter = value => data.lightingDebugSettings.displayPlanarReflectionProbeAtlas = value, onValueChanged = RefreshLightingDebug});
             if (data.lightingDebugSettings.displayPlanarReflectionProbeAtlas)
             {
                 list.Add(new DebugUI.Container
@@ -1452,7 +1416,40 @@ namespace UnityEngine.Rendering.HighDefinition
                 });
             }
 
-            list.Add(new DebugUI.FloatField { displayName = "Debug Overlay Screen Ratio", getter = () => data.debugOverlayRatio, setter = v => data.debugOverlayRatio = v, min = () => 0.1f, max = () => 1f });
+            list.Add(new DebugUI.BoolField { displayName = "Display Density Volume Atlas", getter = () => data.lightingDebugSettings.displayDensityVolumeAtlas, setter = value => data.lightingDebugSettings.displayDensityVolumeAtlas = value, onValueChanged = RefreshLightingDebug});
+            if (data.lightingDebugSettings.displayDensityVolumeAtlas)
+            {
+                list.Add(new DebugUI.Container
+                {
+                    children =
+                    {
+                        new DebugUI.UIntField { displayName = "Slice", getter = () => data.lightingDebugSettings.densityVolumeAtlasSlice, setter = value => data.lightingDebugSettings.densityVolumeAtlasSlice = value, min = () => 0, max = () => GetDensityVolumeSliceCount()},
+                        new DebugUI.BoolField { displayName = "Use Selection", getter = () => data.lightingDebugSettings.densityVolumeUseSelection, setter = value => data.lightingDebugSettings.densityVolumeUseSelection = value, flags = DebugUI.Flags.EditorOnly, onValueChanged = RefreshLightingDebug},
+                    }
+                });
+            }
+
+            uint GetDensityVolumeSliceCount()
+            {
+#if UNITY_EDITOR
+                if (data.lightingDebugSettings.densityVolumeUseSelection)
+                {
+                    var selectedGO = UnityEditor.Selection.activeGameObject;
+                    if (selectedGO != null && selectedGO.TryGetComponent<DensityVolume>(out var densityVolume))
+                    {
+                        var texture = densityVolume.parameters.volumeMask;
+
+                        if (texture != null)
+                            return (uint)(texture is RenderTexture rt ? rt.volumeDepth : texture is Texture3D t3D ? t3D.depth : 1) - 1;
+                    }
+                    return 0;
+                }
+                else
+#endif
+                return (uint)DensityVolumeManager.manager.volumeAtlas.GetAtlas().volumeDepth - 1;
+            }
+
+            list.Add(new DebugUI.FloatField { displayName = "Debug Overlay Screen Ratio", getter = () => data.debugOverlayRatio, setter = v => data.debugOverlayRatio = v, min = () => 0.1f, max = () => 1f});
 
             m_DebugLightingItems = list.ToArray();
             var panel = DebugManager.instance.GetPanel(k_PanelLighting, true);
@@ -1560,8 +1557,7 @@ namespace UnityEngine.Rendering.HighDefinition
                             return new DebugUI.Value()
                             {
                                 displayName = name,
-                                getter = () =>
-                                {
+                                getter = () => {
                                     var value = property.GetValue(param);
                                     if (value == null || value.Equals(null))
                                         return "None";
@@ -1575,8 +1571,7 @@ namespace UnityEngine.Rendering.HighDefinition
                         return new DebugUI.Value()
                         {
                             displayName = name,
-                            getter = () =>
-                            {
+                            getter = () => {
                                 var value = property.GetValue(param);
                                 return value == null ? "None" : value.ToString();
                             }
@@ -1630,8 +1625,7 @@ namespace UnityEngine.Rendering.HighDefinition
                         row.children.Add(new DebugUI.Value()
                         {
                             displayName = volume.name + " (" + profile.name + ")",
-                            getter = () =>
-                            {
+                            getter = () => {
                                 var scope = volume.isGlobal ? "Global" : "Local";
                                 var weight = data.volumeDebugSettings.GetVolumeWeight(volume);
                                 return scope + " (" + (weight * 100f) + "%)";
@@ -1776,7 +1770,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 }
             });
 
-            widgetList.Add(new DebugUI.BoolField { displayName = "False Color Mode", getter = () => data.falseColorDebugSettings.falseColor, setter = value => data.falseColorDebugSettings.falseColor = value, onValueChanged = RefreshRenderingDebug });
+            widgetList.Add(new DebugUI.BoolField  { displayName = "False Color Mode", getter = () => data.falseColorDebugSettings.falseColor, setter = value => data.falseColorDebugSettings.falseColor = value, onValueChanged = RefreshRenderingDebug });
             if (data.falseColorDebugSettings.falseColor)
             {
                 widgetList.Add(new DebugUI.Container
@@ -1813,6 +1807,19 @@ namespace UnityEngine.Rendering.HighDefinition
             m_DebugRenderingItems = widgetList.ToArray();
             var panel = DebugManager.instance.GetPanel(k_PanelRendering, true);
             panel.children.Add(m_DebugRenderingItems);
+
+            var renderGraphs = RenderGraph.GetRegisteredRenderGraphs();
+            foreach (var graph in renderGraphs)
+                graph.RegisterDebug(panel);
+        }
+
+        void UnregisterRenderingDebug()
+        {
+            UnregisterDebugItems(k_PanelRendering, m_DebugRenderingItems);
+
+            var renderGraphs = RenderGraph.GetRegisteredRenderGraphs();
+            foreach (var graph in renderGraphs)
+                graph.UnRegisterDebug();
         }
 
         void RegisterDecalsDebug()
@@ -1855,7 +1862,7 @@ namespace UnityEngine.Rendering.HighDefinition
             UnregisterDebugItems(k_PanelMaterials, m_DebugMaterialItems);
             UnregisterDebugItems(k_PanelLighting, m_DebugLightingItems);
             UnregisterDebugItems(k_PanelVolume, m_DebugVolumeItems);
-            UnregisterDebugItems(k_PanelRendering, m_DebugRenderingItems);
+            UnregisterRenderingDebug();
             DebugManager.instance.UnregisterData(this);
         }
 
@@ -1955,7 +1962,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 s_CameraNamesStrings = s_CameraNames.ToArray();
                 s_CameraNamesValues = Enumerable.Range(0, s_CameraNames.Count()).ToArray();
 
-                UnregisterDebugItems(k_PanelRendering, m_DebugRenderingItems);
+                UnregisterRenderingDebug();
                 RegisterRenderingDebug();
                 needsRefreshingCameraFreezeList = false;
             }
@@ -1964,7 +1971,7 @@ namespace UnityEngine.Rendering.HighDefinition
         internal bool DebugHideSky(HDCamera hdCamera)
         {
             return (IsMatcapViewEnabled(hdCamera) ||
-                GetDebugLightingMode() == DebugLightingMode.DiffuseLighting ||
+                GetDebugLightingMode() ==  DebugLightingMode.DiffuseLighting ||
                 GetDebugLightingMode() == DebugLightingMode.SpecularLighting ||
                 GetDebugLightingMode() == DebugLightingMode.DirectDiffuseLighting ||
                 GetDebugLightingMode() == DebugLightingMode.DirectSpecularLighting ||

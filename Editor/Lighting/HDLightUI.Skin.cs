@@ -25,15 +25,13 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // Base (copy from LightEditor.cs)
             public readonly GUIContent outterAngle = new GUIContent("Outer Angle", "Controls the angle, in degrees, at the base of a Spot Light's cone.");
-            public readonly GUIContent cookieSizeX = new GUIContent("Size X", "Sets the width of the Cookie mask currently assigned to the Light.");
-            public readonly GUIContent cookieSizeY = new GUIContent("Size Y", "Sets the height of the Cookie mask currently assigned to the Light.");
+            public readonly GUIContent cookieSize = new GUIContent("Size", "Sets the size of the Cookie mask currently assigned to the Light.");
             public readonly GUIContent shadowBias = new GUIContent("Bias", "Controls the distance at which HDRP pushes shadows away from the Light. Useful for avoiding false self-shadowing artifacts.");
             public readonly GUIContent shadowNormalBias = new GUIContent("Normal Bias", "Controls distance at which HDRP shrinks the shadow casting surfaces along the surface normal. Useful for avoiding false self-shadowing artifacts.");
             public readonly GUIContent shadowNearPlane = new GUIContent("Near Plane", "Controls the value for the active Camera's Near clipping Plane for rendering shadows. Currently clamped to 0.1 units or 1% of the lights range property, whichever is lower.");
             public readonly GUIContent bakedShadowRadius = new GUIContent("Radius", "Sets the amount of artificial softening the baking process applies to the edges of shadows cast by this Point or Spot Light.");
             public readonly GUIContent bakedShadowAngle = new GUIContent("Angle", "Controls the amount of artificial softening the baking process applies to the edges of shadows cast by Directional Lights.");
             public readonly GUIContent lightBounceIntensity = new GUIContent("Indirect Multiplier", "Controls the intensity of the indirect light this Light contributes to the Scene. A value of 0 with a Realtime Light causes HDRP to remove it from realtime global illumination. A value of 0 for Baked and Mixed Lights cause them to no longer emit indirect lighting. This has no effect if you disable both Realtime and Baked global illumination.");
-            public readonly GUIContent indirectBounceShadowWarning = new GUIContent("HDRP does not support real-time indirect bounce shadowing for Spot and Point lights.");
             public readonly GUIContent color = new GUIContent("Color", "Specifies the color this Light emits.");
             public readonly GUIContent lightAppearance = new GUIContent("Light Appearance", "Specifies the mode for how HDRP calculates this Light's color.");
             public readonly GUIContent colorFilter = new GUIContent("Filter", "Specifies a color which tints the Light source.");
@@ -159,6 +157,9 @@ namespace UnityEditor.Rendering.HighDefinition
 
             // Settings
             public readonly GUIContent enableShadowMap = new GUIContent("Enable", "When enabled, this Light casts shadows.");
+
+            // Warnings
+            public readonly string unsupportedLightShapeWarning = "This light shape is not supported by Realtime Global Illumination.";
 
             public Styles()
             {

@@ -6,13 +6,13 @@ Shader "Hidden/HDRP/FinalPass"
         #pragma editor_sync_compilation
         #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
 
-        #pragma multi_compile_local _ FXAA
-        #pragma multi_compile_local _ GRAIN
-        #pragma multi_compile_local _ DITHER
-        #pragma multi_compile_local _ ENABLE_ALPHA
-        #pragma multi_compile_local _ APPLY_AFTER_POST
+        #pragma multi_compile_local_fragment _ FXAA
+        #pragma multi_compile_local_fragment _ GRAIN
+        #pragma multi_compile_local_fragment _ DITHER
+        #pragma multi_compile_local_fragment _ ENABLE_ALPHA
+        #pragma multi_compile_local_fragment _ APPLY_AFTER_POST
 
-        #pragma multi_compile_local _ BILINEAR CATMULL_ROM_4 LANCZOS CONTRASTADAPTIVESHARPEN
+        #pragma multi_compile_local_fragment _ BILINEAR CATMULL_ROM_4 LANCZOS CONTRASTADAPTIVESHARPEN
         #define DEBUG_UPSCALE_POINT 0
 
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
@@ -71,7 +71,7 @@ Shader "Hidden/HDRP/FinalPass"
             #elif CATMULL_ROM_4
                 return CatmullRomFourSamples(_InputTexture, UV);
             #elif LANCZOS
-                return Lanczos(_InputTexture, UV, _ViewPortSize.xy);
+                return Lanczos(_InputTexture, UV, _ViewPortSize);
             #else
                 return Nearest(_InputTexture, UV);
             #endif
@@ -93,7 +93,7 @@ Shader "Hidden/HDRP/FinalPass"
             #if defined(BILINEAR) || defined(CATMULL_ROM_4) || defined(LANCZOS)
             CTYPE outColor = UpscaledResult(positionNDC.xy);
             #elif defined(CONTRASTADAPTIVESHARPEN)
-            CTYPE outColor = LOAD_TEXTURE2D_X(_InputTexture, ((input.texcoord.xy * _UVTransform.xy) + _UVTransform.zw) * _ViewPortSize.xy).CTYPE_SWIZZLE;
+            CTYPE outColor = LOAD_TEXTURE2D_X(_InputTexture, round(input.texcoord * _ViewPortSize.xy)).CTYPE_SWIZZLE;
             #else
             CTYPE outColor = LOAD_TEXTURE2D_X(_InputTexture, positionSS).CTYPE_SWIZZLE;
             #endif
@@ -103,14 +103,8 @@ Shader "Hidden/HDRP/FinalPass"
             #endif
 
             #if FXAA
-            CTYPE beforeFXAA = outColor;
-            RunFXAA(_InputTexture, sampler_LinearClamp, outColor, positionSS, positionNDC);
-
-            #if defined(ENABLE_ALPHA)
-            // When alpha processing is enabled, FXAA should not affect pixels with zero alpha
-            outColor.xyz = outColor.a > 0 ? outColor.xyz : beforeFXAA.xyz;
+            RunFXAA(_InputTexture, sampler_LinearClamp, outColor.rgb, positionSS, positionNDC);
             #endif
-            #endif //FXAA
 
             // Saturate is only needed for dither or grain to work. Otherwise we don't saturate because output might be HDR
             #if defined(GRAIN) || defined(DITHER)
@@ -130,7 +124,7 @@ Shader "Hidden/HDRP/FinalPass"
                 float lum = 1.0 - sqrt(Luminance(outColor));
                 lum = lerp(1.0, lum, _GrainParams.y);
 
-                outColor.xyz += outColor.xyz * grain * _GrainParams.x * lum;
+                outColor += outColor * grain * _GrainParams.x * lum;
             }
             #endif
 

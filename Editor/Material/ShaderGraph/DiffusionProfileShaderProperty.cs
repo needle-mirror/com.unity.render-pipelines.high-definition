@@ -28,15 +28,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
         string assetReferenceName => $"{referenceName}_Asset";
 
-        internal override string GetHLSLVariableName(bool isSubgraphProperty)
-        {
-            HLSLDeclaration decl = GetDefaultHLSLDeclaration();
-            if (decl == HLSLDeclaration.HybridPerInstance)
-                return $"UNITY_ACCESS_HYBRID_INSTANCED_PROP({referenceName}, float)";
-            else
-                return referenceName;
-        }
-
         internal override string GetPropertyBlockString()
         {
             uint hash = 0;
@@ -58,7 +49,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         public override string GetOldDefaultReferenceName() => $"DiffusionProfile_{objectId}";
 
-        internal override string GetPropertyAsArgumentString()
+        internal override string GetPropertyAsArgumentString(string precisionString)
         {
             return $"float {referenceName}";
         }
@@ -99,8 +90,7 @@ namespace UnityEditor.Rendering.HighDefinition
             var diffusionProfileDrawer = new DiffusionProfilePropertyDrawer();
 
             propertySheet.Add(diffusionProfileDrawer.CreateGUI(
-                newValue =>
-                {
+                newValue => {
                     preChangeValueCallback("Changed Diffusion Profile");
                     value = newValue;
                     postChangeValueCallback(true);

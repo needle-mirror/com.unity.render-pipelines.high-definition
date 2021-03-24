@@ -1,5 +1,6 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
+#include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/TextureXR.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/MaterialBlendModeEnum.cs.hlsl"
 
 #if VFX_BLENDMODE_ALPHA
@@ -38,7 +39,10 @@
 #define _SURFACE_TYPE_TRANSPARENT
 #endif
 
-// this is only necessary for the old VFXTarget pathway
-// it defines the macro used to access hybrid instanced properties
-// (new HDRP/URP Target pathway overrides the type so this is never used)
-#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(name, type) name
+#ifdef USE_TEXTURE2D_X_AS_ARRAY
+#define CameraBuffer Texture2DArray
+#define VFXSamplerCameraBuffer VFXSampler2DArray
+#else
+#define CameraBuffer Texture2D
+#define VFXSamplerCameraBuffer VFXSampler2D
+#endif

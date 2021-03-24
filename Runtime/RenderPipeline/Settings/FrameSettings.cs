@@ -100,7 +100,7 @@ namespace UnityEngine.Rendering.HighDefinition
         [FrameSettingsField(0, displayedName: "Clear GBuffers", positiveDependencies: new[] { LitShaderMode }, customOrderInGroup: 2, tooltip: "When enabled, HDRP clear GBuffers for Cameras using these Frame Settings. Set Lit Shader Mode to Deferred to access this option.")]
         ClearGBuffers = 5,
         /// <summary>When enabled, Cameras using these Frame Settings calculate MSAA when they render the Scene. Set Lit Shader Mode to Forward to access this option.</summary>
-        [FrameSettingsField(0, displayedName: "MSAA within Forward", negativeDependencies: new[] { LitShaderMode }, customOrderInGroup: 3, tooltip: "When enabled, Cameras using these Frame Settings calculate MSAA when they render the Scene. Set Lit Shader Mode to Forward to access this option. Note that MSAA is disabled when using ray tracing.")]
+        [FrameSettingsField(0, displayedName: "MSAA within Forward", negativeDependencies: new[] { LitShaderMode }, customOrderInGroup: 3, tooltip: "When enabled, Cameras using these Frame Settings calculate MSAA when they render the Scene. Set Lit Shader Mode to Forward to access this option.")]
         MSAA = 31,
         /// <summary>When enabled, Cameras using these Frame Settings use Alpha To Mask. Activate MSAA to access this option.</summary>
         [FrameSettingsField(0, displayedName: "Alpha To Mask", negativeDependencies: new[] { LitShaderMode }, positiveDependencies: new[] { MSAA }, customOrderInGroup: 3, tooltip: "When enabled, Cameras using these Frame Settings use Alpha To Mask. Activate MSAA to access this option.")]
@@ -229,7 +229,7 @@ namespace UnityEngine.Rendering.HighDefinition
         [FrameSettingsField(0, autoName: MaximumLODLevel, type: FrameSettingsFieldAttribute.DisplayType.Others, positiveDependencies: new[] { MaximumLODLevelMode }, tooltip: "Sets the Maximum Level Of Detail Level or the Offset on it.")]
         MaximumLODLevel = 63,
         /// <summary>The quality level to use when fetching the value from the quality settings.</summary>
-        [FrameSettingsField(0, displayedName: "Quality Level", type: FrameSettingsFieldAttribute.DisplayType.Others, customOrderInGroup: 102, positiveDependencies: new[] { MaximumLODLevelMode }, tooltip: "The quality level to use when fetching the value from the quality settings.")]
+        [FrameSettingsField(0,  displayedName: "Quality Level", type: FrameSettingsFieldAttribute.DisplayType.Others, customOrderInGroup: 102, positiveDependencies: new[] { MaximumLODLevelMode }, tooltip: "The quality level to use when fetching the value from the quality settings.")]
         MaximumLODLevelQualityLevel = 65,
         /// <summary>The quality level to use when fetching the value from the quality settings.</summary>
         [FrameSettingsField(0, autoName: MaterialQualityLevel, type: FrameSettingsFieldAttribute.DisplayType.Others, tooltip: "The material quality level to use.")]
@@ -243,13 +243,13 @@ namespace UnityEngine.Rendering.HighDefinition
         [FrameSettingsField(1, autoName: ContactShadows, tooltip: "When enabled, Cameras using these Frame Settings render Contact Shadows")]
         ContactShadows = 21,
         /// <summary>When enabled, Cameras using these Frame Settings render Screen Space Shadows.</summary>
-        [FrameSettingsField(1, autoName: ScreenSpaceShadows, customOrderInGroup: 23, tooltip: "When enabled, Cameras using these Frame Settings render Screen Space Shadows (Depends on \"Screen Space Shadows\" in current HDRP Asset). Note that Screen Space Shadows are disabled when MSAA is enabled.")]
+        [FrameSettingsField(1, autoName: ScreenSpaceShadows, customOrderInGroup: 23, tooltip: "When enabled, Cameras using these Frame Settings render Screen Space Shadows (Depends on \"Screen Space Shadows\" in current HDRP Asset).")]
         ScreenSpaceShadows = 34,
         /// <summary>When enabled, Cameras using these Frame Settings render shadows from Shadow Masks.</summary>
         [FrameSettingsField(1, autoName: Shadowmask, customOrderInGroup: 24, tooltip: "When enabled, Cameras using these Frame Settings render shadows from Shadow Masks (Depends on \"Shadowmask\" in current HDRP Asset).")]
         Shadowmask = 22,
         /// <summary>When enabled, Cameras using these Frame Settings calculate Screen Space Reflections.</summary>
-        [FrameSettingsField(1, displayedName: "Screen Space Reflection", tooltip: "When enabled, Cameras using these Frame Settings calculate Screen Space Reflections (Depends on \"Screen Space Reflection\" in current HDRP Asset). Note that Screen Space Reflections are disabled when MSAA is enabled.")]
+        [FrameSettingsField(1, displayedName: "Screen Space Reflection", tooltip: "When enabled, Cameras using these Frame Settings calculate Screen Space Reflections (Depends on \"Screen Space Reflection\" in current HDRP Asset).")]
         SSR = 23,
         /// <summary>When enabled, Cameras using these Frame Settings calculate Screen Space Reflections on transparent objects.</summary>
         [FrameSettingsField(1, displayedName: "Transparents", customOrderInGroup: 25, positiveDependencies: new[] { SSR }, tooltip: "When enabled, Cameras using these Frame Settings calculate Screen Space Reflections on transparent objects.")]
@@ -276,6 +276,9 @@ namespace UnityEngine.Rendering.HighDefinition
         [FrameSettingsField(1, customOrderInGroup: 49, displayedName: "Custom Sample Budget", positiveDependencies: new[] { SubsurfaceScattering }, type: FrameSettingsFieldAttribute.DisplayType.Others,
             tooltip: "Sets the custom sample budget of the Subsurface Scattering algorithm.")]
         SssCustomSampleBudget = 49,
+        /// <summary>When enabled, Cameras using these Frame Settings calculate Volumetric CLouds.</summary>
+        [FrameSettingsField(1, autoName: VolumetricClouds)]
+        VolumetricClouds = 79,
 
         /// <summary>When enabled, Cameras using these Frame Settings render subsurface scattering (SSS) Materials with an added transmission effect (only if you enable Transmission on the SSS Material in the Material's Inspector).</summary>
         [FrameSettingsField(1, autoName: Transmission, tooltip: "When enabled, Cameras using these Frame Settings render subsurface scattering (SSS) Materials with an added transmission effect (only if you enable Transmission on the SSS Material in the Material's Inspector).")]
@@ -449,8 +452,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 (uint)FrameSettingsField.MSAA
             }),
             lodBias = 1,
-            sssQualityMode = SssQualityMode.FromQualitySettings,
-            sssQualityLevel = 0,
+            sssQualityMode        = SssQualityMode.FromQualitySettings,
+            sssQualityLevel       = 0,
             sssCustomSampleBudget = (int)DefaultSssSampleBudgetForQualityLevel.Low,
         };
         internal static FrameSettings NewDefaultRealtimeReflectionProbe() => new FrameSettings()
@@ -507,8 +510,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 (uint)FrameSettingsField.DirectSpecularLighting,
             }),
             lodBias = 1,
-            sssQualityMode = SssQualityMode.FromQualitySettings,
-            sssQualityLevel = 0,
+            sssQualityMode        = SssQualityMode.FromQualitySettings,
+            sssQualityLevel       = 0,
             sssCustomSampleBudget = (int)DefaultSssSampleBudgetForQualityLevel.Low,
         };
         internal static FrameSettings NewDefaultCustomOrBakeReflectionProbe() => new FrameSettings()
@@ -562,8 +565,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 // (uint)FrameSettingsField.DirectSpecularLighting,
             }),
             lodBias = 1,
-            sssQualityMode = SssQualityMode.FromQualitySettings,
-            sssQualityLevel = 0,
+            sssQualityMode        = SssQualityMode.FromQualitySettings,
+            sssQualityLevel       = 0,
             sssCustomSampleBudget = (int)DefaultSssSampleBudgetForQualityLevel.Low,
         };
 
@@ -678,7 +681,7 @@ namespace UnityEngine.Rendering.HighDefinition
             var source = hdrp.currentPlatformRenderPipelineSettings.sssSampleBudget;
             switch (sssQualityMode)
             {
-                case SssQualityMode.FromQualitySettings: return source[sssQualityLevel];
+                case SssQualityMode.FromQualitySettings:     return source[sssQualityLevel];
                 case SssQualityMode.OverrideQualitySettings: return sssCustomSampleBudget;
                 default: throw new ArgumentOutOfRangeException(nameof(maximumLODLevelMode));
             }
@@ -691,7 +694,7 @@ namespace UnityEngine.Rendering.HighDefinition
         internal bool BuildLightListRunsAsync() => SystemInfo.supportsAsyncCompute && bitDatas[(int)FrameSettingsField.AsyncCompute] && bitDatas[(int)FrameSettingsField.LightListAsync];
         internal bool SSRRunsAsync() => SystemInfo.supportsAsyncCompute && bitDatas[(int)FrameSettingsField.AsyncCompute] && bitDatas[(int)FrameSettingsField.SSRAsync];
         internal bool SSAORunsAsync() => SystemInfo.supportsAsyncCompute && bitDatas[(int)FrameSettingsField.AsyncCompute] && bitDatas[(int)FrameSettingsField.SSAOAsync];
-        internal bool ContactShadowsRunAsync() => SystemInfo.supportsAsyncCompute && bitDatas[(int)FrameSettingsField.AsyncCompute] && bitDatas[(int)FrameSettingsField.ContactShadowsAsync];
+        internal bool ContactShadowsRunsAsync() => SystemInfo.supportsAsyncCompute && bitDatas[(int)FrameSettingsField.AsyncCompute] && bitDatas[(int)FrameSettingsField.ContactShadowsAsync];
         internal bool VolumeVoxelizationRunsAsync() => SystemInfo.supportsAsyncCompute && bitDatas[(int)FrameSettingsField.AsyncCompute] && bitDatas[(int)FrameSettingsField.VolumeVoxelizationsAsync];
 
         /// <summary>Override a frameSettings according to a mask.</summary>
@@ -756,6 +759,7 @@ namespace UnityEngine.Rendering.HighDefinition
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.ShadowMaps] &= !preview;
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.Shadowmask] &= renderPipelineSettings.supportShadowMask && !preview;
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.ContactShadows] &= !preview;
+            sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.ScreenSpaceShadows] &= renderPipelineSettings.hdShadowInitParams.supportScreenSpaceShadows && sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.OpaqueObjects];
             bool pipelineSupportsRayTracing = HDRenderPipeline.GatherRayTracingSupport(renderPipelineSettings);
             // Ray tracing effects are not allowed on reflection probes due to the accumulation process.
             bool rayTracingActive = sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.RayTracing] &= pipelineSupportsRayTracing && !preview && temporalAccumulationAllowed;
@@ -765,9 +769,6 @@ namespace UnityEngine.Rendering.HighDefinition
             bool msaa = sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.MSAA] &= renderPipelineSettings.supportMSAA && sanitizedFrameSettings.litShaderMode == LitShaderMode.Forward && !pipelineSupportsRayTracing;
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.AlphaToMask] &= msaa;
 
-            // Screen space shadows are not compatible with MSAA
-            sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.ScreenSpaceShadows] &= renderPipelineSettings.hdShadowInitParams.supportScreenSpaceShadows && sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.OpaqueObjects] & !msaa;
-
             // No recursive reflections
             bool ssr = sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.SSR] &= renderPipelineSettings.supportSSR && !msaa && !preview && temporalAccumulationAllowed;
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.TransparentSSR] &= ssr && renderPipelineSettings.supportSSRTransparent && sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.TransparentObjects];
@@ -776,6 +777,7 @@ namespace UnityEngine.Rendering.HighDefinition
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.SSAO] &= renderPipelineSettings.supportSSAO && !preview && sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.OpaqueObjects] && temporalAccumulationAllowed;
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.SSGI] &= renderPipelineSettings.supportSSGI && !preview && sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.OpaqueObjects] && temporalAccumulationAllowed;
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.SubsurfaceScattering] &= renderPipelineSettings.supportSubsurfaceScattering;
+            sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.VolumetricClouds] &= renderPipelineSettings.supportVolumetricClouds && !preview;
 
             // We must take care of the scene view fog flags in the editor
             bool atmosphericScattering = sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.AtmosphericScattering] &= sceneViewFog && !preview;
@@ -825,7 +827,7 @@ namespace UnityEngine.Rendering.HighDefinition
             // In HD, MSAA is only supported for forward only rendering, no MSAA in deferred mode (for code complexity reasons)
             sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.FPTLForForwardOpaque] &= !msaa;
 
-            sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.ProbeVolume] &= renderPipelineSettings.supportProbeVolume && (ShaderConfig.s_EnableProbeVolumes == 1);
+            sanitizedFrameSettings.bitDatas[(int)FrameSettingsField.ProbeVolume] &= renderPipelineSettings.supportProbeVolume;
 
             // We disable reflection probes and planar reflections in regular preview rendering for two reasons.
             // - Performance: Realtime reflection are 99% not necessary in previews
@@ -874,17 +876,17 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="b">Second frame settings.</param>
         /// <returns>True if both settings are equal.</returns>
         public static bool operator==(FrameSettings a, FrameSettings b)
-            => a.bitDatas == b.bitDatas
-            && a.sssQualityMode == b.sssQualityMode
-            && a.sssQualityLevel == b.sssQualityLevel
-            && a.sssCustomSampleBudget == b.sssCustomSampleBudget
-            && a.lodBias == b.lodBias
-            && a.lodBiasMode == b.lodBiasMode
-            && a.lodBiasQualityLevel == b.lodBiasQualityLevel
-            && a.maximumLODLevel == b.maximumLODLevel
-            && a.maximumLODLevelMode == b.maximumLODLevelMode
+            => a.bitDatas                    == b.bitDatas
+            && a.sssQualityMode              == b.sssQualityMode
+            && a.sssQualityLevel             == b.sssQualityLevel
+            && a.sssCustomSampleBudget       == b.sssCustomSampleBudget
+            && a.lodBias                     == b.lodBias
+            && a.lodBiasMode                 == b.lodBiasMode
+            && a.lodBiasQualityLevel         == b.lodBiasQualityLevel
+            && a.maximumLODLevel             == b.maximumLODLevel
+            && a.maximumLODLevelMode         == b.maximumLODLevelMode
             && a.maximumLODLevelQualityLevel == b.maximumLODLevelQualityLevel
-            && a.materialQuality == b.materialQuality;
+            && a.materialQuality             == b.materialQuality;
 
         /// <summary>
         /// Inequality operator between two FrameSettings. Return `true` if different. (comparison of content).

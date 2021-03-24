@@ -29,9 +29,9 @@ namespace UnityEngine.Rendering.HighDefinition
         static ProfilingSampler renderNormalFromCameraSampler = new ProfilingSampler("Render Normal");
         static ProfilingSampler renderTangentFromCameraSampler = new ProfilingSampler("Render Tangent");
 
-        static MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
-        static Material customPassUtilsMaterial;
-        static Material customPassRenderersUtilsMaterial;
+        static MaterialPropertyBlock    propertyBlock = new MaterialPropertyBlock();
+        static Material                 customPassUtilsMaterial;
+        static Material                 customPassRenderersUtilsMaterial;
 
 
         static Dictionary<int, ComputeBuffer> gaussianWeightsCache = new Dictionary<int, ComputeBuffer>();
@@ -568,11 +568,7 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             // viewport with RT handle scale and scale factor:
             Rect viewport = new Rect();
-            if (destination.useScaling)
-                viewport.size = destination.GetScaledSize(destination.rtHandleProperties.currentViewportSize);
-            else
-                viewport.size = new Vector2Int(destination.rt.width, destination.rt.height);
-            Vector2 destSize = viewport.size;
+            Vector2 destSize = viewport.size = destination.GetScaledSize(destination.rtHandleProperties.currentViewportSize);
             viewport.position = new Vector2(viewport.size.x * destScaleBias.z, viewport.size.y * destScaleBias.w);
             viewport.size *= new Vector2(destScaleBias.x, destScaleBias.y);
 

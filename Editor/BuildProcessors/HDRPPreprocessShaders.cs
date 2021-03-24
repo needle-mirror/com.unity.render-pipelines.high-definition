@@ -7,7 +7,6 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
-using System.Reflection;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
@@ -169,6 +168,15 @@ namespace UnityEditor.Rendering.HighDefinition
                     return true;
             }
 
+            // Global Illumination
+            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL1) &&
+                (!hdrpAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdrpAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL1))
+                return true;
+
+            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL2) &&
+                (!hdrpAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdrpAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL2))
+                return true;
+
             return false;
         }
     }
@@ -237,6 +245,8 @@ namespace UnityEditor.Rendering.HighDefinition
         protected ShaderKeyword m_MSAA = new ShaderKeyword("ENABLE_MSAA");
         protected ShaderKeyword m_ScreenSpaceShadowOFFKeywords = new ShaderKeyword("SCREEN_SPACE_SHADOWS_OFF");
         protected ShaderKeyword m_ScreenSpaceShadowONKeywords = new ShaderKeyword("SCREEN_SPACE_SHADOWS_ON");
+        protected ShaderKeyword m_ProbeVolumesL1 = new ShaderKeyword("PROBE_VOLUMES_L1");
+        protected ShaderKeyword m_ProbeVolumesL2 = new ShaderKeyword("PROBE_VOLUMES_L2");
 
         public int callbackOrder { get { return 0; } }
 
@@ -290,17 +300,21 @@ namespace UnityEditor.Rendering.HighDefinition
                 return true;
             }
 
+            // Global Illumination
+            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL1) &&
+                (!hdAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL1))
+                return true;
+
+            if (inputData.shaderKeywordSet.IsEnabled(m_ProbeVolumesL2) &&
+                (!hdAsset.currentPlatformRenderPipelineSettings.supportProbeVolume || hdAsset.currentPlatformRenderPipelineSettings.probeVolumeSHBands != ProbeVolumeSHBands.SphericalHarmonicsL2))
+                return true;
+
             return false;
         }
 
         public void OnProcessComputeShader(ComputeShader shader, string kernelName, IList<ShaderCompilerData> inputData)
         {
             if (HDRenderPipeline.currentAsset == null)
-                return;
-
-            // Discard any compute shader use for raytracing if none of the RP asset required it
-            ComputeShader unused;
-            if (!ShaderBuildPreprocessor.playerNeedRaytracing && ShaderBuildPreprocessor.computeShaderCache.TryGetValue(shader.GetInstanceID(), out unused))
                 return;
 
             var exportLog = ShaderBuildPreprocessor.hdrpAssets.Count > 0
@@ -540,73 +554,23 @@ namespace UnityEditor.Rendering.HighDefinition
     class ShaderBuildPreprocessor : IPreprocessBuildWithReport
     {
         private static List<HDRenderPipelineAsset> _hdrpAssets;
-        private static Dictionary<int, ComputeShader> s_ComputeShaderCache;
-        private static bool s_PlayerNeedRaytracing;
 
         public static List<HDRenderPipelineAsset> hdrpAssets
         {
             get
             {
-                if (_hdrpAssets == null || _hdrpAssets.Count == 0)
-                    GetAllValidHDRPAssets();
+                if (_hdrpAssets == null || _hdrpAssets.Count == 0) GetAllValidHDRPAssets();
                 return _hdrpAssets;
-            }
-        }
-
-        public static Dictionary<int, ComputeShader> computeShaderCache
-        {
-            get
-            {
-                if (s_ComputeShaderCache == null)
-                    BuilRaytracingComputeList();
-                return s_ComputeShaderCache;
-            }
-        }
-
-        public static bool playerNeedRaytracing
-        {
-            get
-            {
-                return s_PlayerNeedRaytracing;
-            }
-        }
-
-        public static void BuilRaytracingComputeList()
-        {
-            if (s_ComputeShaderCache != null)
-                s_ComputeShaderCache.Clear();
-            else
-                s_ComputeShaderCache = new Dictionary<int, ComputeShader>();
-
-            if (HDRenderPipeline.defaultAsset == null)
-                return;
-
-            if (HDRenderPipeline.defaultAsset.renderPipelineRayTracingResources == null)
-                return;
-
-            foreach (var fieldInfo in HDRenderPipeline.defaultAsset.renderPipelineRayTracingResources.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
-            {
-                ComputeShader computeshader;
-                computeshader = fieldInfo.GetValue(HDRenderPipeline.defaultAsset.renderPipelineRayTracingResources) as ComputeShader;
-
-                if (computeshader != null)
-                {
-                    s_ComputeShaderCache.Add(computeshader.GetInstanceID(), computeshader);
-                }
             }
         }
 
         static void GetAllValidHDRPAssets()
         {
-            s_PlayerNeedRaytracing = false;
-
             if (HDRenderPipeline.currentAsset == null)
                 return;
 
-            if (_hdrpAssets != null)
-                _hdrpAssets.Clear();
-            else
-                _hdrpAssets = new List<HDRenderPipelineAsset>();
+            if (_hdrpAssets != null) _hdrpAssets.Clear();
+            else _hdrpAssets = new List<HDRenderPipelineAsset>();
 
             using (ListPool<HDRenderPipelineAsset>.Get(out var tmpAssets))
             {
@@ -695,15 +659,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 else
                 {
                     Debug.LogWarning("There is no HDRP Asset provided in GraphicsSettings. Build time can be extremely long without it.");
-                }
-            }
-            else
-            {
-                // Take the opportunity to know if we need raytracing at runtime
-                foreach (var hdrpAsset in _hdrpAssets)
-                {
-                    if (hdrpAsset.currentPlatformRenderPipelineSettings.supportRayTracing)
-                        s_PlayerNeedRaytracing = true;
                 }
             }
 
