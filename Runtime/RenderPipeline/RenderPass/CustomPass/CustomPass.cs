@@ -26,7 +26,7 @@ namespace UnityEngine.Rendering.HighDefinition
         [SerializeField, FormerlySerializedAsAttribute("name")]
         string m_Name = "Custom Pass";
 
-        internal ProfilingSampler profilingSampler
+        internal ProfilingSampler   profilingSampler
         {
             get
             {
@@ -35,36 +35,36 @@ namespace UnityEngine.Rendering.HighDefinition
                 return m_ProfilingSampler;
             }
         }
-        ProfilingSampler m_ProfilingSampler;
+        ProfilingSampler            m_ProfilingSampler;
 
         /// <summary>
         /// Is the custom pass enabled or not
         /// </summary>
-        public bool enabled = true;
+        public bool             enabled = true;
 
         /// <summary>
         /// Target color buffer (Camera or Custom)
         /// </summary>
-        public TargetBuffer targetColorBuffer;
+        public TargetBuffer     targetColorBuffer;
 
         /// <summary>
         /// Target depth buffer (camera or custom)
         /// </summary>
-        public TargetBuffer targetDepthBuffer;
+        public TargetBuffer     targetDepthBuffer;
 
         /// <summary>
         /// What clear to apply when the color and depth buffer are bound
         /// </summary>
-        public ClearFlag clearFlags;
+        public ClearFlag        clearFlags;
 
         [SerializeField]
-        bool passFoldout;
+        bool                passFoldout;
         [System.NonSerialized]
-        bool isSetup = false;
-        bool isExecuting = false;
-        RenderTargets currentRenderTarget;
-        CustomPassVolume owner;
-        HDCamera currentHDCamera;
+        bool                isSetup = false;
+        bool                isExecuting = false;
+        RenderTargets       currentRenderTarget;
+        CustomPassVolume    owner;
+        HDCamera            currentHDCamera;
 
         MaterialPropertyBlock userMaterialPropertyBlock;
 
@@ -155,7 +155,7 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         [SerializeField]
-        Version m_Version = MigrationDescription.LastVersion<Version>();
+        Version     m_Version = MigrationDescription.LastVersion<Version>();
         Version IVersionable<Version>.version
         {
             get => m_Version;

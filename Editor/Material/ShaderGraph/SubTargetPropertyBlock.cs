@@ -54,8 +54,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 
             if (elem != null)
             {
-                context.AddProperty<Data>(displayName.text, indentLevel, elem, (evt) =>
-                {
+                context.AddProperty<Data>(displayName.text, indentLevel, elem, (evt) => {
                     if (Equals(getter(), evt.newValue))
                         return;
 
@@ -66,8 +65,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             }
             else
             {
-                context.AddProperty<Enum>(displayName.text, indentLevel, elemEnum, (evt) =>
-                {
+                context.AddProperty<Enum>(displayName.text, indentLevel, elemEnum, (evt) => {
                     if (Equals(getter(), evt.newValue))
                         return;
 
@@ -83,15 +81,13 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 
         protected void AddFoldout(GUIContent content, Func<bool> getter, Action<bool> setter)
         {
-            var foldout = new Foldout()
-            {
+            var foldout = new Foldout() {
                 value = getter(),
                 text = content.text,
                 tooltip = content.tooltip
             };
 
-            foldout.RegisterValueChangedCallback((evt) =>
-            {
+            foldout.RegisterValueChangedCallback((evt) => {
                 setter(evt.newValue);
                 onChange();
             });

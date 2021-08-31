@@ -231,8 +231,7 @@ namespace UnityEngine.Rendering.HighDefinition
             ResetAllocator();
 
             // Sort entries from biggest to smallest
-            entries.Sort((c1, c2) =>
-            {
+            entries.Sort((c1, c2) => {
                 return c2.size.magnitude.CompareTo(c1.size.magnitude);
             });
 
