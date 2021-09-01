@@ -22,7 +22,8 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 
         static string[] passTemplateMaterialDirectories = new string[]
         {
-            $"{HDUtils.GetHDRenderPipelinePath()}Editor/Material/Fabric/ShaderGraph/"
+            $"{HDUtils.GetHDRenderPipelinePath()}Editor/Material/Fabric/ShaderGraph/",
+            $"{HDUtils.GetHDRenderPipelinePath()}Editor/Material/ShaderGraph/Templates/"
         };
 
         protected override string[] templateMaterialDirectories => passTemplateMaterialDirectories;
@@ -51,8 +52,8 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             set => m_FabricData = value;
         }
 
-        public static FieldDescriptor CottonWool = new FieldDescriptor(kMaterial, "CottonWool", "_MATERIAL_FEATURE_COTTON_WOOL 1");
-        public static FieldDescriptor Silk = new FieldDescriptor(kMaterial, "Silk", "_MATERIAL_FEATURE_SILK 1");
+        public static FieldDescriptor CottonWool =              new FieldDescriptor(kMaterial, "CottonWool", "_MATERIAL_FEATURE_COTTON_WOOL 1");
+        public static FieldDescriptor Silk =                    new FieldDescriptor(kMaterial, "Silk", "_MATERIAL_FEATURE_SILK 1");
 
         protected override SubShaderDescriptor GetRaytracingSubShaderDescriptor()
         {
@@ -69,11 +70,11 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             base.GetFields(ref context);
 
             // Fabric specific properties
-            context.AddField(CottonWool, fabricData.materialType == FabricData.MaterialType.CottonWool);
-            context.AddField(Silk, fabricData.materialType == FabricData.MaterialType.Silk);
-            context.AddField(SubsurfaceScattering, fabricData.subsurfaceScattering && systemData.surfaceType != SurfaceType.Transparent);
-            context.AddField(Transmission, fabricData.transmission);
-            context.AddField(EnergyConservingSpecular, fabricData.energyConservingSpecular);
+            context.AddField(CottonWool,                           fabricData.materialType == FabricData.MaterialType.CottonWool);
+            context.AddField(Silk,                                 fabricData.materialType == FabricData.MaterialType.Silk);
+            context.AddField(SubsurfaceScattering,                 fabricData.subsurfaceScattering && systemData.surfaceType != SurfaceType.Transparent);
+            context.AddField(Transmission,                         fabricData.transmission);
+            context.AddField(EnergyConservingSpecular,             fabricData.energyConservingSpecular);
 
             context.AddField(SpecularAA, lightingData.specularAA &&
                 context.pass.validPixelBlocks.Contains(HDBlockFields.SurfaceDescription.SpecularAAThreshold) &&
@@ -87,8 +88,8 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             // Fabric specific blocks
             context.AddBlock(BlockFields.SurfaceDescription.Specular);
             context.AddBlock(HDBlockFields.SurfaceDescription.DiffusionProfileHash, fabricData.subsurfaceScattering || fabricData.transmission);
-            context.AddBlock(HDBlockFields.SurfaceDescription.SubsurfaceMask, fabricData.subsurfaceScattering);
-            context.AddBlock(HDBlockFields.SurfaceDescription.Thickness, fabricData.transmission);
+            context.AddBlock(HDBlockFields.SurfaceDescription.SubsurfaceMask,       fabricData.subsurfaceScattering);
+            context.AddBlock(HDBlockFields.SurfaceDescription.Thickness,            fabricData.transmission);
 
             // Fabric Silk
             if (fabricData.materialType == FabricData.MaterialType.Silk)

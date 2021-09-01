@@ -1,3 +1,4 @@
+using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
@@ -36,7 +37,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         SerializedDataParameter m_TargetMidGray;
 
-        private static HDLightUnitSliderUIDrawer k_LightUnitSlider;
+        private static LightUnitSliderUIDrawer k_LightUnitSlider;
 
         int m_RepaintsAfterChange = 0;
         int m_SettingsForDoubleRefreshHash = 0;
@@ -75,7 +76,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             m_TargetMidGray = Unpack(o.Find(x => x.targetMidGray));
 
-            k_LightUnitSlider = new HDLightUnitSliderUIDrawer();
+            k_LightUnitSlider = new LightUnitSliderUIDrawer();
         }
 
         public override void OnInspectorGUI()

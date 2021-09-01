@@ -30,7 +30,7 @@ namespace UnityEngine.Rendering.HighDefinition
             m_BilateralFilterVSingleDirectionalKernel = m_ShadowDenoiser.FindKernel("BilateralFilterVSingleDirectional");
 
             m_BilateralFilterHColorDirectionalKernel = m_ShadowDenoiser.FindKernel("BilateralFilterHColorDirectional");
-            m_BilateralFilterVColorDirectionalKernel = m_ShadowDenoiser.FindKernel("BilateralFilterVColorDirectional");
+            m_BilateralFilterVColorDirectionalKernel =  m_ShadowDenoiser.FindKernel("BilateralFilterVColorDirectional");
 
             m_BilateralFilterHSingleSphereKernel = m_ShadowDenoiser.FindKernel("BilateralFilterHSingleSphere");
             m_BilateralFilterVSingleSphereKernel = m_ShadowDenoiser.FindKernel("BilateralFilterVSingleSphere");

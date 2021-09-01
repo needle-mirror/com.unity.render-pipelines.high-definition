@@ -218,7 +218,7 @@ namespace UnityEngine.Rendering.HighDefinition
             Color fogColor = (colorMode.value == FogColorMode.ConstantColor) ? color.value : tint.value;
             cb._FogColorMode = (float)colorMode.value;
             cb._FogColor = new Color(fogColor.r, fogColor.g, fogColor.b, 0.0f);
-            cb._MipFogParameters = new Vector4(mipFogNear.value, mipFogFar.value, mipFogMaxMip.value, 0.0f);
+            cb._MipFogParameters  = new Vector4(mipFogNear.value, mipFogFar.value, mipFogMaxMip.value, 0.0f);
 
             LocalVolumetricFogArtistParameters param = new LocalVolumetricFogArtistParameters(albedo.value, meanFreePath.value, anisotropy.value);
             LocalVolumetricFogEngineData data = param.ConvertToEngineData();
@@ -239,7 +239,6 @@ namespace UnityEngine.Rendering.HighDefinition
             cb._HeightFogBaseHeight = crBaseHeight;
             cb._GlobalFogAnisotropy = anisotropy.value;
             cb._VolumetricFilteringEnabled = ((int)denoisingMode.value & (int)FogDenoisingMode.Gaussian) != 0 ? 1 : 0;
-            cb._FogDirectionalOnly = directionalLightsOnly.value ? 1 : 0;
         }
     }
 

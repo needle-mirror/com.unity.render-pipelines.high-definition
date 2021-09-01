@@ -105,7 +105,6 @@ Shader "Hidden/Shader/ChromaKeying"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Name "ChromaKeying"

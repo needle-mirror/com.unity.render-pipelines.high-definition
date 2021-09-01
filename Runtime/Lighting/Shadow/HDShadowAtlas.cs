@@ -57,21 +57,21 @@ namespace UnityEngine.Rendering.HighDefinition
 
         protected List<HDShadowRequest> m_ShadowRequests = new List<HDShadowRequest>();
 
-        public int width { get; private set; }
-        public int height { get; private set; }
+        public int                  width { get; private set; }
+        public int                  height  { get; private set; }
 
-        Material m_ClearMaterial;
-        LightingDebugSettings m_LightingDebugSettings;
-        FilterMode m_FilterMode;
-        DepthBits m_DepthBufferBits;
-        RenderTextureFormat m_Format;
-        string m_Name;
-        string m_MomentName;
-        string m_MomentCopyName;
-        string m_IntermediateSummedAreaName;
-        string m_SummedAreaName;
-        int m_AtlasShaderID;
-        HDRenderPipelineRuntimeResources m_RenderPipelineResources;
+        Material                    m_ClearMaterial;
+        LightingDebugSettings       m_LightingDebugSettings;
+        FilterMode                  m_FilterMode;
+        DepthBits                   m_DepthBufferBits;
+        RenderTextureFormat         m_Format;
+        string                      m_Name;
+        string                      m_MomentName;
+        string                      m_MomentCopyName;
+        string                      m_IntermediateSummedAreaName;
+        string                      m_SummedAreaName;
+        int                         m_AtlasShaderID;
+        HDRenderPipelineRuntimeResources     m_RenderPipelineResources;
 
         // Moment shadow data
         BlurAlgorithm m_BlurAlgorithm;
@@ -313,7 +313,6 @@ namespace UnityEngine.Rendering.HighDefinition
                             data.globalCBData._InvProjMatrix = shadowRequest.deviceProjectionYFlip.inverse;
                             data.globalCBData._ViewProjMatrix = viewProjection;
                             data.globalCBData._InvViewProjMatrix = viewProjection.inverse;
-                            data.globalCBData._SlopeScaleDepthBias = -shadowRequest.slopeBias;
 
                             data.globalCB.PushGlobal(ctx.cmd, data.globalCBData, HDShaderIDs._ShaderVariablesGlobal);
 

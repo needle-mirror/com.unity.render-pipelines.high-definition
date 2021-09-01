@@ -184,8 +184,6 @@
     * [Debugging Ray-Traced Effects](Ray-Tracing-Debug.md)
 * Components
   * [Decal Projector](Decal-Projector.md)
-  * [Lens Flare](shared/lens-flare/lens-flare-component.md)
-    * [Lens Flare asset](shared/lens-flare/lens-flare-asset.md)
 * Tools
   * [Look Dev](Look-Dev.md)
   * [Compositor](Compositor-Main.md)
@@ -193,7 +191,7 @@
     * [User Options](Compositor-User-Options.md)
 * Debugging
   * [MatCap](MatCap.md)
-  * [Rendering Debugger](Render-Pipeline-Debug-Window.md)
+  * [Render Pipeline Debugger Window](Render-Pipeline-Debug-Window.md)
 * Virtual Reality
   * [VR Overview](VR-Overview.md)
 * Consoles

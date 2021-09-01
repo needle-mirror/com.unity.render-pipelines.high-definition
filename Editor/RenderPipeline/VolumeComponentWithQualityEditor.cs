@@ -18,7 +18,7 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             private struct QualitySetting
             {
-                public bool state;
+                public bool   state;
                 public object value;
             }
 

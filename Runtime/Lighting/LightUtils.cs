@@ -8,9 +8,6 @@ namespace UnityEngine.Rendering.HighDefinition
     /// </summary>
     class LightUtils
     {
-        static float s_LuminanceToEvFactor = Mathf.Log(100f / ColorUtils.s_LightMeterCalibrationConstant, 2);
-        static float s_EvToLuminanceFactor = -Mathf.Log(100f / ColorUtils.s_LightMeterCalibrationConstant, 2);
-
         // Physical light unit helper
         // All light unit are in lumen (Luminous power)
         // Punctual light (point, spot) are convert to candela (cd = lumens / steradian)
@@ -166,7 +163,8 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns></returns>
         public static float ConvertEvToLuminance(float ev)
         {
-            return Mathf.Pow(2, ev + s_EvToLuminanceFactor);
+            float k = ColorUtils.s_LightMeterCalibrationConstant;
+            return (k / 100.0f) * Mathf.Pow(2, ev);
         }
 
         /// <summary>
@@ -195,7 +193,8 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns></returns>
         public static float ConvertLuminanceToEv(float luminance)
         {
-            return Mathf.Log(luminance, 2) + s_LuminanceToEvFactor;
+            float k = ColorUtils.s_LightMeterCalibrationConstant;
+            return (float)Math.Log((luminance * 100f) / k, 2);
         }
 
         /// <summary>

@@ -124,7 +124,6 @@ Depending on the [Graph Settings](#graph-settings) you use, Shader Graph can add
 [!include[](snippets/shader-properties/surface-options/double-sided.md)]
 [!include[](snippets/shader-properties/surface-options/ss-depth-offset.md)]
 [!include[](snippets/shader-properties/surface-options/conservative-depth-offset.md)]
-[!include[](snippets/shader-properties/surface-options/velocity.md)]
 [!include[](snippets/shader-properties/surface-options/tessellation.md)]
 [!include[](snippets/shader-properties/surface-options/shadow-matte.md)]
 </table>

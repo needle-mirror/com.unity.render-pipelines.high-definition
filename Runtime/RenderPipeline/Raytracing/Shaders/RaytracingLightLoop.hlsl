@@ -1,10 +1,9 @@
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RayTracingLightCluster.hlsl"
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/RayTracingFallbackHierarchy.cs.hlsl"
 
 #define USE_LIGHT_CLUSTER
 
 void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BSDFData bsdfData, BuiltinData builtinData,
-                float4 reflection, float4 transmission,
+                float reflectionHierarchyWeight, float refractionHierarchyWeight, float3 reflection, float3 transmission,
                 out LightLoopOutput lightLoopOutput)
 {
     // Init LightLoop output structure
@@ -14,7 +13,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     context.contactShadow    = 1.0;
     context.shadowContext    = InitShadowContext();
     context.shadowValue      = 1.0;
-    context.splineVisibility = -1;
     context.sampleReflection = 0;
 
     // Initialize the contactShadow and contactShadowFade fields
@@ -78,27 +76,21 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
     }
 
-    // Initalize the reflection and refraction hierarchy weights
-    float reflectionHierarchyWeight = 0.0;
-    float refractionHierarchyWeight = 0.0;
-
-    // Add the traced reflection (if any)
-    if (reflection.w == 1.0)
+    // Add the traced reflection
+    if (reflectionHierarchyWeight == 1.0)
     {
-        IndirectLighting lighting = EvaluateBSDF_RaytracedReflection(context, bsdfData, preLightData, reflection.xyz);
+        IndirectLighting lighting = EvaluateBSDF_RaytracedReflection(context, bsdfData, preLightData, reflection);
         AccumulateIndirectLighting(lighting, aggregateLighting);
-        reflectionHierarchyWeight = 1.0;
     }
 
 #if HAS_REFRACTION
-    // Add the traced transmission (if any)
-    if (transmission.w == 1.0)
+    // Add the traced transmission
+    if (refractionHierarchyWeight == 1.0)
     {
         IndirectLighting indirect;
         ZERO_INITIALIZE(IndirectLighting, indirect);
-        IndirectLighting lighting = EvaluateBSDF_RaytracedRefraction(context, preLightData, transmission.xyz);
+        IndirectLighting lighting = EvaluateBSDF_RaytracedRefraction(context, preLightData, transmission);
         AccumulateIndirectLighting(lighting, aggregateLighting);
-        refractionHierarchyWeight = 1.0;
     }
 #endif
 
@@ -120,32 +112,30 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     #endif
 
     context.sampleReflection = SINGLE_PASS_CONTEXT_SAMPLE_REFLECTION_PROBES;
-    if (RAYTRACINGFALLBACKHIERACHY_REFLECTION_PROBES & _RayTracingLastBounceFallbackHierarchy)
-    {
-        // Scalarized loop, same rationale of the punctual light version
-        uint envLightIdx = lightStart;
-        while (envLightIdx < lightEnd)
-        {
-            #ifdef USE_LIGHT_CLUSTER
-            EnvLightData envLightData = FetchClusterEnvLightIndex(cellIndex, envLightIdx);
-            #else
-            EnvLightData envLightData = _EnvLightDatasRT[envLightIdx];
-            #endif
 
-            if (reflectionHierarchyWeight < 1.0)
-            {
-                EVALUATE_BSDF_ENV(envLightData, REFLECTION, reflection);
-            }
-            if (refractionHierarchyWeight < 1.0)
-            {
-                EVALUATE_BSDF_ENV(envLightData, REFRACTION, refraction);
-            }
-            envLightIdx++;
+    // Scalarized loop, same rationale of the punctual light version
+    uint envLightIdx = lightStart;
+    while (envLightIdx < lightEnd)
+    {
+        #ifdef USE_LIGHT_CLUSTER
+        EnvLightData envLightData = FetchClusterEnvLightIndex(cellIndex, envLightIdx);
+        #else
+        EnvLightData envLightData = _EnvLightDatasRT[envLightIdx];
+        #endif
+
+        if (reflectionHierarchyWeight < 1.0)
+        {
+            EVALUATE_BSDF_ENV(envLightData, REFLECTION, reflection);
         }
+        if (refractionHierarchyWeight < 1.0)
+        {
+            EVALUATE_BSDF_ENV(envLightData, REFRACTION, refraction);
+        }
+        envLightIdx++;
     }
 
     // Only apply the sky IBL if the sky texture is available
-    if (_EnvLightSkyEnabled && (RAYTRACINGFALLBACKHIERACHY_SKY & _RayTracingLastBounceFallbackHierarchy))
+    if (_EnvLightSkyEnabled)
     {
         // The sky is a single cubemap texture separate from the reflection probe texture array (different resolution and compression)
         context.sampleReflection = SINGLE_PASS_CONTEXT_SAMPLE_SKY;

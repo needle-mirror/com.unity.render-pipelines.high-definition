@@ -1,7 +1,6 @@
 {
 	SubShader
-	{
-	    Tags{ "RenderPipeline" = "HDRenderPipeline" }
+	{	
 		${VFXInclude("Shaders/VFXParticleHeader.template")}
 		${VFXIncludeRP("Templates/Mesh/PassSelection.template")}
 		${VFXIncludeRP("Templates/Mesh/PassDepth.template"),IS_OPAQUE_PARTICLE}

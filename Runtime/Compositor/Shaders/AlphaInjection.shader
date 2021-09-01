@@ -51,7 +51,6 @@ Shader "Hidden/Shader/AlphaInjection"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Name "AlphaInjection"

@@ -2,12 +2,10 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
 {
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
-
         // Additive
         Pass
         {
-            Name "LensFlareAdditive"
+            Name "ForwardUnlit"
             Tags{ "LightMode" = "Forward"  "RenderQueue" = "Transparent" }
 
             Blend One One
@@ -23,11 +21,12 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
 
             #pragma multi_compile_fragment _ FLARE_CIRCLE FLARE_POLYGON
             #pragma multi_compile_fragment _ FLARE_INVERSE_SDF
-            #pragma multi_compile _ FLARE_OCCLUSION
+            #pragma multi_compile_vertex _ FLARE_OCCLUSION
 
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #define HDRP_FLARE
+            #define FLARE_DYNAMIC_RESOLUTION
             #include "Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/Shaders/LensFlareCommon.hlsl"
 
             ENDHLSL
@@ -35,7 +34,7 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
         // Screen
         Pass
         {
-            Name "LensFlareScreen"
+            Name "ForwardUnlit"
             Tags{ "LightMode" = "Forward"  "RenderQueue" = "Transparent" }
 
             Blend One OneMinusSrcColor
@@ -52,11 +51,12 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
 
             #pragma multi_compile_fragment _ FLARE_CIRCLE FLARE_POLYGON
             #pragma multi_compile_fragment _ FLARE_INVERSE_SDF
-            #pragma multi_compile _ FLARE_OCCLUSION
+            #pragma multi_compile_vertex _ FLARE_OCCLUSION
 
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #define HDRP_FLARE
+            #define FLARE_DYNAMIC_RESOLUTION
             #include "Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/Shaders/LensFlareCommon.hlsl"
 
             ENDHLSL
@@ -64,7 +64,7 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
         // Premultiply
         Pass
         {
-            Name "LensFlarePremultiply"
+            Name "ForwardUnlit"
             Tags{ "LightMode" = "Forward"  "RenderQueue" = "Transparent" }
 
             Blend One OneMinusSrcAlpha
@@ -81,11 +81,12 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
 
             #pragma multi_compile_fragment _ FLARE_CIRCLE FLARE_POLYGON
             #pragma multi_compile_fragment _ FLARE_INVERSE_SDF
-            #pragma multi_compile _ FLARE_OCCLUSION
+            #pragma multi_compile_vertex _ FLARE_OCCLUSION
 
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #define HDRP_FLARE
+            #define FLARE_DYNAMIC_RESOLUTION
             #include "Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/Shaders/LensFlareCommon.hlsl"
 
             ENDHLSL
@@ -93,7 +94,7 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
         // Lerp
         Pass
         {
-            Name "LensFlareLerp"
+            Name "ForwardUnlit"
             Tags{ "LightMode" = "Forward"  "RenderQueue" = "Transparent" }
 
             Blend SrcAlpha OneMinusSrcAlpha
@@ -110,35 +111,12 @@ Shader "Hidden/HDRP/LensFlareDataDriven"
 
             #pragma multi_compile_fragment _ FLARE_CIRCLE FLARE_POLYGON
             #pragma multi_compile_fragment _ FLARE_INVERSE_SDF
-            #pragma multi_compile _ FLARE_OCCLUSION
+            #pragma multi_compile_vertex _ FLARE_OCCLUSION
 
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #define HDRP_FLARE
-            #include "Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/Shaders/LensFlareCommon.hlsl"
-
-            ENDHLSL
-        }
-        // OcclusionOnly
-        Pass
-        {
-            Name "LensFlareOcclusion"
-
-            Blend Off
-            Cull Off
-            ZWrite Off
-            ZTest Always
-
-            HLSLPROGRAM
-
-            #pragma target 5.0
-            #pragma vertex vertOcclusion
-            #pragma fragment fragOcclusion
-
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-            #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
-            #define HDRP_FLARE
-            #define FLARE_COMPUTE_OCCLUSION
+            #define FLARE_DYNAMIC_RESOLUTION
             #include "Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/Shaders/LensFlareCommon.hlsl"
 
             ENDHLSL

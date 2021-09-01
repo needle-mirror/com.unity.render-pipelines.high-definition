@@ -120,12 +120,8 @@ namespace UnityEditor.Rendering.HighDefinition
                 //In case we are early loading it through HDProjectSettingsReadOnlyBase, migration can have not been done.
                 //To not create an infinite callstack loop through "instance", destroy it to force reloading it.
                 //(migration is done at loading time)
-                if (s_Instance != null && (!(s_Instance is HDProjectSettings inst) || inst.m_Version != MigrationDescription.LastVersion<Version>()))
+                if (!(s_Instance is HDProjectSettings inst) || inst.m_Version != MigrationDescription.LastVersion<Version>())
                 {
-                    if (!(s_Instance is HDProjectSettings))
-                        Debug.Log($"Not a HDProjectSettings: {s_Instance?.GetType()?.ToString() ?? "null" }");
-                    else
-                        Debug.Log($"Version: {(s_Instance as HDProjectSettings).m_Version}");
                     DestroyImmediate(s_Instance);
                     s_Instance = null;
                 }
@@ -134,9 +130,15 @@ namespace UnityEditor.Rendering.HighDefinition
             }
         }
 
+        HDProjectSettings()
+        {
+            // s_Instance.FillPresentPluginMaterialVersions(); <
+            // We can't call this here as the scriptable object will not be deserialized in yet
+        }
+
         //// We force the instance to be loaded/created and ready with valid values on assembly reload.
         [InitializeOnLoadMethod]
-        static void InitializeFillPresentPluginMaterialVersionsOnLoad()
+        static void Reset()
         {
             // Make sure the cached last seen plugin versions (capped to codebase versions) and their sum is valid
             // on assembly reload.

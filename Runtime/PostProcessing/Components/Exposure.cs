@@ -105,7 +105,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// Sets the texture mask used to weight the pixels in the buffer when computing exposure.
         /// </summary>
         [Tooltip("Sets the texture mask to be used to weight the pixels in the buffer for the sake of computing exposure.")]
-        public Texture2DParameter weightTextureMask = new Texture2DParameter(null);
+        public NoInterpTextureParameter weightTextureMask = new NoInterpTextureParameter(null);
 
         /// <summary>
         /// These values are the lower and upper percentages of the histogram that will be used to
@@ -144,7 +144,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Sets the radii of the procedural mask, in terms of fraction of half the screen (i.e. 0.5 means a mask that stretch half of the screen in both directions).
         /// </summary>
-        public NoInterpVector2Parameter proceduralRadii = new NoInterpVector2Parameter(new Vector2(0.3f, 0.3f));
+        public NoInterpVector2Parameter proceduralRadii  = new NoInterpVector2Parameter(new Vector2(0.3f, 0.3f));
         /// <summary>
         /// All pixels below this threshold (in EV100 units) will be assigned a weight of 0 in the metering mask.
         /// </summary>

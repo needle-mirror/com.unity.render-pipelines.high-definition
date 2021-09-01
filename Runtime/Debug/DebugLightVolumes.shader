@@ -9,7 +9,6 @@ Shader "Hidden/HDRP/DebugLightVolumes"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Cull Back

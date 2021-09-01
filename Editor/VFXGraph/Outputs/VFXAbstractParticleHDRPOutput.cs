@@ -52,7 +52,7 @@ namespace UnityEditor.VFX.HDRP
         protected bool useEmissive = false;
         protected VFXAbstractParticleHDRPOutput(bool strip = false) : base(strip) {}
 
-        protected virtual bool allowTextures { get { return GetOrRefreshShaderGraphObject() == null; } }
+        protected virtual bool allowTextures { get { return GetOrRefreshShaderGraphObject() == null; }}
 
         protected IEnumerable<VFXPropertyWithValue> baseColorMapProperties
         {

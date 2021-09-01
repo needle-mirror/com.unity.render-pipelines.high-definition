@@ -7,10 +7,10 @@ namespace UnityEngine.Rendering.HighDefinition
 {
     public partial class HDRenderPipeline
     {
-        bool m_FullScreenDebugPushed;
-        DebugOverlay m_DebugOverlay = new DebugOverlay();
-        TextureHandle m_DebugFullScreenTexture;
-        ComputeBufferHandle m_DebugFullScreenComputeBuffer;
+        bool                        m_FullScreenDebugPushed;
+        DebugOverlay                m_DebugOverlay = new DebugOverlay();
+        TextureHandle               m_DebugFullScreenTexture;
+        ComputeBufferHandle         m_DebugFullScreenComputeBuffer;
         ShaderVariablesDebugDisplay m_ShaderVariablesDebugDisplayCB = new ShaderVariablesDebugDisplay();
 
         Material m_DebugViewMaterialGBuffer;
@@ -525,7 +525,7 @@ namespace UnityEngine.Rendering.HighDefinition
             if (!m_CurrentDebugDisplaySettings.data.lightingDebugSettings.displayLocalVolumetricFogAtlas)
                 return;
 
-            using (var builder = renderGraph.AddRenderPass<RenderLocalVolumetricFogAtlasDebugOverlayPassData>("RenderLocalVolumetricFogAtlasOverlay", out var passData, ProfilingSampler.Get(HDProfileId.DisplayLocalVolumetricFogAtlas)))
+            using (var builder = renderGraph.AddRenderPass<RenderLocalVolumetricFogAtlasDebugOverlayPassData>("RenderLocalVolumetricFogAtlasOverlay" , out var passData, ProfilingSampler.Get(HDProfileId.DisplayLocalVolumetricFogAtlas)))
             {
                 passData.debugOverlay = m_DebugOverlay;
                 passData.colorBuffer = builder.UseColorBuffer(colorBuffer, 0);
@@ -653,9 +653,7 @@ namespace UnityEngine.Rendering.HighDefinition
                             data.debugViewTilesMaterial.SetFloat(HDShaderIDs._ClusterDebugDistance, lightingDebug.clusterDebugDistance);
                             data.debugViewTilesMaterial.SetVector(HDShaderIDs._MousePixelCoord, HDUtils.GetMouseCoordinates(data.hdCamera));
                             data.debugViewTilesMaterial.SetVector(HDShaderIDs._MouseClickPixelCoord, HDUtils.GetMouseClickCoordinates(data.hdCamera));
-                            data.debugViewTilesMaterial.SetBuffer(HDShaderIDs.g_vLightListTile, data.lightList);
-                            data.debugViewTilesMaterial.SetBuffer(HDShaderIDs.g_vLightListCluster, data.perVoxelLightList);
-
+                            data.debugViewTilesMaterial.SetBuffer(HDShaderIDs.g_vLightListGlobal, bUseClustered ? data.perVoxelLightList : data.lightList);
                             data.debugViewTilesMaterial.SetTexture(HDShaderIDs._CameraDepthTexture, data.depthPyramidTexture);
                             data.debugViewTilesMaterial.EnableKeyword(bUseClustered ? "USE_CLUSTERED_LIGHTLIST" : "USE_FPTL_LIGHTLIST");
                             data.debugViewTilesMaterial.DisableKeyword(!bUseClustered ? "USE_CLUSTERED_LIGHTLIST" : "USE_FPTL_LIGHTLIST");
@@ -666,7 +664,7 @@ namespace UnityEngine.Rendering.HighDefinition
                             else
                                 data.debugViewTilesMaterial.DisableKeyword("DISABLE_TILE_MODE");
 
-                            CoreUtils.DrawFullScreen(ctx.cmd, data.debugViewTilesMaterial, shaderPassId: 0);
+                            CoreUtils.DrawFullScreen(ctx.cmd, data.debugViewTilesMaterial, 0);
                         }
                     });
             }
@@ -790,14 +788,14 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
-        void RenderDebugOverlays(RenderGraph renderGraph,
-            TextureHandle colorBuffer,
-            TextureHandle depthBuffer,
-            TextureHandle depthPyramidTexture,
-            TextureHandle rayCountTexture,
-            in BuildGPULightListOutput lightLists,
-            in ShadowResult shadowResult,
-            HDCamera hdCamera)
+        void RenderDebugOverlays(RenderGraph    renderGraph,
+            TextureHandle               colorBuffer,
+            TextureHandle               depthBuffer,
+            TextureHandle               depthPyramidTexture,
+            TextureHandle               rayCountTexture,
+            in BuildGPULightListOutput  lightLists,
+            in ShadowResult             shadowResult,
+            HDCamera                    hdCamera)
         {
             float overlayRatio = m_CurrentDebugDisplaySettings.data.debugOverlayRatio;
             int overlaySize = (int)(Math.Min(hdCamera.actualHeight, hdCamera.actualWidth) * overlayRatio);
@@ -998,17 +996,17 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
-        TextureHandle RenderDebug(RenderGraph renderGraph,
-            HDCamera hdCamera,
-            TextureHandle colorBuffer,
-            TextureHandle depthBuffer,
-            TextureHandle depthPyramidTexture,
-            TextureHandle colorPickerDebugTexture,
-            TextureHandle rayCountTexture,
-            in BuildGPULightListOutput lightLists,
-            in ShadowResult shadowResult,
-            CullingResults cullResults,
-            GraphicsFormat colorFormat)
+        TextureHandle RenderDebug(RenderGraph                 renderGraph,
+            HDCamera                    hdCamera,
+            TextureHandle               colorBuffer,
+            TextureHandle               depthBuffer,
+            TextureHandle               depthPyramidTexture,
+            TextureHandle               colorPickerDebugTexture,
+            TextureHandle               rayCountTexture,
+            in BuildGPULightListOutput  lightLists,
+            in ShadowResult             shadowResult,
+            CullingResults              cullResults,
+            GraphicsFormat              colorFormat)
         {
             // We don't want any overlay for these kind of rendering
             if (hdCamera.camera.cameraType == CameraType.Reflection || hdCamera.camera.cameraType == CameraType.Preview)
@@ -1155,12 +1153,12 @@ namespace UnityEngine.Rendering.HighDefinition
 
         class PushFullScreenDebugPassData
         {
-            public TextureHandle input;
-            public TextureHandle output;
-            public int mipIndex;
-            public bool xrTexture;
-            public bool useCustomScaleBias;
-            public Vector4 customScaleBias;
+            public TextureHandle    input;
+            public TextureHandle    output;
+            public int              mipIndex;
+            public bool             xrTexture;
+            public bool             useCustomScaleBias;
+            public Vector4          customScaleBias;
         }
 
         void PushFullScreenLightingDebugTexture(RenderGraph renderGraph, TextureHandle input, GraphicsFormat colorFormat = GraphicsFormat.R16G16B16A16_SFloat)

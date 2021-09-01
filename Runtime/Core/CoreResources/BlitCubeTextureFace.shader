@@ -2,7 +2,6 @@ Shader "Hidden/SRP/BlitCubeTextureFace"
 {
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         // Cubemap blit.  Takes a face index.
         Pass
         {

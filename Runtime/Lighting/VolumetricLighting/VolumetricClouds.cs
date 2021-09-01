@@ -80,12 +80,10 @@ namespace UnityEngine.Rendering.HighDefinition
             Medium256 = 256,
             /// <summary>The volumetric clouds shadow will be 512x512.</summary>
             High512 = 512,
-            /// <summary>The volumetric clouds shadow will be 1024x1024.</summary>
-            Ultra1024 = 1024,
         }
 
         /// <summary> </summary>
-        public const int CloudShadowResolutionCount = 5;
+        public const int CloudShadowResolutionCount = 4;
 
         /// <summary>
         /// A <see cref="VolumeParameter"/> that holds a <see cref="CloudControl"/> value.
@@ -156,40 +154,15 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         /// <summary>
-        /// The set mode in which the clouds fade in when close to the camera
-        /// </summary>
-        public enum CloudFadeInMode
-        {
-            /// <summary>The fade in parameters are automatically evaluated.</summary>
-            Automatic,
-            /// <summary>The fade in parameters are to be defined by the user.</summary>
-            Manual
-        }
-
-        /// <summary>
-        /// A <see cref="VolumeParameter"/> that holds a <see cref="CloudControl"/> value.
-        /// </summary>
-        [Serializable]
-        public sealed class CloudFadeInModeParameter : VolumeParameter<CloudFadeInMode>
-        {
-            /// <summary>
-            /// Creates a new <see cref="CloudFadeInModeParameter"/> instance.
-            /// </summary>
-            /// <param name="value">The initial value to store in the parameter.</param>
-            /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudFadeInModeParameter(CloudFadeInMode value, bool overrideState = false) : base(value, overrideState) {}
-        }
-
-        /// <summary>
         /// Enable/Disable the volumetric clouds effect.
         /// </summary>
         [Tooltip("Enable/Disable the volumetric clouds effect.")]
         public BoolParameter enable = new BoolParameter(false);
 
         /// <summary>
-        /// When enabled, clouds are part of the scene and you can interact with them. This means you can move around and inside the clouds, they can appear between the Camera and other GameObjects, and the Camera's clipping planes affect the clouds. When disabled, the clouds are part of the skybox. This means the clouds and their shadows appear relative to the Camera and always appear behind geometry.
+        /// When enabled, clouds are part of the scene and you can interact with them. This means for example, you can move around the clouds, clouds can appear between the Camera and other GameObjects, and the Camera's clipping planes affects the clouds. When disabled, the clouds are part of the skybox. This mean the clouds and their shadows appear relative to the Camera and always appear behind geometry.
         /// </summary>
-        [Tooltip("When enabled, clouds are part of the scene and you can interact with them. This means you can move around and inside the clouds, they can appear between the Camera and other GameObjects, and the Camera's clipping planes affect the clouds. When disabled, the clouds are part of the skybox. This means the clouds and their shadows appear relative to the Camera and always appear behind geometry.")]
+        [Tooltip("When enabled, clouds are part of the scene and you can interact with them. This means for example, you can move around the clouds, clouds can appear between the Camera and other GameObjects, and the Camera's clipping planes affects the clouds. When disabled, the clouds are part of the skybox. This mean the clouds and their shadows appear relative to the Camera and always appear behind geometry.")]
         public BoolParameter localClouds = new BoolParameter(false);
 
         /// <summary>
@@ -214,7 +187,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// Controls the altitude of the bottom of the volumetric clouds volume in meters.
         /// </summary>
         [Tooltip("Controls the altitude of the bottom of the volumetric clouds volume in meters.")]
-        public MinFloatParameter lowestCloudAltitude = new MinFloatParameter(1000.0f, 0.01f);
+        public MinFloatParameter lowestCloudAltitude = new MinFloatParameter(1000, 0.01f);
 
         /// <summary>
         /// Controls the thickness of the volumetric clouds volume in meters.
@@ -223,34 +196,16 @@ namespace UnityEngine.Rendering.HighDefinition
         public MinFloatParameter cloudThickness = new MinFloatParameter(8000.0f, 100.0f);
 
         /// <summary>
-        /// Controls the mode in which the clouds fade in when close to the camera's near plane.
+        /// Controls the number of steps when evaluating the clouds' transmittance.
         /// </summary>
-        [Tooltip("Controls the mode in which the clouds fade in when close to the camera's near plane.")]
-        public CloudFadeInModeParameter fadeInMode = new CloudFadeInModeParameter(CloudFadeInMode.Automatic);
+        [Tooltip("Controls the number of steps when evaluating the clouds' transmittance.")]
+        public ClampedIntParameter numPrimarySteps = new ClampedIntParameter(48, 16, 512);
 
         /// <summary>
-        /// Controls the minimal distance at which clouds start appearing.
+        /// Controls the number of steps when evaluating the clouds' lighting.
         /// </summary>
-        [Tooltip("Controls the minimal distance at which clouds start appearing.")]
-        public MinFloatParameter fadeInStart = new MinFloatParameter(0.0f, 0.0f);
-
-        /// <summary>
-        /// Controls the distance that it takes for the clouds to reach their complete density.
-        /// </summary>
-        [Tooltip("Controls the distance that it takes for the clouds to reach their complete density.")]
-        public MinFloatParameter fadeInDistance = new MinFloatParameter(0.0f, 0.0f);
-
-        /// <summary>
-        /// Controls the number of steps when evaluating the clouds' transmittance. A higher value may lead to a lower noise level and longer view distance, but at a higher cost.
-        /// </summary>
-        [Tooltip("Controls the number of steps when evaluating the clouds' transmittance. A higher value may lead to a lower noise level and longer view distance, but at a higher cost.")]
-        public ClampedIntParameter numPrimarySteps = new ClampedIntParameter(64, 32, 1024);
-
-        /// <summary>
-        /// Controls the number of steps when evaluating the clouds' lighting. A higher value will lead to smoother lighting and improved self-shadowing, but at a higher cost.
-        /// </summary>
-        [Tooltip("Controls the number of steps when evaluating the clouds' lighting. A higher value will lead to smoother lighting and improved self-shadowing, but at a higher cost.")]
-        public ClampedIntParameter numLightSteps = new ClampedIntParameter(6, 1, 32);
+        [Tooltip("Controls the number of steps when evaluating the clouds' lighting.")]
+        public ClampedIntParameter numLightSteps = new ClampedIntParameter(8, 6, 32);
 
         /// <summary>
         /// Specifies the cloud map - Coverage (R), Rain (G), Type (B).
@@ -349,17 +304,15 @@ namespace UnityEngine.Rendering.HighDefinition
         public ColorParameter scatteringTint = new ColorParameter(new Color(0.0f, 0.0f, 0.0f, 1.0f));
 
         /// <summary>
-        /// Controls the amount of local scattering in the clouds. A higher value may produce a more powdery or diffused aspect.
+        /// Controls the amount of local scattering in the clouds. A value of 1 may provide a more powdery aspect.
         /// </summary>
-        [Tooltip("Controls the amount of local scattering in the clouds. A higher value may produce a more powdery or diffused aspect.")]
-        [AdditionalProperty]
-        public ClampedFloatParameter powderEffectIntensity = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);
+        [Tooltip("Controls the amount of local scattering in the clouds. A value of 1 may provide a more powdery aspect.")]
+        public ClampedFloatParameter powderEffectIntensity = new ClampedFloatParameter(0.7f, 0.0f, 1.0f);
 
         /// <summary>
         /// Controls the amount of multi-scattering inside the cloud.
         /// </summary>
         [Tooltip("Controls the amount of multi-scattering inside the cloud.")]
-        [AdditionalProperty]
         public ClampedFloatParameter multiScattering = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
 
         /// <summary>
@@ -381,10 +334,16 @@ namespace UnityEngine.Rendering.HighDefinition
         public MinFloatParameter shapeScale = new MinFloatParameter(2.5f, 0.1f);
 
         /// <summary>
-        /// Controls the world space offset applied when evaluating the larger noise passing through the cloud coverage.
+        /// Controls the offset (world X-axis) applied when evaluating the larger noise passing through the cloud coverage. The values "0", "-1" and "1" will give the same result.
         /// </summary>
-        [Tooltip("Controls the world space offset applied when evaluating the larger noise passing through the cloud coverage.")]
-        public Vector3Parameter shapeOffset = new Vector3Parameter(Vector3.zero);
+        [Tooltip("Controls the offset (world X-axis) applied when evaluating the larger noise passing through the cloud coverage. The values \"0\", \"-1\" and \"1\" will give the same result.")]
+        public ClampedFloatParameter shapeOffsetX = new ClampedFloatParameter(0.0f, -1.0f, 1.0f);
+
+        /// <summary>
+        /// Controls the offset (world Z-axis) applied when evaluating the larger noise passing through the cloud coverage. The values "0", "-1" and "1" will give the same result.
+        /// </summary>
+        [Tooltip("Controls the offset (world Z-axis) applied when evaluating the larger noise passing through the cloud coverage. The values \"0\", \"-1\" and \"1\" will give the same result.")]
+        public ClampedFloatParameter shapeOffsetZ = new ClampedFloatParameter(0.0f, -1.0f, 1.0f);
 
         /// <summary>
         /// Controls the smaller noise on the edge of the clouds. A higher value will erode clouds more significantly.
@@ -412,22 +371,15 @@ namespace UnityEngine.Rendering.HighDefinition
         public ClampedFloatParameter ambientLightProbeDimmer = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
 
         /// <summary>
-        /// Controls the influence of the sun light on the cloud volume. A lower value will suppress the sun light and produce darker clouds overall.
-        /// </summary>
-        [Tooltip("Controls the influence of the sun light on the cloud volume. A lower value will suppress the sun light and produce darker clouds overall.")]
-        public ClampedFloatParameter sunLightDimmer = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
-
-        /// <summary>
         /// Controls how much Erosion Factor is taken into account when computing ambient occlusion. The Erosion Factor parameter is editable in the custom preset, Advanced and Manual Modes.
         /// </summary>
         [Tooltip("Controls how much Erosion Factor is taken into account when computing ambient occlusion. The Erosion Factor parameter is editable in the custom preset, Advanced and Manual Modes.")]
-        [AdditionalProperty]
         public ClampedFloatParameter erosionOcclusion = new ClampedFloatParameter(0.1f, 0.0f, 1.0f);
 
         /// <summary>
-        /// Sets the global horizontal wind speed in kilometers per hour. This value can be relative to the Global Wind Speed defined in the Visual Environment.
+        /// Sets the global wind speed in kilometers per hour. This value can be relative to the Global Wind Speed defined in the Visual Environment.
         /// </summary>
-        [Tooltip("Sets the global horizontal wind speed in kilometers per hour.\nThis value can be relative to the Global Wind Speed defined in the Visual Environment.")]
+        [Tooltip("Sets the global wind speed in kilometers per hour.\nThis value can be relative to the Global Wind Speed defined in the Visual Environment.")]
         public WindSpeedParameter globalWindSpeed = new WindSpeedParameter();
 
         /// <summary>
@@ -465,30 +417,10 @@ namespace UnityEngine.Rendering.HighDefinition
         public ClampedFloatParameter erosionSpeedMultiplier = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);
 
         /// <summary>
-        /// Controls the vertical wind speed of the larger cloud shapes.
-        /// </summary>
-        [Tooltip("Controls the vertical wind speed of the larger cloud shapes.")]
-        [AdditionalProperty]
-        public FloatParameter verticalShapeWindSpeed = new FloatParameter(0.0f);
-
-        /// <summary>
-        /// Controls the vertical wind speed of the erosion cloud shapes.
-        /// </summary>
-        [Tooltip("Controls the vertical wind speed of the erosion cloud shapes.")]
-        [AdditionalProperty]
-        public FloatParameter verticalErosionWindSpeed = new FloatParameter(0.0f);
-
-        /// <summary>
         /// Temporal accumulation increases the visual quality of clouds by decreasing the noise. A higher value will give you better quality but can create ghosting.
         /// </summary>
         [Tooltip("Temporal accumulation increases the visual quality of clouds by decreasing the noise. A higher value will give you better quality but can create ghosting.")]
         public ClampedFloatParameter temporalAccumulationFactor = new ClampedFloatParameter(0.95f, 0.0f, 1.0f);
-
-        /// <summary>
-        /// Enable/Disable the volumetric clouds ghosting reduction. When enabled, reduces significantly the ghosting of the volumetric clouds, but may introduce some flickering at lower temporal accumulation factors.
-        /// </summary>
-        [Tooltip("Enable/Disable the volumetric clouds ghosting reduction. When enabled, reduces significantly the ghosting of the volumetric clouds, but may introduce some flickering at lower temporal accumulation factors.")]
-        public BoolParameter ghostingReduction = new BoolParameter(false);
 
         /// <summary>
         /// Enable/Disable the volumetric clouds shadow. This will override the cookie of your directional light and the cloud layer shadow (if active).
@@ -497,7 +429,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public BoolParameter shadows = new BoolParameter(false);
 
         /// <summary>
-        /// Specifies the resolution of the volumetric clouds shadow map.
+        /// Enable/Disable the volumetric clouds shadow. This will override the cookie of your directional light and the cloud layer shadow (if active).
         /// </summary>
         [Tooltip("Specifies the resolution of the volumetric clouds shadow map.")]
         public CloudShadowResolutionParameter shadowResolution = new CloudShadowResolutionParameter(CloudShadowResolution.Medium256);

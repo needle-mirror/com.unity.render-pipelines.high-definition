@@ -54,7 +54,6 @@ Shader "FullScreen/#SCRIPTNAME#"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Name "Custom Pass 0"

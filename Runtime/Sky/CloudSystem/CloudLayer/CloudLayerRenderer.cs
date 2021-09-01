@@ -130,17 +130,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // This matrix needs to be updated at the draw call frequency.
             m_PropertyBlock.SetMatrix(HDShaderIDs._PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
-
-            if (renderForCubemap)
-            {
-                CoreUtils.SetRenderTarget(cmd, builtinParams.colorBuffer, ClearFlag.None, 0, builtinParams.cubemapFace);
-                CoreUtils.DrawFullScreen(cmd, m_CloudLayerMaterial, m_PropertyBlock, 0);
-            }
-            else
-            {
-                CoreUtils.SetRenderTarget(cmd, builtinParams.colorBuffer);
-                CoreUtils.DrawFullScreen(cmd, m_CloudLayerMaterial, m_PropertyBlock, 1);
-            }
+            CoreUtils.DrawFullScreen(cmd, m_CloudLayerMaterial, m_PropertyBlock, renderForCubemap ? 0 : 1);
         }
 
         class PrecomputationCache
@@ -348,7 +338,7 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
-        static PrecomputationCache s_PrecomputationCache = new PrecomputationCache();
-        PrecomputationData m_PrecomputedData;
+        static PrecomputationCache  s_PrecomputationCache = new PrecomputationCache();
+        PrecomputationData          m_PrecomputedData;
     }
 }

@@ -39,7 +39,7 @@ namespace UnityEditor.VFX.HDRP
                 shaderGraphOutput.GetOrRefreshShaderGraphObject().generatesWithShaderGraph;
         }
 
-        public override bool supportsSortingPriority
+        public override bool supportsMaterialOffset
         {
             get
             {
@@ -147,18 +147,18 @@ namespace UnityEditor.VFX.HDRP
         private int GetRenderQueueOffset()
         {
             var renderQueueType = GetRenderQueueType();
-            var materialSortingPriority = GetMaterialSortingPriority();
+            var materialOffset = GetMaterialOffset();
             return owner is VFXDecalHDRPOutput ?
-                HDRenderQueue.Clamps(k_RenderQueue_AllOpaque, ChangeType(renderQueueType, 0, owner.hasAlphaClipping) + materialSortingPriority) :
-                ChangeType(renderQueueType, materialSortingPriority, owner.hasAlphaClipping);
+                HDRenderQueue.Clamps(k_RenderQueue_AllOpaque, ChangeType(renderQueueType, 0, owner.hasAlphaClipping) + materialOffset) :
+                ChangeType(renderQueueType, materialOffset, owner.hasAlphaClipping);
         }
 
-        private int GetMaterialSortingPriority()
+        private int GetMaterialOffset()
         {
-            if (supportsSortingPriority)
+            if (supportsMaterialOffset)
             {
-                int rawMaterialSortingPriority = owner.GetMaterialSortingPriority();
-                return ClampsTransparentRangePriority(rawMaterialSortingPriority);
+                int rawMaterialOffset = owner.GetMaterialOffset();
+                return ClampsTransparentRangePriority(rawMaterialOffset);
             }
             return 0;
         }

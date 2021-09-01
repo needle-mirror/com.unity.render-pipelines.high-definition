@@ -2,7 +2,6 @@ Shader "Hidden/HDRP/MaterialError"
 {
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             HLSLPROGRAM

@@ -184,10 +184,10 @@ namespace UnityEngine.Rendering.HighDefinition
 #endif
         }
 
-        public void SetupDRSScaling(bool enableAutomaticSettings, Camera camera, XRPass xrPass, ref GlobalDynamicResolutionSettings dynamicResolutionSettings)
+        public void SetupAutomaticDRSScaling(bool enabled, Camera camera, XRPass xrPass, ref GlobalDynamicResolutionSettings dynamicResolutionSettings)
         {
 #if ENABLE_NVIDIA && ENABLE_NVIDIA_MODULE
-            InternalNVIDIASetupDRSScaling(enableAutomaticSettings, camera, xrPass, ref dynamicResolutionSettings);
+            InternalNVIDIASetupAutomaticDRSScaling(enabled, camera, xrPass, ref dynamicResolutionSettings);
 #endif
         }
 
@@ -288,11 +288,6 @@ namespace UnityEngine.Rendering.HighDefinition
             public NVIDIA.DLSSQuality quality;
             public Rect viewport;
             public NVIDIA.OptimalDLSSSettingsData optimalSettings;
-            public bool CanFit(DLSSPass.Resolution rect)
-            {
-                return rect.width >= optimalSettings.minWidth && rect.height >= optimalSettings.minHeight
-                    && rect.width <= optimalSettings.maxWidth && rect.height <= optimalSettings.maxHeight;
-            }
         }
 
         private static bool IsOptimalSettingsValid(in NVIDIA.OptimalDLSSSettingsData optimalSettings)
@@ -311,12 +306,11 @@ namespace UnityEngine.Rendering.HighDefinition
             private NVIDIA.GraphicsDevice m_Device;
             private DlssViewData m_Data = new DlssViewData();
             private bool m_UsingOptimalSettings = false;
-            private bool m_UseAutomaticSettings = false;
-            private DLSSPass.Resolution m_BackbufferRes;
+            private bool m_OptimalSettingsRequested = false;
             private OptimalSettingsRequest m_OptimalSettingsRequest = new OptimalSettingsRequest();
 
             public NVIDIA.DLSSContext DLSSContext { get { return m_DlssContext; } }
-            public bool useAutomaticSettings { get { return m_UseAutomaticSettings; } }
+            public bool RequestedOptimalSettings { get { return m_OptimalSettingsRequested; } }
             public OptimalSettingsRequest OptimalSettingsRequestData { get { return m_OptimalSettingsRequest; } }
 
             public ViewState(NVIDIA.GraphicsDevice device)
@@ -325,22 +319,22 @@ namespace UnityEngine.Rendering.HighDefinition
                 m_DlssContext = null;
             }
 
-            public void RequestUseAutomaticSettings(bool useAutomaticSettings, NVIDIA.DLSSQuality quality, Rect viewport, in NVIDIA.OptimalDLSSSettingsData optimalSettings)
+            public void RequestUseOptimalSetting(NVIDIA.DLSSQuality quality, Rect viewport, in NVIDIA.OptimalDLSSSettingsData optimalSettings)
             {
-                m_UseAutomaticSettings = useAutomaticSettings;
+                m_OptimalSettingsRequested = true;
                 m_OptimalSettingsRequest.quality = quality;
                 m_OptimalSettingsRequest.viewport = viewport;
                 m_OptimalSettingsRequest.optimalSettings = optimalSettings;
             }
 
-            public void ClearAutomaticSettings()
+            public void ClearOptimalSettings()
             {
-                m_UseAutomaticSettings = false;
+                m_OptimalSettingsRequested = false;
             }
 
-            private bool ShouldUseAutomaticSettings()
+            private bool ShouldUseOptimalSettings()
             {
-                if (!m_UseAutomaticSettings || m_DlssContext == null)
+                if (!m_OptimalSettingsRequested || m_DlssContext == null)
                     return false;
 
                 return m_DlssContext.initData.quality == m_OptimalSettingsRequest.quality
@@ -353,17 +347,16 @@ namespace UnityEngine.Rendering.HighDefinition
                 in DlssViewData viewData,
                 CommandBuffer cmdBuffer)
             {
-                bool shouldUseOptimalSettings = ShouldUseAutomaticSettings();
+                bool shouldUseOptimalSettings = ShouldUseOptimalSettings();
                 bool isNew = false;
                 if (viewData.outputRes != m_Data.outputRes ||
-                    (viewData.inputRes.width > m_BackbufferRes.width || viewData.inputRes.height > m_BackbufferRes.height) ||
-                    (viewData.inputRes != m_BackbufferRes && !m_OptimalSettingsRequest.CanFit(viewData.inputRes)) ||
+                    (viewData.inputRes != m_Data.inputRes && !m_UsingOptimalSettings) ||
+                    (viewData.CanFitInput(m_Data.inputRes) && m_UsingOptimalSettings) ||
                     viewData.perfQuality != m_Data.perfQuality ||
                     m_DlssContext == null ||
                     shouldUseOptimalSettings != m_UsingOptimalSettings)
                 {
                     isNew = true;
-                    m_BackbufferRes = viewData.inputRes;
 
                     if (m_DlssContext != null)
                     {
@@ -376,8 +369,8 @@ namespace UnityEngine.Rendering.HighDefinition
                     settings.SetFlag(NVIDIA.DLSSFeatureFlags.MVLowRes, true);
                     settings.SetFlag(NVIDIA.DLSSFeatureFlags.DepthInverted, true);
                     settings.SetFlag(NVIDIA.DLSSFeatureFlags.DoSharpening, true);
-                    settings.inputRTWidth   = m_BackbufferRes.width;
-                    settings.inputRTHeight  = m_BackbufferRes.height;
+                    settings.inputRTWidth   = viewData.inputRes.width;
+                    settings.inputRTHeight  = viewData.inputRes.height;
                     settings.outputRTWidth  = viewData.outputRes.width;
                     settings.outputRTHeight = viewData.outputRes.height;
                     settings.quality = viewData.perfQuality;
@@ -456,12 +449,12 @@ namespace UnityEngine.Rendering.HighDefinition
                 return m_CamReference.TryGetTarget(out _);
             }
 
-            public void ClearAutomaticSettings()
+            public void ClearOptimalSettings()
             {
                 if (m_Views == null)
                     return;
                 foreach (var v in m_Views)
-                    v.ClearAutomaticSettings();
+                    v.ClearOptimalSettings();
             }
 
             public void SubmitCommands(
@@ -585,7 +578,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 return 100.0f;
 
             var viewState = cameraState.ViewStates[0];
-            if (!viewState.useAutomaticSettings)
+            if (!viewState.RequestedOptimalSettings)
                 return 100.0f;
 
             var optimalSettings = viewState.OptimalSettingsRequestData.optimalSettings;
@@ -595,7 +588,7 @@ namespace UnityEngine.Rendering.HighDefinition
             return Mathf.Min(suggestedPercentageX, suggestedPercentageY) * 100.0f;
         }
 
-        private void InternalNVIDIASetupDRSScaling(bool enableAutomaticSettings, Camera camera, XRPass xrPass, ref GlobalDynamicResolutionSettings dynamicResolutionSettings)
+        private void InternalNVIDIASetupAutomaticDRSScaling(bool enabled, Camera camera, XRPass xrPass, ref GlobalDynamicResolutionSettings dynamicResolutionSettings)
         {
             if (m_Device == null)
                 return;
@@ -611,22 +604,23 @@ namespace UnityEngine.Rendering.HighDefinition
             if (cameraState.ViewStates[0].DLSSContext == null)
                 return;
 
-            var usedQuality = cameraState.ViewStates[0].DLSSContext.initData.quality;
-            Rect finalViewport = xrPass != null && xrPass.enabled ? xrPass.GetViewport() : new Rect(camera.pixelRect.x, camera.pixelRect.y, camera.pixelWidth, camera.pixelHeight);
-            NVIDIA.OptimalDLSSSettingsData optimalSettings = new NVIDIA.OptimalDLSSSettingsData();
-            m_Device.GetOptimalSettings((uint)finalViewport.width, (uint)finalViewport.height, usedQuality, out optimalSettings);
-
-            foreach (var view in cameraState.ViewStates)
+            if (!enabled)
             {
-                if (view == null)
-                    continue;
-
-                view.RequestUseAutomaticSettings(enableAutomaticSettings, usedQuality, finalViewport, optimalSettings);
+                cameraState.ClearOptimalSettings();
             }
-
-            if (enableAutomaticSettings)
+            else
             {
-                if (IsOptimalSettingsValid(optimalSettings) && enableAutomaticSettings)
+                var usedQuality = cameraState.ViewStates[0].DLSSContext.initData.quality;
+                Rect finalViewport = xrPass != null && xrPass.enabled ? xrPass.GetViewport() : new Rect(camera.pixelRect.x, camera.pixelRect.y, camera.pixelWidth, camera.pixelHeight);
+                NVIDIA.OptimalDLSSSettingsData optimalSettings = new NVIDIA.OptimalDLSSSettingsData();
+
+                if (!m_Device.GetOptimalSettings((uint)finalViewport.width, (uint)finalViewport.height, usedQuality, out optimalSettings))
+                {
+                    cameraState.ClearOptimalSettings();
+                    return;
+                }
+
+                if (IsOptimalSettingsValid(optimalSettings))
                 {
                     dynamicResolutionSettings.maxPercentage = Mathf.Min((float)optimalSettings.maxWidth / finalViewport.width, (float)optimalSettings.maxHeight / finalViewport.height) * 100.0f;
                     dynamicResolutionSettings.minPercentage = Mathf.Max((float)optimalSettings.minWidth / finalViewport.width, (float)optimalSettings.minHeight / finalViewport.height) * 100.0f;
@@ -634,10 +628,14 @@ namespace UnityEngine.Rendering.HighDefinition
                     DynamicResolutionHandler.SetSystemDynamicResScaler(ScaleFn, DynamicResScalePolicyType.ReturnsPercentage);
                     DynamicResolutionHandler.SetActiveDynamicScalerSlot(DynamicResScalerSlot.System);
                 }
-            }
-            else
-            {
-                cameraState.ClearAutomaticSettings();
+
+                foreach (var view in cameraState.ViewStates)
+                {
+                    if (view == null)
+                        continue;
+
+                    view.RequestUseOptimalSetting(usedQuality, finalViewport, optimalSettings);
+                }
             }
         }
 
@@ -692,7 +690,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             dlssViewData.inputRes  = new Resolution() { width = (uint)parameters.hdCamera.actualWidth, height = (uint)parameters.hdCamera.actualHeight };
             dlssViewData.outputRes = new Resolution() { width = (uint)DynamicResolutionHandler.instance.finalViewport.x, height = (uint)DynamicResolutionHandler.instance.finalViewport.y };
-
             dlssViewData.jitterX = -parameters.hdCamera.taaJitter.x;
             dlssViewData.jitterY = -parameters.hdCamera.taaJitter.y;
             dlssViewData.reset = parameters.hdCamera.isFirstFrame;

@@ -114,7 +114,6 @@ Shader "Hidden/HDRP/OpaqueAtmosphericScattering"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         // 0: NOMSAA
         Pass
         {
