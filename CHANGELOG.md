@@ -4,6 +4,33 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [10.8.0] - 2021-09-20
+
+### Fixed
+- Fixed diffusion profile being reset to default on SpeedTree8 materials with subsurface scattering enabled during import.
+- Fixed error in SSGI when disabling decals (case 1365521).
+- Fixed silhouette issue with emissive decals
+- Fixed range compression factor being clamped. (case 1365707)
+- Fixed memory leak with XR combined occlusion meshes (case 1366173).
+- Fix API warnings in Matcap mode on Metal.
+- Fix D3D validation layer errors w.r.t shadow textures when an atlas is not used.
+- Fixed screen space reflection PBR Accumulation
+- Fixed and optimize distance shadowmask fade.
+- Fixed HDRP Decals performances when they use different materials (~5x improvement in the decal update loop code).
+- Fixed light unit conversion after changing mid gray value.
+- Fixed stencil buffer resolve when MSAA is enabled so that OR operator is used instead of picking the last sample.
+- Fixed MaterialReimporter.ReimportAllMaterials and MaterialReimporter.ReimportAllHDShaderGraphs now batch the asset database changes.
+- Fixed light mode not available after switching a light to area "Disc" or "Tube" (case 1372588).
+- Fixed CoC size computation when dynamic resolution is enabled
+- Fixed shadow cascade transition not working properly with bias.
+- Fixed screen space shadow debug view not showing when no shadows is available.
+- Fixed debug window reset.
+- Fixed camera bridge action in release build (case 1367866).
+- Fixed contact shadow disappearing when shadowmask is used and no non-static object is available.
+- Fixed atmospheric scattering being incorrectly enabled when scene lighting is disabled.
+- Fixed error thrown when layered lit material has an invalid material type.
+- Fixed a nullref when enabling raycount without ray tracing.
+
 ## [10.7.0] - 2021-07-02
 
 ### Fixed

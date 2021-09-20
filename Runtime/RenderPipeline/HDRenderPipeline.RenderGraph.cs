@@ -81,6 +81,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 // For alpha output in AOVs or debug views, in case we have a shadow matte material, we need to render the shadow maps
                 if (m_CurrentDebugDisplaySettings.data.materialDebugSettings.debugViewMaterialCommonValue == Attributes.MaterialSharedProperty.Alpha)
                     RenderShadows(m_RenderGraph, hdCamera, cullingResults, ref shadowResult);
+                else
+                    HDShadowManager.BindDefaultShadowGlobalResources(m_RenderGraph);
 
                 // Stop Single Pass is after post process.
                 StartXRSinglePass(m_RenderGraph, hdCamera);
@@ -247,11 +249,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 PushFullScreenDebugTexture(m_RenderGraph, colorBuffer, FullScreenDebugMode.NanTracker);
                 PushFullScreenLightingDebugTexture(m_RenderGraph, colorBuffer);
-
-                if (m_SubFrameManager.isRecording && m_SubFrameManager.subFrameCount > 1)
-                {
-                    RenderAccumulation(m_RenderGraph, hdCamera, colorBuffer, colorBuffer, false);
-                }
 
                 // Render gizmos that should be affected by post processes
                 RenderGizmos(m_RenderGraph, hdCamera, colorBuffer, GizmoSubset.PreImageEffects);
