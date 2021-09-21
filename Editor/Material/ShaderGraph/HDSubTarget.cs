@@ -192,7 +192,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
         {
             // Common properties between all HD master nodes
             // Dots
-            context.AddField(HDFields.DotsInstancing,      systemData.dotsInstancing);
+            context.AddField(HDFields.DotsInstancing, systemData.dotsInstancing);
         }
 
         protected abstract IEnumerable<SubShaderDescriptor> EnumerateSubShaders();

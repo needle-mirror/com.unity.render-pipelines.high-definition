@@ -94,7 +94,7 @@ namespace UnityEditor.VFX
 
         protected VFXAbstractParticleHDRPLitOutput(bool strip = false) : base(strip) {}
 
-        protected virtual bool allowTextures { get { return GetOrRefreshShaderGraphObject() == null; }}
+        protected virtual bool allowTextures { get { return GetOrRefreshShaderGraphObject() == null; } }
 
         public class HDRPLitInputProperties
         {

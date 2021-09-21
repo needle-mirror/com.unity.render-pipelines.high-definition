@@ -196,7 +196,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // Evaluate the signal
             QualityRTIndirectDiffuseParameters rtgiQRenderingParameters = PrepareQualityRTIndirectDiffuseParameters(hdCamera, settings);
-            TextureHandle  rtgiResult = QualityRTGI(renderGraph, in rtgiQRenderingParameters, depthPyramid, normalBuffer, rayCountTexture);
+            TextureHandle rtgiResult = QualityRTGI(renderGraph, in rtgiQRenderingParameters, depthPyramid, normalBuffer, rayCountTexture);
 
             // Denoise if required
             rtgiResult = DenoiseRTGI(renderGraph, hdCamera, rtgiResult, depthPyramid, normalBuffer, motionVectors, historyValidationTexture);
