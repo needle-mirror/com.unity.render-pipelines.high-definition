@@ -255,7 +255,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 for (int j = 0; j < fields.Length; j++)
                 {
-                    var param = GetParameter(component, fields[j]);;
+                    var param = GetParameter(component, fields[j]); ;
                     states[i, j] = param.overrideState ? param : null;
                 }
             }

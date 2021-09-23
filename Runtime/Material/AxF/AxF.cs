@@ -207,7 +207,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public static readonly int _PreIntegratedFGD_CookTorrance = Shader.PropertyToID("_PreIntegratedFGD_CookTorrance");
         public static readonly int _AxFLtcData = Shader.PropertyToID("_AxFLtcData");
 
-        public AxF() {}
+        public AxF() { }
 
         public override void Build(HDRenderPipelineAsset hdAsset, HDRenderPipelineRuntimeResources defaultResources)
         {

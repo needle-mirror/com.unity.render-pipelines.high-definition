@@ -93,7 +93,6 @@ Shader "Hidden/HD PostProcessing/Editor/Trackball"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Cull Off ZWrite Off ZTest Always
 
         // (0) Dark skin

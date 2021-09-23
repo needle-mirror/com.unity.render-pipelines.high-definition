@@ -35,7 +35,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">Environment Update Mode parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public EnvUpdateParameter(EnvironmentUpdateMode value, bool overrideState = false)
-            : base(value, overrideState) {}
+            : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">Backplate Type parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public BackplateTypeParameter(BackplateType value, bool overrideState = false)
-            : base(value, overrideState) {}
+            : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">Sky Intensity parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public SkyIntensityParameter(SkyIntensityMode value, bool overrideState = false)
-            : base(value, overrideState) {}
+            : base(value, overrideState) { }
     }
 
     /// <summary>

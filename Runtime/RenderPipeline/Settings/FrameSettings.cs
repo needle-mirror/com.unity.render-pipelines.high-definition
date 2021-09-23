@@ -941,7 +941,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="a">First frame settings.</param>
         /// <param name="b">Second frame settings.</param>
         /// <returns>True if both settings are equal.</returns>
-        public static bool operator==(FrameSettings a, FrameSettings b)
+        public static bool operator ==(FrameSettings a, FrameSettings b)
             => a.bitDatas == b.bitDatas
             && a.sssQualityMode == b.sssQualityMode
             && a.sssQualityLevel == b.sssQualityLevel
@@ -961,7 +961,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="a">First frame settings.</param>
         /// <param name="b">Second frame settings.</param>
         /// <returns>True if settings are not equal.</returns>
-        public static bool operator!=(FrameSettings a, FrameSettings b) => !(a == b);
+        public static bool operator !=(FrameSettings a, FrameSettings b) => !(a == b);
 
         /// <summary>
         /// Equality operator between two FrameSettings. Return `true` if equivalent. (comparison of content).

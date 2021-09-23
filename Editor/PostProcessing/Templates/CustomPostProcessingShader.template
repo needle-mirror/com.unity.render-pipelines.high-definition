@@ -62,7 +62,6 @@ Shader "Hidden/Shader/#SCRIPTNAME#"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Name "#NAME#"

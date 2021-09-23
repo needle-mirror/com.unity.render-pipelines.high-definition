@@ -31,10 +31,9 @@ namespace UnityEngine.Rendering.HighDefinition
     /// </summary>
     [HDRPHelpURLAttribute("Light-Component")]
     [AddComponentMenu("")] // Hide in menu
-    [DisallowMultipleComponent]
     [RequireComponent(typeof(Light))]
     [ExecuteAlways]
-    public partial class HDAdditionalLightData : MonoBehaviour, ISerializationCallbackReceiver, IAdditionalData
+    public partial class HDAdditionalLightData : MonoBehaviour, ISerializationCallbackReceiver
     {
         internal const float k_MinLightSize = 0.01f; // Provide a small size of 1cm for line light
 
@@ -3520,7 +3519,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Deserialization callback
         /// </summary>
-        void ISerializationCallbackReceiver.OnAfterDeserialize() {}
+        void ISerializationCallbackReceiver.OnAfterDeserialize() { }
 
         /// <summary>
         /// Serialization callback

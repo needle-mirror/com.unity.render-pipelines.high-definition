@@ -28,7 +28,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">Model parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public PhysicallyBasedSkyModelParameter(PhysicallyBasedSkyModel value, bool overrideState = false)
-            : base(value, overrideState) {}
+            : base(value, overrideState) { }
     }
 
     /// <summary>

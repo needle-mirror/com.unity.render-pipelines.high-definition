@@ -592,10 +592,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
             unsafe
             {
-                fixed(float* sphereCascadesBuffer = m_DirectionalShadowData.sphereCascades)
+                fixed (float* sphereCascadesBuffer = m_DirectionalShadowData.sphereCascades)
                     ((Vector4*)sphereCascadesBuffer)[cascadeIndex] = cullingSphere;
-                fixed(float* cascadeBorders = m_DirectionalShadowData.cascadeBorders)
-                cascadeBorders[cascadeIndex] = border;
+                fixed (float* cascadeBorders = m_DirectionalShadowData.cascadeBorders)
+                    cascadeBorders[cascadeIndex] = border;
             }
         }
 
@@ -643,7 +643,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         unsafe Vector4 GetCascadeSphereAtIndex(int index)
         {
-            fixed(float* sphereCascadesBuffer = m_DirectionalShadowData.sphereCascades)
+            fixed (float* sphereCascadesBuffer = m_DirectionalShadowData.sphereCascades)
             {
                 return ((Vector4*)sphereCascadesBuffer)[index];
             }
@@ -738,7 +738,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
             int first = k_DirectionalShadowCascadeCount, second = k_DirectionalShadowCascadeCount;
 
-            fixed(float* sphereBuffer = m_DirectionalShadowData.sphereCascades)
+            fixed (float* sphereBuffer = m_DirectionalShadowData.sphereCascades)
             {
                 Vector4* sphere = (Vector4*)sphereBuffer;
                 for (int i = 0; i < k_DirectionalShadowCascadeCount; i++)

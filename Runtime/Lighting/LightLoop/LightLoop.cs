@@ -82,6 +82,7 @@ namespace UnityEngine.Rendering.HighDefinition
         Sky = 1 << 16,
         SSRefraction = 1 << 17,
         SSReflection = 1 << 18,
+        ProbeVolume = 1 << 19
         // If adding more light be sure to not overflow LightDefinitions.s_LightFeatureMaskFlags
     }
 
@@ -952,10 +953,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 m_TextureCaches.lightCookieManager.ClearAtlasTexture(cmd);
             }
 
-            bool apvIsEnabled = IsAPVEnabled();
-            ProbeReferenceVolume.instance.SetEnableStateFromSRP(apvIsEnabled);
             // We need to verify and flush any pending asset loading for probe volume.
-            if (apvIsEnabled)
+            if (IsAPVEnabled())
             {
                 if (hdCamera.frameSettings.IsEnabled(FrameSettingsField.ProbeVolume))
                 {
@@ -2943,7 +2942,7 @@ namespace UnityEngine.Rendering.HighDefinition
             // Tile/Cluster
             cb._NumTileFtplX = (uint)GetNumTileFtplX(hdCamera);
             cb._NumTileFtplY = (uint)GetNumTileFtplY(hdCamera);
-            cb.g_fClustScale = (float)(geomSeries / (hdCamera.camera.farClipPlane - hdCamera.camera.nearClipPlane));;
+            cb.g_fClustScale = (float)(geomSeries / (hdCamera.camera.farClipPlane - hdCamera.camera.nearClipPlane)); ;
             cb.g_fClustBase = k_ClustLogBase;
             cb.g_fNearPlane = hdCamera.camera.nearClipPlane;
             cb.g_fFarPlane = hdCamera.camera.farClipPlane;

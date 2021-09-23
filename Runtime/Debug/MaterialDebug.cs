@@ -618,7 +618,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>True if Material debug is enabled.</returns>
         public bool IsDebugViewMaterialEnabled()
         {
-            int size = m_DebugViewMaterial ? [0] ?? 0;
+            int size = m_DebugViewMaterial?[0] ?? 0;
             bool enabled = false;
             for (int i = 1; i <= size; ++i)
             {

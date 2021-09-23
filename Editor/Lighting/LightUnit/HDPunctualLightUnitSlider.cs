@@ -11,7 +11,7 @@ namespace UnityEditor.Rendering.HighDefinition
     /// </summary>
     class HDPunctualLightUnitSlider : HDPiecewiseLightUnitSlider
     {
-        public HDPunctualLightUnitSlider(LightUnitSliderUIDescriptor descriptor) : base(descriptor) {}
+        public HDPunctualLightUnitSlider(LightUnitSliderUIDescriptor descriptor) : base(descriptor) { }
 
         private SerializedHDLight m_Light;
         private Editor m_Editor;

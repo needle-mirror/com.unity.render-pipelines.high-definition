@@ -76,5 +76,6 @@ namespace UnityEngine.Rendering.HighDefinition
         FloatParameter m_ObsoleteShapeOffsetY = new FloatParameter(0.0f);
         [SerializeField, FormerlySerializedAs("shapeOffsetZ"), Obsolete("For Data Migration")]
         FloatParameter m_ObsoleteShapeOffsetZ = new FloatParameter(0.0f);
+
     }
 }

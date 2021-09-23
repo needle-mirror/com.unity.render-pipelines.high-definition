@@ -234,11 +234,6 @@ namespace UnityEngine.Rendering.HighDefinition
                         if (customPass.currentRenderTarget.normalBufferRG.IsValid() && customPass.injectionPoint != CustomPassInjectionPoint.AfterPostProcess)
                             ctx.cmd.SetGlobalTexture(HDShaderIDs._NormalBufferTexture, customPass.currentRenderTarget.normalBufferRG);
 
-                        if (customPass.currentRenderTarget.customColorBuffer.IsValueCreated)
-                            ctx.cmd.SetGlobalTexture(HDShaderIDs._CustomColorTexture, customPass.currentRenderTarget.customColorBuffer.Value);
-                        if (customPass.currentRenderTarget.customDepthBuffer.IsValueCreated)
-                            ctx.cmd.SetGlobalTexture(HDShaderIDs._CustomDepthTexture, customPass.currentRenderTarget.customDepthBuffer.Value);
-
                         if (!customPass.isSetup)
                         {
                             customPass.Setup(ctx.renderContext, ctx.cmd);
@@ -325,7 +320,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="cullingParameters">Aggregate the parameters in this property (use |= for masks fields, etc.)</param>
         /// <param name="hdCamera">The camera where the culling is being done</param>
-        protected virtual void AggregateCullingParameters(ref ScriptableCullingParameters cullingParameters, HDCamera hdCamera) {}
+        protected virtual void AggregateCullingParameters(ref ScriptableCullingParameters cullingParameters, HDCamera hdCamera) { }
 
         /// <summary>
         /// Called when your pass needs to be executed by a camera
@@ -335,7 +330,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="hdCamera"></param>
         /// <param name="cullingResult"></param>
         [Obsolete("This Execute signature is obsolete and will be removed in the future. Please use Execute(CustomPassContext) instead")]
-        protected virtual void Execute(ScriptableRenderContext renderContext, CommandBuffer cmd, HDCamera hdCamera, CullingResults cullingResult) {}
+        protected virtual void Execute(ScriptableRenderContext renderContext, CommandBuffer cmd, HDCamera hdCamera, CullingResults cullingResult) { }
 
         /// <summary>
         /// Called when your pass needs to be executed by a camera
@@ -355,13 +350,13 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="renderContext">The render context</param>
         /// <param name="cmd">Current command buffer of the frame</param>
-        protected virtual void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd) {}
+        protected virtual void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd) { }
 
         /// <summary>
         /// Called when HDRP is destroyed.
         /// Allow you to free custom buffers.
         /// </summary>
-        protected virtual void Cleanup() {}
+        protected virtual void Cleanup() { }
 
         /// <summary>
         /// Bind the camera color buffer as the current render target

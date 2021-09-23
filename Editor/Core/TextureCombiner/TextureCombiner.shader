@@ -23,7 +23,7 @@ Shader "Hidden/SRP_Core/TextureCombiner"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" "RenderPipeline" = "HDRenderPipeline" }
+        Tags { "RenderType"="Opaque" }
         LOD 100
 
         Pass

@@ -67,16 +67,14 @@ namespace UnityEditor.Rendering.HighDefinition
 
         private static void SetDefaultDiffusionProfile(Material mat)
         {
-            string matDiffProfile = HDUtils.ConvertVector4ToGUID(mat.GetVector("Diffusion_Profile_Asset"));
             string guid = "";
             long localID;
             uint diffusionProfileHash = 0;
             foreach (var diffusionProfileAsset in HDRenderPipelineGlobalSettings.instance.diffusionProfileSettingsList)
             {
-                if (diffusionProfileAsset != null)
+                if (diffusionProfileAsset != null && diffusionProfileAsset.name.Equals(kDefaultDiffusionProfileName))
                 {
-                    bool gotGuid = AssetDatabase.TryGetGUIDAndLocalFileIdentifier<DiffusionProfileSettings>(diffusionProfileAsset, out guid, out localID);
-                    if (gotGuid && (diffusionProfileAsset.name.Equals(kDefaultDiffusionProfileName) || guid.Equals(matDiffProfile)))
+                    if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier<DiffusionProfileSettings>(diffusionProfileAsset, out guid, out localID))
                     {
                         diffusionProfileHash = diffusionProfileAsset.profile.hash;
                         break;

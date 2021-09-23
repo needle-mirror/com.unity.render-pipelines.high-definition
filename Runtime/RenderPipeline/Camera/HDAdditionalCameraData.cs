@@ -31,19 +31,19 @@ namespace UnityEngine.Rendering.HighDefinition
         public const int kMaxBladeCount = 11;
 
         // Camera body
-        [SerializeField][Min(1f)] int m_Iso;
-        [SerializeField][Min(0f)] float m_ShutterSpeed;
+        [SerializeField] [Min(1f)] int m_Iso;
+        [SerializeField] [Min(0f)] float m_ShutterSpeed;
 
         // Lens
         // Note: focalLength is already defined in the regular camera component
-        [SerializeField][Range(kMinAperture, kMaxAperture)] float m_Aperture;
-        [SerializeField][Min(0.1f)] float m_FocusDistance;
+        [SerializeField] [Range(kMinAperture, kMaxAperture)] float m_Aperture;
+        [SerializeField] [Min(0.1f)] float m_FocusDistance;
 
         // Aperture shape
-        [SerializeField][Range(kMinBladeCount, kMaxBladeCount)] int m_BladeCount;
+        [SerializeField] [Range(kMinBladeCount, kMaxBladeCount)] int m_BladeCount;
         [SerializeField] Vector2 m_Curvature;
-        [SerializeField][Range(0f, 1f)] float m_BarrelClipping;
-        [SerializeField][Range(-1f, 1f)] float m_Anamorphism;
+        [SerializeField] [Range(0f, 1f)] float m_BarrelClipping;
+        [SerializeField] [Range(-1f, 1f)] float m_Anamorphism;
 
         /// <summary>
         /// The focus distance of the lens. The Depth of Field Volume override uses this value if you set focusDistanceMode to FocusDistanceMode.Camera.
@@ -158,7 +158,7 @@ namespace UnityEngine.Rendering.HighDefinition
     [AddComponentMenu("")] // Hide in menu
     [DisallowMultipleComponent, ExecuteAlways]
     [RequireComponent(typeof(Camera))]
-    public partial class HDAdditionalCameraData : MonoBehaviour, IFrameSettingsHistoryContainer, IAdditionalData
+    public partial class HDAdditionalCameraData : MonoBehaviour, IFrameSettingsHistoryContainer
     {
         /// <summary>
         /// How the camera should handle vertically flipping the frame at the end of rendering.
@@ -326,7 +326,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public bool taaAntiHistoryRinging = false;
 
         /// <summary> Determines how much the history buffer is blended together with current frame result. Higher values means more history contribution. </summary>
-        [Range(HDRenderPipeline.TAABaseBlendFactorMin, HDRenderPipeline.TAABaseBlendFactorMax)]
+        [Range(0.6f, 0.95f)]
         public float taaBaseBlendFactor = 0.875f;
 
         /// <summary>Physical camera parameters.</summary>

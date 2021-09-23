@@ -49,7 +49,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 // In a Player, we do not need to worry about those changes as we only support loading one
                 if (cachedInstance == null)
 #endif
-                cachedInstance = GraphicsSettings.GetSettingsForRenderPipeline<HDRenderPipeline>() as HDRenderPipelineGlobalSettings;
+                    cachedInstance = GraphicsSettings.GetSettingsForRenderPipeline<HDRenderPipeline>() as HDRenderPipelineGlobalSettings;
                 return cachedInstance;
             }
         }
@@ -826,10 +826,10 @@ namespace UnityEngine.Rendering.HighDefinition
         internal ProbeVolumeSceneData GetOrCreateAPVSceneData()
         {
             if (apvScenesData == null)
-                apvScenesData = new ProbeVolumeSceneData((Object)this, nameof(apvScenesData));
+                apvScenesData = new ProbeVolumeSceneData((Object)this);
 
 
-            apvScenesData.SetParentObject((Object)this, nameof(apvScenesData));
+            apvScenesData.SetParentObject((Object)this);
             return apvScenesData;
         }
 

@@ -30,13 +30,8 @@
 #define DEBUGVIEW_HAIR_SURFACEDATA_SECONDARY_SPECULAR_TINT (1414)
 #define DEBUGVIEW_HAIR_SURFACEDATA_SPECULAR_SHIFT (1415)
 #define DEBUGVIEW_HAIR_SURFACEDATA_SECONDARY_SPECULAR_SHIFT (1416)
-#define DEBUGVIEW_HAIR_SURFACEDATA_ABSORPTION_COEFFICIENT (1417)
-#define DEBUGVIEW_HAIR_SURFACEDATA_EUMELANIN (1418)
-#define DEBUGVIEW_HAIR_SURFACEDATA_PHEOMELANIN (1419)
-#define DEBUGVIEW_HAIR_SURFACEDATA_AZIMUTHAL_ROUGHNESS (1420)
-#define DEBUGVIEW_HAIR_SURFACEDATA_CUTICLE_ANGLE (1421)
-#define DEBUGVIEW_HAIR_SURFACEDATA_STRAND_COUNT_PROBE (1422)
-#define DEBUGVIEW_HAIR_SURFACEDATA_STRAND_SHADOW_BIAS (1423)
+#define DEBUGVIEW_HAIR_SURFACEDATA_AZIMUTHAL_ROUGHNESS (1417)
+#define DEBUGVIEW_HAIR_SURFACEDATA_CUTICLE_ANGLE (1418)
 
 //
 // UnityEngine.Rendering.HighDefinition.Hair+BSDFData:  static fields
@@ -60,26 +55,21 @@
 #define DEBUGVIEW_HAIR_BSDFDATA_BITANGENT_WS (1466)
 #define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_T (1467)
 #define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_B (1468)
-#define DEBUGVIEW_HAIR_BSDFDATA_H (1469)
-#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_PERCEPTUAL_ROUGHNESS (1470)
-#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_TINT (1471)
-#define DEBUGVIEW_HAIR_BSDFDATA_SPECULAR_EXPONENT (1472)
-#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_EXPONENT (1473)
-#define DEBUGVIEW_HAIR_BSDFDATA_SPECULAR_SHIFT (1474)
-#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_SHIFT (1475)
-#define DEBUGVIEW_HAIR_BSDFDATA_ABSORPTION (1476)
-#define DEBUGVIEW_HAIR_BSDFDATA_LIGHT_PATH_LENGTH (1477)
-#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE (1478)
-#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_R (1479)
-#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_TT (1480)
-#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_TRT (1481)
-#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_R (1482)
-#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_TT (1483)
-#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_TRT (1484)
-#define DEBUGVIEW_HAIR_BSDFDATA_PERCEPTUAL_ROUGHNESS_RADIAL (1485)
-#define DEBUGVIEW_HAIR_BSDFDATA_STRAND_COUNT_PROBE (1486)
-#define DEBUGVIEW_HAIR_BSDFDATA_STRAND_SHADOW_BIAS (1487)
-#define DEBUGVIEW_HAIR_BSDFDATA_SPLINE_VISIBILITY (1488)
+#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_PERCEPTUAL_ROUGHNESS (1469)
+#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_TINT (1470)
+#define DEBUGVIEW_HAIR_BSDFDATA_SPECULAR_EXPONENT (1471)
+#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_EXPONENT (1472)
+#define DEBUGVIEW_HAIR_BSDFDATA_SPECULAR_SHIFT (1473)
+#define DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_SPECULAR_SHIFT (1474)
+#define DEBUGVIEW_HAIR_BSDFDATA_ABSORPTION (1475)
+#define DEBUGVIEW_HAIR_BSDFDATA_LIGHT_PATH_LENGTH (1476)
+#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_R (1477)
+#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_TT (1478)
+#define DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_TRT (1479)
+#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_R (1480)
+#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_TT (1481)
+#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_TRT (1482)
+#define DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_RADIAL (1483)
 
 // Generated from UnityEngine.Rendering.HighDefinition.Hair+SurfaceData
 // PackingRules = Exact
@@ -100,13 +90,8 @@ struct SurfaceData
     float3 secondarySpecularTint;
     float specularShift;
     float secondarySpecularShift;
-    float3 absorption;
-    float eumelanin;
-    float pheomelanin;
     float perceptualRadialSmoothness;
     float cuticleAngle;
-    float4 strandCountProbe;
-    float strandShadowBias;
 };
 
 // Generated from UnityEngine.Rendering.HighDefinition.Hair+BSDFData
@@ -130,7 +115,6 @@ struct BSDFData
     float3 bitangentWS;
     float roughnessT;
     float roughnessB;
-    float h;
     float secondaryPerceptualRoughness;
     float3 secondarySpecularTint;
     float specularExponent;
@@ -139,17 +123,13 @@ struct BSDFData
     float secondarySpecularShift;
     float3 absorption;
     float lightPathLength;
-    float cuticleAngle;
     float cuticleAngleR;
     float cuticleAngleTT;
     float cuticleAngleTRT;
     float roughnessR;
     float roughnessTT;
     float roughnessTRT;
-    float perceptualRoughnessRadial;
-    float4 strandCountProbe;
-    float strandShadowBias;
-    float splineVisibility;
+    float roughnessRadial;
 };
 
 //
@@ -213,26 +193,11 @@ void GetGeneratedSurfaceDataDebug(uint paramId, SurfaceData surfacedata, inout f
         case DEBUGVIEW_HAIR_SURFACEDATA_SECONDARY_SPECULAR_SHIFT:
             result = surfacedata.secondarySpecularShift.xxx;
             break;
-        case DEBUGVIEW_HAIR_SURFACEDATA_ABSORPTION_COEFFICIENT:
-            result = surfacedata.absorption;
-            break;
-        case DEBUGVIEW_HAIR_SURFACEDATA_EUMELANIN:
-            result = surfacedata.eumelanin.xxx;
-            break;
-        case DEBUGVIEW_HAIR_SURFACEDATA_PHEOMELANIN:
-            result = surfacedata.pheomelanin.xxx;
-            break;
         case DEBUGVIEW_HAIR_SURFACEDATA_AZIMUTHAL_ROUGHNESS:
             result = surfacedata.perceptualRadialSmoothness.xxx;
             break;
         case DEBUGVIEW_HAIR_SURFACEDATA_CUTICLE_ANGLE:
             result = surfacedata.cuticleAngle.xxx;
-            break;
-        case DEBUGVIEW_HAIR_SURFACEDATA_STRAND_COUNT_PROBE:
-            result = surfacedata.strandCountProbe.xyz;
-            break;
-        case DEBUGVIEW_HAIR_SURFACEDATA_STRAND_SHADOW_BIAS:
-            result = surfacedata.strandShadowBias.xxx;
             break;
     }
 }
@@ -302,9 +267,6 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
         case DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_B:
             result = bsdfdata.roughnessB.xxx;
             break;
-        case DEBUGVIEW_HAIR_BSDFDATA_H:
-            result = bsdfdata.h.xxx;
-            break;
         case DEBUGVIEW_HAIR_BSDFDATA_SECONDARY_PERCEPTUAL_ROUGHNESS:
             result = bsdfdata.secondaryPerceptualRoughness.xxx;
             break;
@@ -329,9 +291,6 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
         case DEBUGVIEW_HAIR_BSDFDATA_LIGHT_PATH_LENGTH:
             result = bsdfdata.lightPathLength.xxx;
             break;
-        case DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE:
-            result = bsdfdata.cuticleAngle.xxx;
-            break;
         case DEBUGVIEW_HAIR_BSDFDATA_CUTICLE_ANGLE_R:
             result = bsdfdata.cuticleAngleR.xxx;
             break;
@@ -350,17 +309,8 @@ void GetGeneratedBSDFDataDebug(uint paramId, BSDFData bsdfdata, inout float3 res
         case DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_TRT:
             result = bsdfdata.roughnessTRT.xxx;
             break;
-        case DEBUGVIEW_HAIR_BSDFDATA_PERCEPTUAL_ROUGHNESS_RADIAL:
-            result = bsdfdata.perceptualRoughnessRadial.xxx;
-            break;
-        case DEBUGVIEW_HAIR_BSDFDATA_STRAND_COUNT_PROBE:
-            result = bsdfdata.strandCountProbe.xyz;
-            break;
-        case DEBUGVIEW_HAIR_BSDFDATA_STRAND_SHADOW_BIAS:
-            result = bsdfdata.strandShadowBias.xxx;
-            break;
-        case DEBUGVIEW_HAIR_BSDFDATA_SPLINE_VISIBILITY:
-            result = bsdfdata.splineVisibility.xxx;
+        case DEBUGVIEW_HAIR_BSDFDATA_ROUGHNESS_RADIAL:
+            result = bsdfdata.roughnessRadial.xxx;
             break;
     }
 }

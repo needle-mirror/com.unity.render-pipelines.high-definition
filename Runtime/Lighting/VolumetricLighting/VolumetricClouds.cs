@@ -33,7 +33,7 @@ namespace UnityEngine.Rendering.HighDefinition
             /// </summary>
             /// <param name="value">The initial value to store in the parameter.</param>
             /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudControlParameter(CloudControl value, bool overrideState = false) : base(value, overrideState) {}
+            public CloudControlParameter(CloudControl value, bool overrideState = false) : base(value, overrideState) { }
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace UnityEngine.Rendering.HighDefinition
             /// </summary>
             /// <param name="value">The initial value to store in the parameter.</param>
             /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudPresetsParameter(CloudPresets value, bool overrideState = false) : base(value, overrideState) {}
+            public CloudPresetsParameter(CloudPresets value, bool overrideState = false) : base(value, overrideState) { }
         }
 
         /// <summary>
@@ -80,12 +80,10 @@ namespace UnityEngine.Rendering.HighDefinition
             Medium256 = 256,
             /// <summary>The volumetric clouds shadow will be 512x512.</summary>
             High512 = 512,
-            /// <summary>The volumetric clouds shadow will be 1024x1024.</summary>
-            Ultra1024 = 1024,
         }
 
         /// <summary> </summary>
-        public const int CloudShadowResolutionCount = 5;
+        public const int CloudShadowResolutionCount = 4;
 
         /// <summary>
         /// A <see cref="VolumeParameter"/> that holds a <see cref="CloudControl"/> value.
@@ -98,7 +96,7 @@ namespace UnityEngine.Rendering.HighDefinition
             /// </summary>
             /// <param name="value">The initial value to store in the parameter.</param>
             /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudShadowResolutionParameter(CloudShadowResolution value, bool overrideState = false) : base(value, overrideState) {}
+            public CloudShadowResolutionParameter(CloudShadowResolution value, bool overrideState = false) : base(value, overrideState) { }
         }
 
         /// <summary>
@@ -127,7 +125,7 @@ namespace UnityEngine.Rendering.HighDefinition
             /// </summary>
             /// <param name="value">The initial value to store in the parameter.</param>
             /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudMapResolutionParameter(CloudMapResolution value, bool overrideState = false) : base(value, overrideState) {}
+            public CloudMapResolutionParameter(CloudMapResolution value, bool overrideState = false) : base(value, overrideState) { }
         }
 
         /// <summary>
@@ -152,7 +150,7 @@ namespace UnityEngine.Rendering.HighDefinition
             /// </summary>
             /// <param name="value">The initial value to store in the parameter.</param>
             /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudErosionNoiseParameter(CloudErosionNoise value, bool overrideState = false) : base(value, overrideState) {}
+            public CloudErosionNoiseParameter(CloudErosionNoise value, bool overrideState = false) : base(value, overrideState) { }
         }
 
         /// <summary>
@@ -177,7 +175,7 @@ namespace UnityEngine.Rendering.HighDefinition
             /// </summary>
             /// <param name="value">The initial value to store in the parameter.</param>
             /// <param name="overrideState">The initial override state for the parameter.</param>
-            public CloudFadeInModeParameter(CloudFadeInMode value, bool overrideState = false) : base(value, overrideState) {}
+            public CloudFadeInModeParameter(CloudFadeInMode value, bool overrideState = false) : base(value, overrideState) { }
         }
 
         /// <summary>
@@ -187,9 +185,9 @@ namespace UnityEngine.Rendering.HighDefinition
         public BoolParameter enable = new BoolParameter(false);
 
         /// <summary>
-        /// When enabled, clouds are part of the scene and you can interact with them. This means you can move around and inside the clouds, they can appear between the Camera and other GameObjects, and the Camera's clipping planes affect the clouds. When disabled, the clouds are part of the skybox. This means the clouds and their shadows appear relative to the Camera and always appear behind geometry.
+        /// When enabled, clouds are part of the scene and you can interact with them. This means for example, you can move around the clouds, clouds can appear between the Camera and other GameObjects, and the Camera's clipping planes affects the clouds. When disabled, the clouds are part of the skybox. This mean the clouds and their shadows appear relative to the Camera and always appear behind geometry.
         /// </summary>
-        [Tooltip("When enabled, clouds are part of the scene and you can interact with them. This means you can move around and inside the clouds, they can appear between the Camera and other GameObjects, and the Camera's clipping planes affect the clouds. When disabled, the clouds are part of the skybox. This means the clouds and their shadows appear relative to the Camera and always appear behind geometry.")]
+        [Tooltip("When enabled, clouds are part of the scene and you can interact with them. This means for example, you can move around the clouds, clouds can appear between the Camera and other GameObjects, and the Camera's clipping planes affects the clouds. When disabled, the clouds are part of the skybox. This mean the clouds and their shadows appear relative to the Camera and always appear behind geometry.")]
         public BoolParameter localClouds = new BoolParameter(false);
 
         /// <summary>
@@ -214,7 +212,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// Controls the altitude of the bottom of the volumetric clouds volume in meters.
         /// </summary>
         [Tooltip("Controls the altitude of the bottom of the volumetric clouds volume in meters.")]
-        public MinFloatParameter lowestCloudAltitude = new MinFloatParameter(1000.0f, 0.01f);
+        public MinFloatParameter lowestCloudAltitude = new MinFloatParameter(1000, 0.01f);
 
         /// <summary>
         /// Controls the thickness of the volumetric clouds volume in meters.
@@ -241,16 +239,16 @@ namespace UnityEngine.Rendering.HighDefinition
         public MinFloatParameter fadeInDistance = new MinFloatParameter(0.0f, 0.0f);
 
         /// <summary>
-        /// Controls the number of steps when evaluating the clouds' transmittance. A higher value may lead to a lower noise level and longer view distance, but at a higher cost.
+        /// Controls the number of steps when evaluating the clouds' transmittance.
         /// </summary>
-        [Tooltip("Controls the number of steps when evaluating the clouds' transmittance. A higher value may lead to a lower noise level and longer view distance, but at a higher cost.")]
-        public ClampedIntParameter numPrimarySteps = new ClampedIntParameter(64, 32, 1024);
+        [Tooltip("Controls the number of steps when evaluating the clouds' transmittance.")]
+        public ClampedIntParameter numPrimarySteps = new ClampedIntParameter(48, 16, 512);
 
         /// <summary>
-        /// Controls the number of steps when evaluating the clouds' lighting. A higher value will lead to smoother lighting and improved self-shadowing, but at a higher cost.
+        /// Controls the number of steps when evaluating the clouds' lighting.
         /// </summary>
-        [Tooltip("Controls the number of steps when evaluating the clouds' lighting. A higher value will lead to smoother lighting and improved self-shadowing, but at a higher cost.")]
-        public ClampedIntParameter numLightSteps = new ClampedIntParameter(6, 1, 32);
+        [Tooltip("Controls the number of steps when evaluating the clouds' lighting.")]
+        public ClampedIntParameter numLightSteps = new ClampedIntParameter(8, 6, 32);
 
         /// <summary>
         /// Specifies the cloud map - Coverage (R), Rain (G), Type (B).
@@ -349,11 +347,11 @@ namespace UnityEngine.Rendering.HighDefinition
         public ColorParameter scatteringTint = new ColorParameter(new Color(0.0f, 0.0f, 0.0f, 1.0f));
 
         /// <summary>
-        /// Controls the amount of local scattering in the clouds. A higher value may produce a more powdery or diffused aspect.
+        /// Controls the amount of local scattering in the clouds. A value of 1 may provide a more powdery aspect.
         /// </summary>
-        [Tooltip("Controls the amount of local scattering in the clouds. A higher value may produce a more powdery or diffused aspect.")]
+        [Tooltip("Controls the amount of local scattering in the clouds. A value of 1 may provide a more powdery aspect.")]
         [AdditionalProperty]
-        public ClampedFloatParameter powderEffectIntensity = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);
+        public ClampedFloatParameter powderEffectIntensity = new ClampedFloatParameter(0.7f, 0.0f, 1.0f);
 
         /// <summary>
         /// Controls the amount of multi-scattering inside the cloud.
@@ -410,12 +408,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         [Tooltip("Controls the influence of the light probes on the cloud volume. A lower value will suppress the ambient light and produce darker clouds overall.")]
         public ClampedFloatParameter ambientLightProbeDimmer = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
-
-        /// <summary>
-        /// Controls the influence of the sun light on the cloud volume. A lower value will suppress the sun light and produce darker clouds overall.
-        /// </summary>
-        [Tooltip("Controls the influence of the sun light on the cloud volume. A lower value will suppress the sun light and produce darker clouds overall.")]
-        public ClampedFloatParameter sunLightDimmer = new ClampedFloatParameter(1.0f, 0.0f, 1.0f);
 
         /// <summary>
         /// Controls how much Erosion Factor is taken into account when computing ambient occlusion. The Erosion Factor parameter is editable in the custom preset, Advanced and Manual Modes.
@@ -497,7 +489,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public BoolParameter shadows = new BoolParameter(false);
 
         /// <summary>
-        /// Specifies the resolution of the volumetric clouds shadow map.
+        /// Enable/Disable the volumetric clouds shadow. This will override the cookie of your directional light and the cloud layer shadow (if active).
         /// </summary>
         [Tooltip("Specifies the resolution of the volumetric clouds shadow map.")]
         public CloudShadowResolutionParameter shadowResolution = new CloudShadowResolutionParameter(CloudShadowResolution.Medium256);

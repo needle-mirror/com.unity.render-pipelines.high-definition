@@ -45,7 +45,7 @@ namespace UnityEngine.Rendering.HighDefinition
             get => value == LevelCount ? ((int)Level.Low, true) : (value, false);
             set
             {
-                var(level, useOverride) = value;
+                var (level, useOverride) = value;
                 this.value = GetScalableSettingLevelParameterValue(level, useOverride);
             }
         }

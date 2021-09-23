@@ -63,7 +63,6 @@ Shader "Hidden/HD PostProcessing/Editor/Shadows Midtones Highlights Curve"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Cull Off ZWrite Off ZTest Always
 
         // (0) Dark skin

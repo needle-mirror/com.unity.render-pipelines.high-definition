@@ -94,7 +94,7 @@ namespace UnityEngine.Rendering.HighDefinition
             { filterMode = m_FilterMode, depthBufferBits = m_DepthBufferBits, isShadowMap = true, name = m_Name };
         }
 
-        public HDShadowAtlas() {}
+        public HDShadowAtlas() { }
 
         public virtual void InitAtlas(HDShadowAtlasInitParameters initParams)
         {
@@ -313,7 +313,6 @@ namespace UnityEngine.Rendering.HighDefinition
                             data.globalCBData._InvProjMatrix = shadowRequest.deviceProjectionYFlip.inverse;
                             data.globalCBData._ViewProjMatrix = viewProjection;
                             data.globalCBData._InvViewProjMatrix = viewProjection.inverse;
-                            data.globalCBData._SlopeScaleDepthBias = -shadowRequest.slopeBias;
 
                             data.globalCB.PushGlobal(ctx.cmd, data.globalCBData, HDShaderIDs._ShaderVariablesGlobal);
 
@@ -473,9 +472,9 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.atlasTexture = builder.ReadTexture(atlasTexture);
                 passData.momentAtlasTexture = builder.WriteTexture(GetOutputTexture(renderGraph));
                 passData.intermediateSummedAreaTexture = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(width, height)
-                    { colorFormat = GraphicsFormat.R32G32B32A32_SInt, name = m_IntermediateSummedAreaName, enableRandomWrite = true, clearBuffer = true, clearColor = Color.black }));
+                { colorFormat = GraphicsFormat.R32G32B32A32_SInt, name = m_IntermediateSummedAreaName, enableRandomWrite = true, clearBuffer = true, clearColor = Color.black }));
                 passData.summedAreaTexture = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(width, height)
-                    { colorFormat = GraphicsFormat.R32G32B32A32_SInt, name = m_SummedAreaName, enableRandomWrite = true, clearColor = Color.black }));
+                { colorFormat = GraphicsFormat.R32G32B32A32_SInt, name = m_SummedAreaName, enableRandomWrite = true, clearColor = Color.black }));
 
                 builder.SetRenderFunc(
                     (IMBlurMomentPassData data, RenderGraphContext ctx) =>

@@ -36,8 +36,6 @@ Shader "Hidden/HD PostProcessing/Editor/CurveBackground"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
-
         Cull Off ZWrite Off ZTest Always
 
         // (0) Hue

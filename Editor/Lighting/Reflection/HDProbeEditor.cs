@@ -120,20 +120,13 @@ namespace UnityEditor.Rendering.HighDefinition
             ).Draw(serialized, owner);
         }
 
-        protected virtual void DrawHandles(TSerialized serialized, Editor owner) {}
-        protected virtual void DrawAdditionalCaptureSettings(TSerialized serialiezed, Editor owner) {}
+        protected virtual void DrawHandles(TSerialized serialized, Editor owner) { }
+        protected virtual void DrawAdditionalCaptureSettings(TSerialized serialiezed, Editor owner) { }
 
         protected void OnSceneGUI()
         {
-            if (target == null)
-                return;
-
-            var soo = m_SerializedHDProbePerTarget[target];
-            if (soo == null)
-                return;
-
             EditorGUI.BeginChangeCheck();
-
+            var soo = m_SerializedHDProbePerTarget[target];
             soo.Update();
             HDProbeUI.DrawHandles(soo, this);
 

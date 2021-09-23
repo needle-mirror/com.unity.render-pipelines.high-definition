@@ -13,10 +13,8 @@ Shader "Hidden/PostProcessing/SubpixelMorphologicalAntialiasing"
 
         ENDHLSL
 
-    SubShader
+        SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
-
         Cull Off ZWrite Off ZTest Always
 
         // Edge detection

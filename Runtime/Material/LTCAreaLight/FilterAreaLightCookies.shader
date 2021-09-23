@@ -54,7 +54,6 @@ Shader "Hidden/CoreResources/FilterAreaLightCookies"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         // Simple copy to mip 0
         Pass
         {

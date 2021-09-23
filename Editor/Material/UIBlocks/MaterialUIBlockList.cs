@@ -41,7 +41,7 @@ namespace UnityEditor.Rendering.HighDefinition
         /// <summary>
         /// Construct a ui block list
         /// </summary>
-        public MaterialUIBlockList() : this(null) {}
+        public MaterialUIBlockList() : this(null) { }
 
         /// <summary>
         /// Render the list of ui blocks

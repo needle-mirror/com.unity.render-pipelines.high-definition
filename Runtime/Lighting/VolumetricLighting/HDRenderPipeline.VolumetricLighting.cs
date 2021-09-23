@@ -432,7 +432,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         TextureHandle GenerateMaxZPass(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle depthTexture, HDUtils.PackedMipChainInfo depthMipInfo)
         {
-            if (Fog.IsVolumetricFogEnabled(hdCamera) || VolumetricCloudsRequireMaxZ(hdCamera))
+            if (Fog.IsVolumetricFogEnabled(hdCamera))
             {
                 if (!hdCamera.frameSettings.IsEnabled(FrameSettingsField.OpaqueObjects))
                 {
@@ -463,28 +463,21 @@ namespace UnityEngine.Rendering.HighDefinition
 
                     int frameIndex = (int)VolumetricFrameIndex(hdCamera);
                     var currIdx = frameIndex & 1;
+                    var currentParams = hdCamera.vBufferParams[currIdx];
 
-                    if (hdCamera.vBufferParams != null)
-                    {
-                        var currentParams = hdCamera.vBufferParams[currIdx];
-                        float ratio = (float)currentParams.viewportSize.x / (float)hdCamera.actualWidth;
-                        passData.dilationWidth = ratio < 0.1f ? 2 :
-                            ratio < 0.5f ? 1 : 0;
-                    }
-                    else
-                    {
-                        passData.dilationWidth = 1;
-                    }
+                    float ratio = (float)currentParams.viewportSize.x / (float)hdCamera.actualWidth;
+                    passData.dilationWidth = ratio < 0.1f ? 2 :
+                        ratio < 0.5f ? 1 : 0;
 
                     passData.viewCount = hdCamera.viewCount;
 
                     passData.depthTexture = builder.ReadTexture(depthTexture);
                     passData.maxZ8xBuffer = builder.CreateTransientTexture(new TextureDesc(Vector2.one * 0.125f, true, true)
-                        { colorFormat = GraphicsFormat.R32_SFloat, enableRandomWrite = true, name = "MaxZ mask 8x" });
+                    { colorFormat = GraphicsFormat.R32_SFloat, enableRandomWrite = true, name = "MaxZ mask 8x" });
                     passData.maxZBuffer = builder.CreateTransientTexture(new TextureDesc(Vector2.one * 0.125f, true, true)
-                        { colorFormat = GraphicsFormat.R32_SFloat, enableRandomWrite = true, name = "MaxZ mask" });
+                    { colorFormat = GraphicsFormat.R32_SFloat, enableRandomWrite = true, name = "MaxZ mask" });
                     passData.dilatedMaxZBuffer = builder.ReadWriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one / 16.0f, true, true)
-                        { colorFormat = GraphicsFormat.R32_SFloat, enableRandomWrite = true, name = "Dilated MaxZ mask" }));
+                    { colorFormat = GraphicsFormat.R32_SFloat, enableRandomWrite = true, name = "Dilated MaxZ mask" }));
 
                     builder.SetRenderFunc(
                         (GenerateMaxZMaskPassData data, RenderGraphContext ctx) =>
@@ -917,7 +910,7 @@ namespace UnityEngine.Rendering.HighDefinition
                         passData.bigTileLightListBuffer = builder.ReadComputeBuffer(bigTileLightList);
 
                     passData.densityBuffer = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(s_CurrentVolumetricBufferSize.x, s_CurrentVolumetricBufferSize.y, false, false)
-                        { slices = s_CurrentVolumetricBufferSize.z, colorFormat = GraphicsFormat.R16G16B16A16_SFloat, dimension = TextureDimension.Tex3D, enableRandomWrite = true, name = "VBufferDensity" }));
+                    { slices = s_CurrentVolumetricBufferSize.z, colorFormat = GraphicsFormat.R16G16B16A16_SFloat, dimension = TextureDimension.Tex3D, enableRandomWrite = true, name = "VBufferDensity" }));
 
                     builder.SetRenderFunc(
                         (VolumeVoxelizationPassData data, RenderGraphContext ctx) =>
@@ -1055,7 +1048,7 @@ namespace UnityEngine.Rendering.HighDefinition
                     passData.depthTexture = builder.ReadTexture(depthTexture);
                     passData.maxZBuffer = builder.ReadTexture(maxZBuffer);
                     passData.lightingBuffer = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(s_CurrentVolumetricBufferSize.x, s_CurrentVolumetricBufferSize.y, false, false)
-                        { slices = s_CurrentVolumetricBufferSize.z, colorFormat = GraphicsFormat.R16G16B16A16_SFloat, dimension = TextureDimension.Tex3D, enableRandomWrite = true, name = "VBufferLighting" }));
+                    { slices = s_CurrentVolumetricBufferSize.z, colorFormat = GraphicsFormat.R16G16B16A16_SFloat, dimension = TextureDimension.Tex3D, enableRandomWrite = true, name = "VBufferLighting" }));
 
                     if (passData.enableReprojection)
                     {

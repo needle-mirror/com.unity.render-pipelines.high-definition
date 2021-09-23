@@ -355,11 +355,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
         internal float deltaTime => time - lastTime;
 
-        // Useful for the deterministic testing of motion vectors.
-        // This is currently override only in com.unity.testing.hdrp/TestRunner/OverrideTime.cs
-        internal float animateMaterialsTime { get; set; } = -1;
-        internal float animateMaterialsTimeLast { get; set; } = -1;
-
         // Non oblique projection matrix (RHS)
         // TODO: this code is never used and not compatible with XR
         internal Matrix4x4 nonObliqueProjMatrix
@@ -610,7 +605,7 @@ namespace UnityEngine.Rendering.HighDefinition
         internal LayerMask probeLayerMask
             => m_AdditionalCameraData != null
             ? m_AdditionalCameraData.probeLayerMask
-            : (LayerMask) ~0;
+            : (LayerMask)~0;
 
         internal float probeRangeCompressionFactor
             => m_AdditionalCameraData != null
@@ -1130,13 +1125,6 @@ namespace UnityEngine.Rendering.HighDefinition
             float ct = time;
             float pt = lastTime;
 #if UNITY_EDITOR
-            // Apply editor mode time override if any.
-            if (animateMaterials)
-            {
-                ct = animateMaterialsTime < 0 ? ct : animateMaterialsTime;
-                pt = animateMaterialsTimeLast < 0 ? pt : animateMaterialsTimeLast;
-            }
-
             float dt = time - lastTime;
             float sdt = dt;
 #else
@@ -1249,7 +1237,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 // We need to blit to an intermediate texture because input resolution can be bigger than the camera resolution
                 // Since recorder does not know about this, we need to send a texture of the right size.
                 passData.tempTexture = builder.CreateTransientTexture(new TextureDesc(actualWidth, actualHeight)
-                    { colorFormat = inputDesc.colorFormat, name = "TempCaptureActions" });
+                { colorFormat = inputDesc.colorFormat, name = "TempCaptureActions" });
 
                 builder.SetRenderFunc(
                     (ExecuteCaptureActionsPassData data, RenderGraphContext ctx) =>

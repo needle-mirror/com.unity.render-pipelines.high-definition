@@ -114,7 +114,7 @@ namespace UnityEditor.Rendering.HighDefinition
         /// Use this function to initialize the local SerializedProperty you will use in your pass.
         /// </summary>
         /// <param name="customPass">Your custom pass instance represented as a SerializedProperty</param>
-        protected virtual void Initialize(SerializedProperty customPass) {}
+        protected virtual void Initialize(SerializedProperty customPass) { }
 
         internal void SetPass(CustomPass pass) => m_CustomPass = pass;
 

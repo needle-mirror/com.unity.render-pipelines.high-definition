@@ -105,7 +105,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// Sets the texture mask used to weight the pixels in the buffer when computing exposure.
         /// </summary>
         [Tooltip("Sets the texture mask to be used to weight the pixels in the buffer for the sake of computing exposure.")]
-        public Texture2DParameter weightTextureMask = new Texture2DParameter(null);
+        public NoInterpTextureParameter weightTextureMask = new NoInterpTextureParameter(null);
 
         /// <summary>
         /// These values are the lower and upper percentages of the histogram that will be used to
@@ -320,7 +320,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public ExposureModeParameter(ExposureMode value, bool overrideState = false) : base(value, overrideState) {}
+        public ExposureModeParameter(ExposureMode value, bool overrideState = false) : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -334,7 +334,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public MeteringModeParameter(MeteringMode value, bool overrideState = false) : base(value, overrideState) {}
+        public MeteringModeParameter(MeteringMode value, bool overrideState = false) : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -348,7 +348,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public LuminanceSourceParameter(LuminanceSource value, bool overrideState = false) : base(value, overrideState) {}
+        public LuminanceSourceParameter(LuminanceSource value, bool overrideState = false) : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -362,7 +362,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public AdaptationModeParameter(AdaptationMode value, bool overrideState = false) : base(value, overrideState) {}
+        public AdaptationModeParameter(AdaptationMode value, bool overrideState = false) : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -376,6 +376,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public TargetMidGrayParameter(TargetMidGray value, bool overrideState = false) : base(value, overrideState) {}
+        public TargetMidGrayParameter(TargetMidGray value, bool overrideState = false) : base(value, overrideState) { }
     }
 }

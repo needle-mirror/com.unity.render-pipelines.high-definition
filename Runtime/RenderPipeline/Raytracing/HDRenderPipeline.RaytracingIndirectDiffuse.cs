@@ -13,6 +13,7 @@ namespace UnityEngine.Rendering.HighDefinition
         int m_RaytracingIndirectDiffuseHalfResKernel;
         int m_IndirectDiffuseUpscaleFullResKernel;
         int m_IndirectDiffuseUpscaleHalfResKernel;
+        int m_AdjustIndirectDiffuseWeightKernel;
 
         void InitRayTracedIndirectDiffuse()
         {
@@ -23,6 +24,7 @@ namespace UnityEngine.Rendering.HighDefinition
             m_RaytracingIndirectDiffuseHalfResKernel = indirectDiffuseShaderCS.FindKernel("RaytracingIndirectDiffuseHalfRes");
             m_IndirectDiffuseUpscaleFullResKernel = indirectDiffuseShaderCS.FindKernel("IndirectDiffuseIntegrationUpscaleFullRes");
             m_IndirectDiffuseUpscaleHalfResKernel = indirectDiffuseShaderCS.FindKernel("IndirectDiffuseIntegrationUpscaleHalfRes");
+            m_AdjustIndirectDiffuseWeightKernel = indirectDiffuseShaderCS.FindKernel("AdjustIndirectDiffuseWeight");
         }
 
         void ReleaseRayTracedIndirectDiffuse()
@@ -140,7 +142,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.depthStencilBuffer = builder.ReadTexture(depthPyramid);
                 passData.normalBuffer = builder.ReadTexture(normalBuffer);
                 passData.outputBuffer = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
-                    { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "GI Ray Directions" }));
+                { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "GI Ray Directions" }));
 
                 builder.SetRenderFunc(
                     (DirGenRTGIPassData data, RenderGraphContext ctx) =>
@@ -222,7 +224,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.indirectDiffuseBuffer = builder.ReadTexture(indirectDiffuseBuffer);
                 passData.directionBuffer = builder.ReadTexture(directionBuffer);
                 passData.outputBuffer = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
-                    { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "Reflection Ray Indirect Diffuse" }));
+                { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "Reflection Ray Indirect Diffuse" }));
 
                 builder.SetRenderFunc(
                     (UpscaleRTGIPassData data, RenderGraphContext ctx) =>
@@ -252,6 +254,69 @@ namespace UnityEngine.Rendering.HighDefinition
                     });
 
                 return passData.outputBuffer;
+            }
+        }
+
+        class AdjustRTGIWeightPassData
+        {
+            // Camera parameters
+            public int texWidth;
+            public int texHeight;
+            public int viewCount;
+
+            // Additional resources
+            public int adjustWeightKernel;
+            public ComputeShader adjustWeightCS;
+
+            public TextureHandle depthPyramid;
+            public TextureHandle stencilBuffer;
+            public TextureHandle indirectDiffuseBuffer;
+        }
+
+        TextureHandle AdjustRTGIWeight(RenderGraph renderGraph, HDCamera hdCamera, TextureHandle indirectDiffuseBuffer, TextureHandle depthPyramid, TextureHandle stencilBuffer)
+        {
+            using (var builder = renderGraph.AddRenderPass<AdjustRTGIWeightPassData>("Adjust the RTGI weight", out var passData, ProfilingSampler.Get(HDProfileId.RaytracingIndirectDiffuseAdjustWeight)))
+            {
+                builder.EnableAsyncCompute(false);
+
+                // Set the camera parameters
+                passData.texWidth = hdCamera.actualWidth;
+                passData.texHeight = hdCamera.actualHeight;
+                passData.viewCount = hdCamera.viewCount;
+
+                // Grab the right kernel
+                passData.adjustWeightCS = m_GlobalSettings.renderPipelineRayTracingResources.indirectDiffuseRaytracingCS;
+                passData.adjustWeightKernel = m_AdjustIndirectDiffuseWeightKernel;
+
+                passData.depthPyramid = builder.ReadTexture(depthPyramid);
+                passData.stencilBuffer = builder.ReadTexture(stencilBuffer);
+                passData.indirectDiffuseBuffer = builder.ReadWriteTexture(indirectDiffuseBuffer);
+
+                builder.SetRenderFunc(
+                    (AdjustRTGIWeightPassData data, RenderGraphContext ctx) =>
+                    {
+                        // Input data
+                        ctx.cmd.SetComputeTextureParam(data.adjustWeightCS, data.adjustWeightKernel, HDShaderIDs._DepthTexture, data.depthPyramid);
+                        ctx.cmd.SetComputeTextureParam(data.adjustWeightCS, data.adjustWeightKernel, HDShaderIDs._StencilTexture, data.stencilBuffer, 0, RenderTextureSubElement.Stencil);
+                        ctx.cmd.SetComputeIntParams(data.adjustWeightCS, HDShaderIDs._SsrStencilBit, (int)StencilUsage.TraceReflectionRay);
+
+                        // In/Output buffer
+                        ctx.cmd.SetComputeTextureParam(data.adjustWeightCS, data.adjustWeightKernel, HDShaderIDs._IndirectDiffuseTextureRW, data.indirectDiffuseBuffer);
+
+                        // Texture dimensions
+                        int texWidth = data.texWidth;
+                        int texHeight = data.texHeight;
+
+                        // Evaluate the dispatch parameters
+                        int areaTileSize = 8;
+                        int numTilesXHR = (texWidth + (areaTileSize - 1)) / areaTileSize;
+                        int numTilesYHR = (texHeight + (areaTileSize - 1)) / areaTileSize;
+
+                        // Compute the texture
+                        ctx.cmd.DispatchCompute(data.adjustWeightCS, data.adjustWeightKernel, numTilesXHR, numTilesYHR, data.viewCount);
+                    });
+
+                return passData.indirectDiffuseBuffer;
             }
         }
 
@@ -287,6 +352,9 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // Denoise if required
             rtgiResult = DenoiseRTGI(renderGraph, hdCamera, rtgiResult, prepassOutput.depthPyramidTexture, prepassOutput.normalBuffer, prepassOutput.resolvedMotionVectorsBuffer, historyValidationTexture, fullResolution);
+
+            // Adjust the weight
+            rtgiResult = AdjustRTGIWeight(renderGraph, hdCamera, rtgiResult, prepassOutput.depthPyramidTexture, prepassOutput.stencilBuffer);
 
             return rtgiResult;
         }
@@ -358,7 +426,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 passData.normalBuffer = builder.ReadTexture(normalBuffer);
                 passData.rayCountTexture = builder.ReadWriteTexture(rayCountTexture);
                 passData.outputBuffer = builder.WriteTexture(renderGraph.CreateTexture(new TextureDesc(Vector2.one, true, true)
-                    { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "Ray Traced Indirect Diffuse" }));
+                { colorFormat = GraphicsFormat.R16G16B16A16_SFloat, enableRandomWrite = true, name = "Ray Traced Indirect Diffuse" }));
 
                 builder.SetRenderFunc(
                     (TraceQualityRTGIPassData data, RenderGraphContext ctx) =>
@@ -425,6 +493,9 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // Denoise if required
             rtgiResult = DenoiseRTGI(renderGraph, hdCamera, rtgiResult, depthPyramid, normalBuffer, motionVectors, historyValidationTexture, true);
+
+            // Adjust the weight
+            rtgiResult = AdjustRTGIWeight(renderGraph, hdCamera, rtgiResult, depthPyramid, stencilBuffer);
 
             return rtgiResult;
         }

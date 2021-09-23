@@ -9,7 +9,6 @@ Shader "Hidden/ScriptableRenderPipeline/ShadowClear"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
         Pass
         {
             Name "ClearShadow"

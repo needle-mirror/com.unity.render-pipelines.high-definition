@@ -101,8 +101,6 @@ Shader "Hidden/HDRP/CustomPassUtils"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
-
         Pass
         {
             Name "Copy"

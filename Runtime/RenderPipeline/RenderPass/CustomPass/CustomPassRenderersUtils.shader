@@ -34,8 +34,6 @@ Shader "Hidden/HDRP/CustomPassRenderersUtils"
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "HDRenderPipeline" }
-
         Pass
         {
             Name "DepthToColorPass"

@@ -1,7 +1,6 @@
 {
 	SubShader
-	{
-	    Tags{ "RenderPipeline" = "HDRenderPipeline" }
+	{	
 		Cull Back
 		
 		${VFXInclude("Shaders/VFXParticleHeader.template")}

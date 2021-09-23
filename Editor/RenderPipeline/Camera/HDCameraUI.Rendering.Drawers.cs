@@ -66,7 +66,7 @@ namespace UnityEditor.Rendering.HighDefinition
             }
 
             static void Draw_Rendering_Advanced(SerializedHDCamera p, Editor owner)
-            {}
+            { }
 
             public static readonly CED.IDrawer DrawerPreset = CED.FoldoutGroup(
                 CameraUI.Rendering.Styles.header,
@@ -175,7 +175,6 @@ namespace UnityEditor.Rendering.HighDefinition
                         if (EditorGUI.EndChangeCheck())
                             p.antialiasing.intValue = selectedValue;
                     }
-                    EditorGUI.EndProperty();
                 }
             }
 

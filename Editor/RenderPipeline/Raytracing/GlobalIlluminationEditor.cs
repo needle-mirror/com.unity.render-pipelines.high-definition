@@ -173,15 +173,17 @@ namespace UnityEditor.Rendering.HighDefinition
             }
 
             PropertyField(m_Enable);
+            if (m_Enable.value.boolValue)
+                EditorGUILayout.HelpBox("Real-time Global Illumination overwrites emissive data in deferred rendering mode. To recover the emissive contribution, either use Force Forward Emissive or disable Receive SSR/SSGI flag on the emissive materials.", MessageType.Info);
             EditorGUILayout.Space();
 
             // If ray tracing is supported display the content of the volume component
-            if (HDRenderPipeline.assetSupportsRayTracing)
+            if (HDRenderPipeline.buildPipelineSupportsRayTracing)
                 PropertyField(m_Tracing);
 
             // Flag to track if the ray tracing parameters were displayed
             RayCastingMode tracingMode = m_Tracing.value.GetEnumValue<RayCastingMode>();
-            bool rayTracingSettingsDisplayed = HDRenderPipeline.assetSupportsRayTracing
+            bool rayTracingSettingsDisplayed = HDRenderPipeline.buildPipelineSupportsRayTracing
                 && m_Tracing.overrideState.boolValue
                 && tracingMode != RayCastingMode.RayMarching;
 
@@ -283,7 +285,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         public override void LoadSettingsFromObject(QualitySettingsBlob settings)
         {
-            if (HDRenderPipeline.assetSupportsRayTracing && m_Tracing.overrideState.boolValue &&
+            if (HDRenderPipeline.buildPipelineSupportsRayTracing && m_Tracing.overrideState.boolValue &&
                 m_Tracing.value.GetEnumValue<RayCastingMode>() != RayCastingMode.RayMarching)
             {
                 // RTGI
@@ -309,7 +311,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         public override void LoadSettingsFromQualityPreset(RenderPipelineSettings settings, int level)
         {
-            if (HDRenderPipeline.assetSupportsRayTracing && m_Tracing.overrideState.boolValue &&
+            if (HDRenderPipeline.buildPipelineSupportsRayTracing && m_Tracing.overrideState.boolValue &&
                 m_Tracing.value.GetEnumValue<RayCastingMode>() != RayCastingMode.RayMarching)
             {
                 // RTGI
@@ -336,7 +338,7 @@ namespace UnityEditor.Rendering.HighDefinition
         public override bool QualityEnabled()
         {
             // Quality always used for SSGI
-            if (!HDRenderPipeline.assetSupportsRayTracing || m_Tracing.value.GetEnumValue<RayCastingMode>() == RayCastingMode.RayMarching)
+            if (!HDRenderPipeline.buildTargetSupportsRayTracing || m_Tracing.value.GetEnumValue<RayCastingMode>() == RayCastingMode.RayMarching)
                 return true;
 
             // Handle the quality usage for RTGI
