@@ -166,7 +166,7 @@ namespace UnityEngine.Rendering.HighDefinition
             public CustomPostProcessVolumeComponent customPostProcess;
         }
 
-        TextureHandle GetPostprocessOutputHandle(RenderGraph renderGraph,  string name, bool dynamicResolution = true)
+        TextureHandle GetPostprocessOutputHandle(RenderGraph renderGraph, string name, bool dynamicResolution = true)
         {
             return renderGraph.CreateTexture(new TextureDesc(Vector2.one, dynamicResolution, true)
             {
@@ -1081,11 +1081,11 @@ namespace UnityEngine.Rendering.HighDefinition
 
         class FinalPassData
         {
-            public FinalPassParameters  parameters;
-            public TextureHandle        source;
-            public TextureHandle        afterPostProcessTexture;
-            public TextureHandle        alphaTexture;
-            public TextureHandle        destination;
+            public FinalPassParameters parameters;
+            public TextureHandle source;
+            public TextureHandle afterPostProcessTexture;
+            public TextureHandle alphaTexture;
+            public TextureHandle destination;
         }
     }
 }

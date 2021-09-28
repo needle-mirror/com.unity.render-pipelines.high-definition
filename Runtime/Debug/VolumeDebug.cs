@@ -110,7 +110,7 @@ namespace UnityEngine.Rendering.HighDefinition
         }
 
         /// <summary>Type of the current component to debug.</summary>
-        public Type     selectedComponentType
+        public Type selectedComponentType
         {
             get { return componentTypes[selectedComponent - 1]; }
             set
@@ -150,7 +150,7 @@ namespace UnityEngine.Rendering.HighDefinition
             return component.Name;
         }
 
-        internal static List<HDAdditionalCameraData> cameras {get; private set; } = new List<HDAdditionalCameraData>();
+        internal static List<HDAdditionalCameraData> cameras { get; private set; } = new List<HDAdditionalCameraData>();
 
         internal static void RegisterCamera(HDAdditionalCameraData camera)
         {

@@ -61,10 +61,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
         class RenderAOPassData
         {
-            public RenderAOParameters   parameters;
-            public TextureHandle        packedData;
-            public TextureHandle        depthPyramid;
-            public TextureHandle        normalBuffer;
+            public RenderAOParameters parameters;
+            public TextureHandle packedData;
+            public TextureHandle depthPyramid;
+            public TextureHandle normalBuffer;
         }
 
         TextureHandle RenderAO(RenderGraph renderGraph, in RenderAOParameters parameters, TextureHandle depthPyramid, TextureHandle normalBuffer)
@@ -93,22 +93,22 @@ namespace UnityEngine.Rendering.HighDefinition
 
         class DenoiseAOPassData
         {
-            public RenderAOParameters   parameters;
-            public TextureHandle        packedData;
-            public TextureHandle        packedDataBlurred;
-            public TextureHandle        currentHistory;
-            public TextureHandle        outputHistory;
-            public TextureHandle        denoiseOutput;
-            public TextureHandle        motionVectors;
+            public RenderAOParameters parameters;
+            public TextureHandle packedData;
+            public TextureHandle packedDataBlurred;
+            public TextureHandle currentHistory;
+            public TextureHandle outputHistory;
+            public TextureHandle denoiseOutput;
+            public TextureHandle motionVectors;
         }
 
-        TextureHandle DenoiseAO(RenderGraph             renderGraph,
-            in RenderAOParameters   parameters,
-            TextureHandle           depthTexture,
-            TextureHandle           motionVectors,
-            TextureHandle           aoPackedData,
-            TextureHandle           currentHistory,
-            TextureHandle           outputHistory)
+        TextureHandle DenoiseAO(RenderGraph renderGraph,
+            in RenderAOParameters parameters,
+            TextureHandle depthTexture,
+            TextureHandle motionVectors,
+            TextureHandle aoPackedData,
+            TextureHandle currentHistory,
+            TextureHandle outputHistory)
         {
             if (!parameters.temporalAccumulation && !parameters.fullResolution)
                 return aoPackedData;
@@ -159,10 +159,10 @@ namespace UnityEngine.Rendering.HighDefinition
 
         class UpsampleAOPassData
         {
-            public RenderAOParameters   parameters;
-            public TextureHandle        depthTexture;
-            public TextureHandle        input;
-            public TextureHandle        output;
+            public RenderAOParameters parameters;
+            public TextureHandle depthTexture;
+            public TextureHandle input;
+            public TextureHandle output;
         }
 
         TextureHandle UpsampleAO(RenderGraph renderGraph, in RenderAOParameters parameters, TextureHandle input, TextureHandle depthTexture)
