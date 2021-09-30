@@ -21,12 +21,12 @@ namespace UnityEngine.Rendering.HighDefinition
 
         struct RenderAOParameters
         {
-            public Vector2          runningRes;
-            public int              viewCount;
-            public bool             fullResolution;
-            public bool             runAsync;
-            public bool             temporalAccumulation;
-            public bool             bilateralUpsample;
+            public Vector2 runningRes;
+            public int viewCount;
+            public bool fullResolution;
+            public bool runAsync;
+            public bool temporalAccumulation;
+            public bool bilateralUpsample;
 
             public ShaderVariablesAmbientOcclusion cb;
         }
