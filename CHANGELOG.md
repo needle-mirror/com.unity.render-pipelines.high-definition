@@ -4,6 +4,21 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [12.1.0] - 2021-09-23
+
+### Fixed
+- Fixed the volume not being assigned on some scene templates.
+- Fixed corruption in player with lightmap uv when Optimize Mesh Data is enabled [1357902]
+- Fixed a warning to Rendering Debugger Runtime UI when debug shaders are stripped.
+- Fixed Probe volume debug exposure compensation to match the Lighting debug one.
+- Fixed misleading text and improving the eye scene material samples. (case 1368665)
+- MaterialReimporter.ReimportAllMaterials and MaterialReimporter.ReimportAllHDShaderGraphs now batch the asset database changes to improve performance.
+- Fixed lens flare occlusion issues with TAA. (1365098)
+- Fixed the LensFlare flicker with TAA on SceneView (case 1356734).
+- Fixed missing DisallowMultipleComponent annotations in HDAdditionalReflectionData and HDAdditionalLightData (case 1365879).
+- Fixed support for light/shadow dimmers (volumetric or not) in path tracing.
+- Fixed ambient occlusion strenght incorrectly using GTAOMultiBounce
+
 ## [12.0.0] - 2021-01-11
 
 ### Added
