@@ -1,15 +1,15 @@
 {
   "name": "com.unity.render-pipelines.high-definition",
   "description": "The High Definition Render Pipeline (HDRP) is a high-fidelity Scriptable Render Pipeline built by Unity to target modern (Compute Shader compatible) platforms. HDRP utilizes Physically-Based Lighting techniques, linear lighting, HDR lighting, and a configurable hybrid Tile/Cluster deferred/Forward lighting architecture and gives you the tools you need to create games, technical demos, animations, and more to a high graphical standard.",
-  "version": "10.8.1",
+  "version": "10.9.0",
   "unity": "2020.3",
   "unityRelease": "18f1",
   "displayName": "High Definition RP",
   "dependencies": {
-    "com.unity.render-pipelines.core": "10.8.1",
-    "com.unity.shadergraph": "10.8.1",
-    "com.unity.visualeffectgraph": "10.8.1",
-    "com.unity.render-pipelines.high-definition-config": "10.8.1"
+    "com.unity.render-pipelines.core": "10.9.0",
+    "com.unity.shadergraph": "10.9.0",
+    "com.unity.visualeffectgraph": "10.9.0",
+    "com.unity.render-pipelines.high-definition-config": "10.9.0"
   },
   "keywords": [
     "graphics",
@@ -40,12 +40,15 @@
       "path": "Samples~/MaterialSamples"
     }
   ],
+  "upm": {
+    "changelog": "### Fixed\n- Render Graph object pools are now cleared with render graph cleanup to avoid stale pass data.\n- Fixed sky jittering when TAA is enabled.\n- Fixed Normal Map assiignation when importing FBX Materials.\n- Fixed an issue where sometimes full screen debug would cause render graph errors.\n- Fixed a nullref exception when creating a new scene while LightExplorer is open.\n- Fixed issue at edge of screen on some platforms when SSAO is on.\n- Fixed vertex color mode Add name whicgh was misleading, renamed to AddSubstract.\n- Fixed screen space shadow when multiple lights cast shadows.\n- Fixed issue with dynamic resolution and low res transparency sampling garbage outside of the render target.\n- Fixed issue with Final Image Histogram displaying a flat histogram on certain GPUs and APIs."
+  },
   "upmCi": {
-    "footprint": "bd20d63a945015b67544ed3880b6d9273d60bae1"
+    "footprint": "a52cc30b086712d2557f3d73e4ee02ea580ad2b6"
   },
   "repository": {
     "url": "https://github.com/Unity-Technologies/Graphics.git",
     "type": "git",
-    "revision": "31a193989d1e4e18ec3dced0f45168f8d2552a9a"
+    "revision": "5a193e907cafca7b2fa290618e18c3f28a3b451b"
   }
 }
