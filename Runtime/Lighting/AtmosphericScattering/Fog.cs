@@ -7,8 +7,8 @@ namespace UnityEngine.Rendering.HighDefinition
     /// <summary>
     /// Fog Volume Component.
     /// </summary>
-    [Serializable, VolumeComponentMenuForRenderPipeline("Fog", typeof(HDRenderPipeline))]
-    [HDRPHelpURLAttribute("Override-Fog")]
+    [Serializable, VolumeComponentMenu("Fog")]
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Override-Fog" + Documentation.endURL)]
     public class Fog : VolumeComponentWithQuality
     {
         /// <summary>Enable fog.</summary>
@@ -27,15 +27,12 @@ namespace UnityEngine.Rendering.HighDefinition
         [Tooltip("Sets the maximum fog distance HDRP uses when it shades the skybox or the Far Clipping Plane of the Camera.")]
         public MinFloatParameter maxFogDistance = new MinFloatParameter(5000.0f, 0.0f);
         /// <summary>Controls the maximum mip map HDRP uses for mip fog (0 is the lowest mip and 1 is the highest mip).</summary>
-        [AdditionalProperty]
         [Tooltip("Controls the maximum mip map HDRP uses for mip fog (0 is the lowest mip and 1 is the highest mip).")]
         public ClampedFloatParameter mipFogMaxMip = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
         /// <summary>Sets the distance at which HDRP uses the minimum mip image of the blurred sky texture as the fog color.</summary>
-        [AdditionalProperty]
         [Tooltip("Sets the distance at which HDRP uses the minimum mip image of the blurred sky texture as the fog color.")]
         public MinFloatParameter mipFogNear = new MinFloatParameter(0.0f, 0.0f);
         /// <summary>Sets the distance at which HDRP uses the maximum mip image of the blurred sky texture as the fog color.</summary>
-        [AdditionalProperty]
         [Tooltip("Sets the distance at which HDRP uses the maximum mip image of the blurred sky texture as the fog color.")]
         public MinFloatParameter mipFogFar = new MinFloatParameter(1000.0f, 0.0f);
 
@@ -67,10 +64,8 @@ namespace UnityEngine.Rendering.HighDefinition
 
         // Advanced parameters
         /// <summary>Controls the angular distribution of scattered light. 0 is isotropic, 1 is forward scattering, and -1 is backward scattering.</summary>
-        [AdditionalProperty]
         public ClampedFloatParameter anisotropy = new ClampedFloatParameter(0.0f, -1.0f, 1.0f);
         /// <summary>Controls the distribution of slices along the Camera's focal axis. 0 is exponential distribution and 1 is linear distribution.</summary>
-        [AdditionalProperty]
         [Tooltip("Controls the distribution of slices along the Camera's focal axis. 0 is exponential distribution and 1 is linear distribution.")]
         public ClampedFloatParameter sliceDistributionUniformity = new ClampedFloatParameter(0.75f, 0, 1);
 
@@ -93,20 +88,17 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_FogControlMode.value = value; }
         }
-        [AdditionalProperty]
         [SerializeField, FormerlySerializedAs("fogControlMode")]
         [Tooltip("Specifies which method to use to control the performance and quality of the volumetric fog.")]
         private FogControlParameter m_FogControlMode = new FogControlParameter(FogControl.Balance);
 
         /// <summary>Stores the resolution of the volumetric buffer (3D texture) along the x-axis and y-axis relative to the resolution of the screen.</summary>
-        [AdditionalProperty]
         [Tooltip("Controls the resolution of the volumetric buffer (3D texture) along the x-axis and y-axis relative to the resolution of the screen.")]
         public ClampedFloatParameter screenResolutionPercentage = new ClampedFloatParameter(optimalFogScreenResolutionPercentage, minFogScreenResolutionPercentage, maxFogScreenResolutionPercentage);
         /// <summary>Number of slices of the volumetric buffer (3D texture) along the camera's focal axis.</summary>
-        [AdditionalProperty]
         [Tooltip("Controls the number of slices to use the volumetric buffer (3D texture) along the camera's focal axis.")]
         public ClampedIntParameter volumeSliceCount = new ClampedIntParameter(64, 1, maxFogSliceCount);
-
+        
         /// <summary>Defines the performance to quality ratio of the volumetric fog. A value of 0 being the least resource-intensive and a value of 1 being the highest quality.</summary>
         /// <remarks>Try to minimize this value to find a compromise between quality and performance. </remarks>
         public float volumetricFogBudget
@@ -120,7 +112,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_VolumetricFogBudget.value = value; }
         }
-        [AdditionalProperty]
         [SerializeField, FormerlySerializedAs("volumetricFogBudget")]
         [Tooltip("Controls the performance to quality ratio of the volumetric fog. A value of 0 being the least resource-intensive and a value of 1 being the highest quality.")]
         private ClampedFloatParameter m_VolumetricFogBudget = new ClampedFloatParameter(0.25f, 0.0f, 1.0f);
@@ -138,15 +129,17 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_ResolutionDepthRatio.value = value; }
         }
-        [AdditionalProperty]
         [SerializeField, FormerlySerializedAs("resolutionDepthRatio")]
         [Tooltip("Controls how Unity shares resources between Screen (x-axis and y-axis) and Depth (z-axis) resolutions.")]
         public ClampedFloatParameter m_ResolutionDepthRatio = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
 
         /// <summary>Indicates whether Unity includes or excludes non-directional light types when it evaluates the volumetric fog. Including non-directional lights increases the resource intensity of the effect.</summary>
-        [AdditionalProperty]
         [Tooltip("When enabled, HDRP only includes directional Lights when it evaluates volumetric fog.")]
         public BoolParameter directionalLightsOnly = new BoolParameter(false);
+
+        /// <summary>Deprecated don't used</summary>
+        [Tooltip("Deprecated don't used")]
+        public BoolParameter filter = new BoolParameter(false); // DO not used, removed in 11.x
 
         internal static bool IsFogEnabled(HDCamera hdCamera)
         {
@@ -220,8 +213,8 @@ namespace UnityEngine.Rendering.HighDefinition
             cb._FogColor = new Color(fogColor.r, fogColor.g, fogColor.b, 0.0f);
             cb._MipFogParameters  = new Vector4(mipFogNear.value, mipFogFar.value, mipFogMaxMip.value, 0.0f);
 
-            LocalVolumetricFogArtistParameters param = new LocalVolumetricFogArtistParameters(albedo.value, meanFreePath.value, anisotropy.value);
-            LocalVolumetricFogEngineData data = param.ConvertToEngineData();
+            DensityVolumeArtistParameters param = new DensityVolumeArtistParameters(albedo.value, meanFreePath.value, anisotropy.value);
+            DensityVolumeEngineData data = param.ConvertToEngineData();
 
             cb._HeightFogBaseScattering = data.scattering;
             cb._HeightFogBaseExtinction = data.extinction;
@@ -245,6 +238,7 @@ namespace UnityEngine.Rendering.HighDefinition
     /// <summary>
     /// Fog Color Mode.
     /// </summary>
+    [GenerateHLSL]
     public enum FogColorMode
     {
         /// <summary>Fog is a constant color.</summary>
@@ -257,7 +251,7 @@ namespace UnityEngine.Rendering.HighDefinition
     sealed class FogTypeParameter : VolumeParameter<FogType>
     {
         public FogTypeParameter(FogType value, bool overrideState = false)
-            : base(value, overrideState) {}
+            : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -272,7 +266,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="value">Fog Color Parameter.</param>
         /// <param name="overrideState">Initial override state.</param>
         public FogColorParameter(FogColorMode value, bool overrideState = false)
-            : base(value, overrideState) {}
+            : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -302,7 +296,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public FogControlParameter(FogControl value, bool overrideState = false) : base(value, overrideState) {}
+        public FogControlParameter(FogControl value, bool overrideState = false) : base(value, overrideState) { }
     }
 
     /// <summary>
@@ -339,6 +333,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         /// <param name="value">The initial value to store in the parameter.</param>
         /// <param name="overrideState">The initial override state for the parameter.</param>
-        public FogDenoisingModeParameter(FogDenoisingMode value, bool overrideState = false) : base(value, overrideState) {}
+        public FogDenoisingModeParameter(FogDenoisingMode value, bool overrideState = false) : base(value, overrideState) { }
     }
 }

@@ -6,8 +6,8 @@ namespace UnityEngine.Rendering.HighDefinition
     /// Recursive Rendering Volume Component.
     /// This component setups recursive rendering.
     /// </summary>
-    [Serializable, VolumeComponentMenuForRenderPipeline("Ray Tracing/Recursive Rendering (Preview)", typeof(HDRenderPipeline))]
-    [HDRPHelpURLAttribute("Ray-Tracing-Recursive-Rendering")]
+    [Serializable, VolumeComponentMenu("Ray Tracing/Recursive Rendering (Preview)")]
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Ray-Tracing-Recursive-Rendering" + Documentation.endURL)]
     public sealed class RecursiveRendering : VolumeComponent
     {
         /// <summary>
@@ -31,7 +31,8 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// This defines the maximal travel distance of rays.
         /// </summary>
-        public MinFloatParameter rayLength = new MinFloatParameter(10.0f, 0.0f);
+        [Tooltip("Ray Length. This defines the maximal travel distance of rays. High value have performance impact.")]
+        public ClampedFloatParameter rayLength = new ClampedFloatParameter(10f, 0f, 500f);
 
         /// <summary>
         /// Minmal smoothness for reflection rays. If the surface has a smoothness value below this threshold, a reflection ray will not be case and it will fallback on other techniques.

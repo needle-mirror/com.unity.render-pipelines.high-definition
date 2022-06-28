@@ -25,12 +25,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Result of the culling either of the camera or the custom pass if AggregateCullingParameters is used.
         /// </summary>
-        public CullingResults                   cullingResults;
-
-        /// <summary>
-        /// Camera culling results, not modified by the custom pass culling.
-        /// </summary>
-        public readonly CullingResults          cameraCullingResults;
+        public readonly CullingResults           cullingResults;
 
         /// <summary>
         /// Camera color buffer.
@@ -46,11 +41,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// Camera normal buffer.
         /// </summary>
         public readonly RTHandle                 cameraNormalBuffer;
-
-        /// <summary>
-        /// Camera motion vectors buffer.
-        /// </summary>
-        public readonly RTHandle                 cameraMotionVectorsBuffer;
 
         /// <summary>
         /// Lazy handle to the custom color buffer, not allocated if not used.
@@ -70,22 +60,18 @@ namespace UnityEngine.Rendering.HighDefinition
         internal CustomPassContext(
             ScriptableRenderContext renderContext, CommandBuffer cmd,
             HDCamera hdCamera, CullingResults cullingResults,
-            CullingResults cameraCullingResults,
             RTHandle cameraColorBuffer, RTHandle cameraDepthBuffer,
-            RTHandle cameraNormalBuffer, RTHandle cameraMotionVectorsBuffer,
-            Lazy<RTHandle> customColorBuffer,
+            RTHandle cameraNormalBuffer, Lazy<RTHandle> customColorBuffer,
             Lazy<RTHandle> customDepthBuffer, MaterialPropertyBlock propertyBlock)
         {
             this.renderContext = renderContext;
             this.cmd = cmd;
             this.hdCamera = hdCamera;
             this.cullingResults = cullingResults;
-            this.cameraCullingResults = cameraCullingResults;
             this.cameraColorBuffer = cameraColorBuffer;
             this.cameraDepthBuffer = cameraDepthBuffer;
             this.customColorBuffer = customColorBuffer;
             this.cameraNormalBuffer = cameraNormalBuffer;
-            this.cameraMotionVectorsBuffer = cameraMotionVectorsBuffer;
             this.customDepthBuffer = customDepthBuffer;
             this.propertyBlock = propertyBlock;
         }

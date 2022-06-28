@@ -1,5 +1,3 @@
-using UnityEngine.Experimental.Rendering;
-
 namespace UnityEngine.Rendering.HighDefinition
 {
     // Global Constant Buffers - b registers. Unity supports a maximum of 16 global constant buffers.
@@ -10,7 +8,6 @@ namespace UnityEngine.Rendering.HighDefinition
         PBRSky = 2,
         RayTracing = 3,
         RayTracingLightLoop = 4,
-        APV = APVConstantBufferRegister.GlobalRegister,
     }
 
     // We need to keep the number of different constant buffers low.
@@ -36,7 +33,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public const int RenderingLightLayersMaskShift  = 0;
         public const int RenderingDecalLayersMask       = 0x0000FF00;
         public const int RenderingDecalLayersMaskShift  = 8;
-        public const int DefaultRenderingLayerMask      = 0x0101;
+        public const int DefaultRenderingLayerMask      = 0x0101;       
 
         // TODO: put commonly used vars together (below), and then sort them by the frequency of use (descending).
         // Note: a matrix is 4 * 4 * 4 = 64 bytes (1x cache line), so no need to sort those.
@@ -46,7 +43,6 @@ namespace UnityEngine.Rendering.HighDefinition
         // ================================
         // TODO: all affine matrices should be 3x4.
         public Matrix4x4 _ViewMatrix;
-        public Matrix4x4 _CameraViewMatrix;
         public Matrix4x4 _InvViewMatrix;
         public Matrix4x4 _ProjMatrix;
         public Matrix4x4 _InvProjMatrix;
@@ -62,13 +58,10 @@ namespace UnityEngine.Rendering.HighDefinition
         public Vector4 _PrevCamPosRWS_Internal;
 #endif
         public Vector4 _ScreenSize;                 // { w, h, 1 / w, 1 / h }
-        public Vector4 _PostProcessScreenSize;      // { w, h, 1.0 / w, 1.0 / h }
 
         // Those two uniforms are specific to the RTHandle system
-        public Vector4 _RTHandleScale;                      // { w / RTHandle.maxWidth, h / RTHandle.maxHeight } : xy = currFrame, zw = prevFrame
-        public Vector4 _RTHandleScaleHistory;               // Same as above but the RTHandle handle size is that of the history buffer
-        public Vector4 _RTHandlePostProcessScale;           // { postProcessWidth / RTHandle.maxWidth, postProcessWidth / RTHandle.maxHeight } : xy = currFrame, zw = prevFrame
-        public Vector4 _RTHandlePostProcessScaleHistory;    // Same as above but the RTHandle handle size for post process is that of the history buffer
+        public Vector4 _RTHandleScale;        // { w / RTHandle.maxWidth, h / RTHandle.maxHeight } : xy = currFrame, zw = prevFrame
+        public Vector4 _RTHandleScaleHistory; // Same as above but the RTHandle handle size is that of the history buffer
 
         // Values used to linearize the Z buffer (http://www.humus.name/temp/Linearize%20depth.txt)
         // x = 1 - f/n
@@ -128,8 +121,8 @@ namespace UnityEngine.Rendering.HighDefinition
         public float    _MaxFogDistance;
         public Vector4  _FogColor; // color in rgb
         public float    _FogColorMode;
-        public float    _GlobalMipBias;
-        public float    _GlobalMipBiasPow2;
+        public float    _Pad0;
+        public float    _Pad1;
         public float    _Pad2;
         public Vector4  _MipFogParameters;
         public Vector4  _HeightFogBaseScattering;
@@ -196,9 +189,9 @@ namespace UnityEngine.Rendering.HighDefinition
         public uint _ReflectionLightingLayers;
 
         public float _MicroShadowOpacity;
-        public uint  _EnableProbeVolumes;
-        public uint  _ProbeVolumeCount;
-        public float _Pad6;
+        public uint _EnableProbeVolumes;
+        public uint _ProbeVolumeCount;
+        public float _SlopeScaleDepthBias;
 
         public Vector4  _CookieAtlasSize;
         public Vector4  _CookieAtlasData;
@@ -244,8 +237,8 @@ namespace UnityEngine.Rendering.HighDefinition
         public uint     _EnableDecals;
         public uint     _DecalCount;
 
-        public float _OffScreenDownsampleFactor;
-        public uint  _OffScreenRendering;
+        public uint _OffScreenRendering;
+        public uint _OffScreenDownsampleFactor;
         public uint _XRViewCount;
         public int  _FrameCount;
 
@@ -276,6 +269,6 @@ namespace UnityEngine.Rendering.HighDefinition
         public float    _GlobalTessellationFactorMultiplier;
 
         public float    _SpecularOcclusionBlend;
-        public float    _DeExposureMultiplier;
+        public float    _Pad9;
     }
 }

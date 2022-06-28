@@ -1,4 +1,4 @@
-#define HAVE_MESH_MODIFICATION
+﻿#define HAVE_MESH_MODIFICATION
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/FragInputs.hlsl"
@@ -17,8 +17,8 @@
 #endif
 
 #if defined(_ALPHATEST_ON)
-    #define ATTRIBUTES_NEED_TEXCOORD0
-    #define VARYINGS_NEED_TEXCOORD0
+	#define ATTRIBUTES_NEED_TEXCOORD0
+	#define VARYINGS_NEED_TEXCOORD0
 #endif
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
@@ -53,13 +53,6 @@
     #if SHADERPASS == SHADERPASS_LIGHT_TRANSPORT
         #define ATTRIBUTES_NEED_TEXCOORD1
         #define ATTRIBUTES_NEED_TEXCOORD2
-        #ifdef EDITOR_VISUALIZATION
-        #define ATTRIBUTES_NEED_TEXCOORD3
-        #define VARYINGS_NEED_TEXCOORD0
-        #define VARYINGS_NEED_TEXCOORD1
-        #define VARYINGS_NEED_TEXCOORD2
-        #define VARYINGS_NEED_TEXCOORD3
-        #endif
     #endif
     // Varying - Use for pixel shader
     // This second set of define allow to say which varyings will be output in the vertex (no more tesselation)

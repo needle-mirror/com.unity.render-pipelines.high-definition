@@ -93,7 +93,6 @@ namespace UnityEngine.Rendering
                 }
             }
         }
-
         public void SampleCopyChannel_xyzw2x(CommandBuffer cmd, RTHandle source, RTHandle target, RectInt rect)
         {
             Debug.Assert(source.rt.volumeDepth == target.rt.volumeDepth);

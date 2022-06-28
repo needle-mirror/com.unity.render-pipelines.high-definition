@@ -1,19 +1,18 @@
 using System;
 using UnityEditor.ShaderGraph;
-using UnityEngine.Rendering;
 
 namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 {
     static class CreateDecalShaderGraph
     {
-        [MenuItem("Assets/Create/Shader Graph/HDRP/Decal Shader Graph", priority = CoreUtils.Priorities.assetsCreateShaderMenuPriority + 1)]
+        [MenuItem("Assets/Create/Shader/HD Render Pipeline/Decal Shader Graph", false, 208)]
         public static void CreateDecalGraph()
         {
             var target = (HDTarget)Activator.CreateInstance(typeof(HDTarget));
             target.TrySetActiveSubTarget(typeof(DecalSubTarget));
 
-            var blockDescriptors = new[]
-            {
+            var blockDescriptors = new [] 
+            { 
                 BlockFields.VertexDescription.Position,
                 BlockFields.VertexDescription.Normal,
                 BlockFields.VertexDescription.Tangent,
@@ -28,7 +27,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 BlockFields.SurfaceDescription.Emission,
             };
 
-            GraphUtil.CreateNewGraphWithOutputs(new[] {target}, blockDescriptors);
+            GraphUtil.CreateNewGraphWithOutputs(new [] {target}, blockDescriptors);
         }
     }
 }

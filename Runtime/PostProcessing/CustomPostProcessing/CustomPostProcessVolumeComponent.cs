@@ -9,8 +9,6 @@ namespace UnityEngine.Rendering.HighDefinition
     {
         bool m_IsInitialized = false;
 
-        internal string typeName;
-
         /// <summary>
         /// Injection point of the custom post process in HDRP.
         /// </summary>
@@ -63,7 +61,6 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 Setup();
                 m_IsInitialized = true;
-                typeName = GetType().Name;
             }
         }
     }

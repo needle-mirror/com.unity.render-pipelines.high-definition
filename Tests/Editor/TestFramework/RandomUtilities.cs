@@ -13,7 +13,6 @@ namespace UnityEditor.Rendering.TestFramework
             if (f < 0) f += 1;
             return f;
         }
-
         public static Color RandomColor(float i)
         {
             return new Color(

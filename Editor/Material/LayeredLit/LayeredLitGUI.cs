@@ -27,18 +27,22 @@ namespace UnityEditor.Rendering.HighDefinition
 
         MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {
-            new SurfaceOptionUIBlock(MaterialUIBlock.ExpandableBit.Base, 4, SurfaceOptionUIBlock.Features.Lit),
-            new TessellationOptionsUIBlock(MaterialUIBlock.ExpandableBit.Tessellation),
-            new LitSurfaceInputsUIBlock(MaterialUIBlock.ExpandableBit.Input, kMaxLayerCount, features: commonLitSurfaceInputsFeatures),
-            new LayerListUIBlock(MaterialUIBlock.ExpandableBit.MaterialReferences),
+            new SurfaceOptionUIBlock(MaterialUIBlock.Expandable.Base, 4, SurfaceOptionUIBlock.Features.Lit),
+            new TessellationOptionsUIBlock(MaterialUIBlock.Expandable.Tesselation),
+            new LitSurfaceInputsUIBlock(MaterialUIBlock.Expandable.Input, kMaxLayerCount, features: commonLitSurfaceInputsFeatures),
+            new LayerListUIBlock(MaterialUIBlock.Expandable.MaterialReferences),
             new LayersUIBlock(),
-            new EmissionUIBlock(MaterialUIBlock.ExpandableBit.Emissive, features: emissionFeatures),
-            new LitAdvancedOptionsUIBlock(MaterialUIBlock.ExpandableBit.Advance),
+            new EmissionUIBlock(MaterialUIBlock.Expandable.Emissive, features: emissionFeatures),
+            new AdvancedOptionsUIBlock(MaterialUIBlock.Expandable.Advance),
         };
 
         protected override void OnMaterialGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
-            uiBlocks.OnGUI(materialEditor, props);
+            using (var changed = new EditorGUI.ChangeCheckScope())
+            {
+                uiBlocks.OnGUI(materialEditor, props);
+                ApplyKeywordsAndPassesIfNeeded(changed.changed, uiBlocks.materials);
+            }
         }
 
         // Material property name for Layered Lit keyword setup
@@ -73,7 +77,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
         const string kSpecularOcclusionMode = "_SpecularOcclusionMode";
 
-        public override void ValidateMaterial(Material material) => SetupLayeredLitKeywordsAndPass(material);
+        protected override void SetupMaterialKeywordsAndPassInternal(Material material) => SetupMaterialKeywordsAndPass(material);
 
         static public void SetupLayersMappingKeywords(Material material)
         {
@@ -153,14 +157,30 @@ namespace UnityEditor.Rendering.HighDefinition
         }
 
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
-        static public void SetupLayeredLitKeywordsAndPass(Material material)
+        static public void SetupMaterialKeywordsAndPass(Material material)
         {
+            MaterialId materialId = material.GetMaterialId();
+            if (material.HasProperty(kMaterialID))
+            {
+                if (materialId != MaterialId.LitStandard && materialId != MaterialId.LitSSS && materialId != MaterialId.LitTranslucent)
+                {
+                    materialId = MaterialId.LitStandard;
+                    material.SetFloat(kMaterialID, (float)materialId);
+                }
+            }
+
             BaseLitGUI.SetupBaseLitKeywords(material);
             BaseLitGUI.SetupBaseLitMaterialPass(material);
             SetupLayersMappingKeywords(material);
             bool receiveSSR = material.GetSurfaceType() == SurfaceType.Opaque ? (material.HasProperty(kReceivesSSR) ? material.GetInt(kReceivesSSR) != 0 : false)
-                : (material.HasProperty(kReceivesSSRTransparent) ? material.GetInt(kReceivesSSRTransparent) != 0 : false);
-            BaseLitGUI.SetupStencil(material, receiveSSR, material.GetMaterialId() == MaterialId.LitSSS);
+                                    : (material.HasProperty(kReceivesSSRTransparent) ? material.GetInt(kReceivesSSRTransparent) != 0 : false);
+            BaseLitGUI.SetupStencil(material, receiveSSR, materialId == MaterialId.LitSSS);
+
+            if (material.HasProperty(kAddPrecomputedVelocity))
+            {
+                CoreUtils.SetKeyword(material, "_ADD_PRECOMPUTED_VELOCITY", material.GetInt(kAddPrecomputedVelocity) != 0);
+            }
+
 
             for (int i = 0; i < kMaxLayerCount; ++i)
             {
@@ -232,7 +252,6 @@ namespace UnityEditor.Rendering.HighDefinition
             }
             CoreUtils.SetKeyword(material, "_DENSITY_MODE", useDensityModeEnable);
 
-            MaterialId materialId = material.GetMaterialId();
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_SUBSURFACE_SCATTERING", materialId == MaterialId.LitSSS);
             CoreUtils.SetKeyword(material, "_MATERIAL_FEATURE_TRANSMISSION", materialId == MaterialId.LitTranslucent || (materialId == MaterialId.LitSSS && material.GetFloat(kTransmissionEnable) > 0.0f));
         }
@@ -376,5 +395,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
             materialImporter.userData = JsonUtility.ToJson(layersGUID);
         }
+
     }
 } // namespace UnityEditor

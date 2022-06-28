@@ -6,17 +6,16 @@ namespace UnityEngine.Rendering.HighDefinition
     /// <summary>
     /// A volume component that holds settings for the global illumination (screen space and ray traced).
     /// </summary>
-    [Serializable, VolumeComponentMenuForRenderPipeline("Lighting/Screen Space Global Illumination", typeof(HDRenderPipeline))]
-    [HDRPHelpURLAttribute("Ray-Traced-Global-Illumination")]
+    [Serializable, VolumeComponentMenu("Lighting/Screen Space Global Illumination")]
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Ray-Traced-Global-Illumination" + Documentation.endURL)]
     public sealed class GlobalIllumination : VolumeComponentWithQuality
     {
         bool UsesQualityMode()
         {
             // The default value is set to quality. So we should be in quality if not overriden or we have an override set to quality
-            return (tracing.overrideState && tracing == RayCastingMode.RayTracing && (!mode.overrideState || (mode.overrideState && mode == RayTracingMode.Quality)));
+            return !mode.overrideState || mode == RayTracingMode.Quality;
         }
 
-        #region General
         /// <summary>
         /// Enable screen space global illumination.
         /// </summary>
@@ -24,22 +23,10 @@ namespace UnityEngine.Rendering.HighDefinition
         public BoolParameter enable = new BoolParameter(false);
 
         /// <summary>
-        /// </summary>
-        [Tooltip("Controls the casting technique used to evaluate the effect. Ray marching uses a ray-marched screen-space solution, Ray tracing uses a hardware accelerated world-space solution. Mixed uses first Ray marching, then Ray tracing if it fails to intersect on-screen geometry.")]
-        public RayCastingModeParameter tracing = new RayCastingModeParameter(RayCastingMode.RayMarching);
-        #endregion
-
-        #region RayMarching
-        /// <summary>
-        /// Controls the fallback hierarchy for SSGI.
-        /// </summary>
-        public RayMarchingFallbackHierarchyParameter fallbackHierarchy = new RayMarchingFallbackHierarchyParameter(RayMarchingFallbackHierarchy.ReflectionProbesAndSky);
-
-        /// <summary>
         /// The thickness of the depth buffer value used for the ray marching step
         /// </summary>
         [Tooltip("Controls the thickness of the depth buffer used for ray marching.")]
-        public ClampedFloatParameter depthBufferThickness = new ClampedFloatParameter(0.1f, 0.0f, 0.5f);
+        public ClampedFloatParameter depthBufferThickness = new ClampedFloatParameter(0.2f, 0.0f, 0.5f);
 
         GlobalIllumination()
         {
@@ -49,107 +36,67 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// The number of steps that should be used during the ray marching pass.
         /// </summary>
-        public int maxRaySteps
+        public int raySteps
         {
             get
             {
                 if (!UsesQualitySettings())
-                    return m_MaxRaySteps.value;
+                    return m_RaySteps.value;
                 else
                     return GetLightingQualitySettings().SSGIRaySteps[(int)quality.value];
             }
-            set { m_MaxRaySteps.value = value; }
+            set { m_RaySteps.value = value; }
         }
         [SerializeField]
         [Tooltip("Controls the number of steps used for ray marching.")]
-        private MinIntParameter m_MaxRaySteps = new MinIntParameter(32, 0);
+        private ClampedIntParameter m_RaySteps = new ClampedIntParameter(24, 16, 128);
 
-        // Filtering
         /// <summary>
-        /// Defines if the screen space global illumination should be denoised.
+        /// Defines if the effect should be evaluated at full resolution.
         /// </summary>
-        public bool denoiseSS
+        public bool fullResolutionSS
         {
             get
             {
                 if (!UsesQualitySettings())
-                    return m_DenoiseSS.value;
+                    return m_FullResolutionSS.value;
                 else
-                    return GetLightingQualitySettings().SSGIDenoise[(int)quality.value];
+                    return GetLightingQualitySettings().SSGIFullResolution[(int)quality.value];
             }
-            set { m_DenoiseSS.value = value; }
-        }
-        [SerializeField, FormerlySerializedAs("denoise")]
-        private BoolParameter m_DenoiseSS = new BoolParameter(true);
-
-        /// <summary>
-        /// Defines if the denoiser should be evaluated at half resolution.
-        /// </summary>
-        public bool halfResolutionDenoiserSS
-        {
-            get
-            {
-                if (!UsesQualitySettings() || UsesQualityMode())
-                    return m_HalfResolutionDenoiserSS.value;
-                else
-                    return GetLightingQualitySettings().SSGIHalfResDenoise[(int)quality.value];
-            }
-            set { m_HalfResolutionDenoiserSS.value = value; }
+            set { m_FullResolutionSS.value = value; }
         }
         [SerializeField]
-        [Tooltip("Use a half resolution denoiser.")]
-        private BoolParameter m_HalfResolutionDenoiserSS = new BoolParameter(false);
+        private BoolParameter m_FullResolutionSS = new BoolParameter(true);
 
         /// <summary>
-        /// Controls the radius of the global illumination denoiser (First Pass).
+        /// Defines the radius for the spatial filter
         /// </summary>
-        public float denoiserRadiusSS
+        public int filterRadius
         {
             get
             {
                 if (!UsesQualitySettings())
-                    return m_DenoiserRadiusSS.value;
+                    return m_FilterRadius.value;
                 else
-                    return GetLightingQualitySettings().SSGIDenoiserRadius[(int)quality.value];
+                    return GetLightingQualitySettings().SSGIFilterRadius[(int)quality.value];
             }
-            set { m_DenoiserRadiusSS.value = value; }
+            set { m_FilterRadius.value = value; }
         }
+        [Tooltip("Filter Radius")]
         [SerializeField]
-        [Tooltip("Controls the radius of the GI denoiser (First Pass).")]
-        private ClampedFloatParameter m_DenoiserRadiusSS = new ClampedFloatParameter(0.6f, 0.001f, 1.0f);
+        private ClampedIntParameter m_FilterRadius = new ClampedIntParameter(2, 2, 8);
 
         /// <summary>
-        /// Defines if the second denoising pass should be enabled.
+        /// Toggles ray traced global illumination.
         /// </summary>
-        public bool secondDenoiserPassSS
-        {
-            get
-            {
-                if (!UsesQualitySettings())
-                    return m_SecondDenoiserPassSS.value;
-                else
-                    return GetLightingQualitySettings().SSGISecondDenoise[(int)quality.value];
-            }
-            set { m_SecondDenoiserPassSS.value = value; }
-        }
-        [SerializeField]
-        [Tooltip("Enable second denoising pass.")]
-        private BoolParameter m_SecondDenoiserPassSS = new BoolParameter(true);
+        [Tooltip("Toggles ray traced global illumination.")]
+        public BoolParameter rayTracing = new BoolParameter(false);
 
-        #endregion
-
-        #region RayTracing
         /// <summary>
         /// Defines the layers that GI should include.
         /// </summary>
         [Tooltip("Defines the layers that GI should include.")]
         public LayerMaskParameter layerMask = new LayerMaskParameter(-1);
-
-        /// <summary>
-        /// The LOD Bias HDRP applies to textures in the global illumination.
-        /// </summary>
-        [Tooltip("The LOD Bias HDRP applies to textures in the global illumination. A higher value increases performance and makes denoising easier, but it might reduce visual fidelity.")]
-        public ClampedIntParameter textureLodBias = new ClampedIntParameter(7, 0, 7);
 
         /// <summary>
         /// Controls the length of GI rays.
@@ -165,8 +112,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_RayLength.value = value; }
         }
-        [SerializeField, FormerlySerializedAs("rayLength")]
-        private MinFloatParameter m_RayLength = new MinFloatParameter(50.0f, 0.01f);
 
         /// <summary>
         /// Controls the clamp of intensity.
@@ -182,9 +127,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_ClampValue.value = value; }
         }
-        [SerializeField, FormerlySerializedAs("clampValue")]
-        [Tooltip("Controls the clamp of intensity.")]
-        private ClampedFloatParameter m_ClampValue = new ClampedFloatParameter(1.0f, 0.001f, 10.0f);
 
         /// <summary>
         /// Controls which version of the effect should be used.
@@ -207,9 +149,21 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_FullResolution.value = value; }
         }
-        [SerializeField, FormerlySerializedAs("fullResolution")]
-        [Tooltip("Full Resolution")]
-        private BoolParameter m_FullResolution = new BoolParameter(false);
+
+        /// <summary>
+        /// Defines what radius value should be used to pre-filter the signal.
+        /// </summary>
+        public int upscaleRadius
+        {
+            get
+            {
+                if (!UsesQualitySettings())
+                    return m_UpscaleRadius.value;
+                else
+                    return GetLightingQualitySettings().RTGIUpScaleRadius[(int)quality.value];
+            }
+            set { m_UpscaleRadius.value = value; }
+        }
 
         // Quality
         /// <summary>
@@ -239,9 +193,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_Denoise.value = value; }
         }
-        [SerializeField, FormerlySerializedAs("denoise")]
-        [Tooltip("Denoise the ray-traced GI.")]
-        private BoolParameter m_Denoise = new BoolParameter(true);
 
         /// <summary>
         /// Defines if the denoiser should be evaluated at half resolution.
@@ -257,9 +208,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_HalfResolutionDenoiser.value = value; }
         }
-        [SerializeField, FormerlySerializedAs("halfResolutionDenoiser")]
-        [Tooltip("Use a half resolution denoiser.")]
-        private BoolParameter m_HalfResolutionDenoiser = new BoolParameter(false);
 
         /// <summary>
         /// Controls the radius of the global illumination denoiser (First Pass).
@@ -275,9 +223,6 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_DenoiserRadius.value = value; }
         }
-        [SerializeField, FormerlySerializedAs("denoiserRadius")]
-        [Tooltip("Controls the radius of the GI denoiser (First Pass).")]
-        private ClampedFloatParameter m_DenoiserRadius = new ClampedFloatParameter(0.6f, 0.001f, 1.0f);
 
         /// <summary>
         /// Defines if the second denoising pass should be enabled.
@@ -293,40 +238,38 @@ namespace UnityEngine.Rendering.HighDefinition
             }
             set { m_SecondDenoiserPass.value = value; }
         }
+
+
+        // RTGI
+        [SerializeField, FormerlySerializedAs("rayLength")]
+        private MinFloatParameter m_RayLength = new MinFloatParameter(50.0f, 0.01f);
+
+        [SerializeField, FormerlySerializedAs("clampValue")]
+        [Tooltip("Controls the clamp of intensity.")]
+        private ClampedFloatParameter m_ClampValue = new ClampedFloatParameter(1.0f, 0.001f, 10.0f);
+
+        [SerializeField, FormerlySerializedAs("fullResolution")]
+        [Tooltip("Full Resolution")]
+        private BoolParameter m_FullResolution = new BoolParameter(false);
+
+        [SerializeField, FormerlySerializedAs("upscaleRadius")]
+        [Tooltip("Upscale Radius")]
+        private ClampedIntParameter m_UpscaleRadius = new ClampedIntParameter(2, 2, 4);
+
+        [SerializeField, FormerlySerializedAs("denoise")]
+        [Tooltip("Denoise the ray-traced GI.")]
+        private BoolParameter m_Denoise = new BoolParameter(true);
+
+        [SerializeField, FormerlySerializedAs("halfResolutionDenoiser")]
+        [Tooltip("Use a half resolution denoiser.")]
+        private BoolParameter m_HalfResolutionDenoiser = new BoolParameter(false);
+
+        [SerializeField, FormerlySerializedAs("denoiserRadius")]
+        [Tooltip("Controls the radius of the GI denoiser (First Pass).")]
+        private ClampedFloatParameter m_DenoiserRadius = new ClampedFloatParameter(0.6f, 0.001f, 1.0f);
+
         [SerializeField, FormerlySerializedAs("secondDenoiserPass")]
         [Tooltip("Enable second denoising pass.")]
         private BoolParameter m_SecondDenoiserPass = new BoolParameter(true);
-
-        /// <summary>
-        /// Controls the number of steps used for the mixed tracing
-        /// </summary>
-        public int maxMixedRaySteps
-        {
-            get
-            {
-                if (!UsesQualitySettings() || UsesQualityMode())
-                    return m_MaxMixedRaySteps.value;
-                else
-                    return GetLightingQualitySettings().RTGIRaySteps[(int)quality.value];
-            }
-            set { m_MaxMixedRaySteps.value = value; }
-        }
-        [SerializeField]
-        [Tooltip("Controls the number of steps HDRP uses for mixed tracing.")]
-        private MinIntParameter m_MaxMixedRaySteps = new MinIntParameter(48, 0);
-
-        /// <summary>
-        /// When enabled, the receiver's movement should be considered a valid rejection condition.
-        /// </summary>
-        [AdditionalProperty]
-        [Tooltip("When enabled, the receiver's movement should be considered a valid rejection condition.")]
-        public BoolParameter receiverMotionRejection = new BoolParameter(true);
-
-        #endregion
-
-        internal static bool RayTracingActive(GlobalIllumination volume)
-        {
-            return volume.tracing.value != RayCastingMode.RayMarching;
-        }
     }
 }

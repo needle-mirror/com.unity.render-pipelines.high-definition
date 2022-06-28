@@ -80,6 +80,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <param name="builtinParams">Sky system builtin parameters.</param>
         public virtual void SetGlobalSkyData(CommandBuffer cmd, BuiltinSkyParameters builtinParams)
         {
+
         }
 
         internal bool DoUpdate(BuiltinSkyParameters parameters)

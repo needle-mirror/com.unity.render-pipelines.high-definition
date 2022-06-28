@@ -22,8 +22,8 @@ namespace UnityEngine.Rendering.HighDefinition
         public TextureCacheCubemap(string cacheName = "", int sliceSize = 1)
             : base(cacheName, sliceSize)
         {
-            if (HDRenderPipeline.isReady)
-                m_BlitCubemapFaceMaterial = CoreUtils.CreateEngineMaterial(HDRenderPipelineGlobalSettings.instance.renderPipelineResources.shaders.blitCubeTextureFacePS);
+            var res = HDRenderPipeline.defaultAsset.renderPipelineResources;
+            m_BlitCubemapFaceMaterial = CoreUtils.CreateEngineMaterial(res.shaders.blitCubeTextureFacePS);
             m_BlitCubemapFaceProperties = new MaterialPropertyBlock();
         }
 
@@ -104,6 +104,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 int panoHeightTop = 2 * width;
 
                 // create panorama 2D array. Hardcoding the render target for now. No convenient way atm to
+                // map from TextureFormat to RenderTextureFormat and don't want to deal with sRGB issues for now.
                 m_CacheNoCubeArray = new Texture2DArray(panoWidthTop, panoHeightTop, numCubeMaps, format, isMipMapped ? TextureCreationFlags.MipChain : TextureCreationFlags.None)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
@@ -189,7 +190,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         private bool TransferToPanoCache(CommandBuffer cmd, int sliceIndex, Texture[] textureArray)
         {
-            for (int texIdx = 0; texIdx < textureArray.Length; ++texIdx)
+            for(int texIdx = 0; texIdx < textureArray.Length; ++texIdx)
             {
                 m_CubeBlitMaterial.SetTexture(m_cubeSrcTexPropName, textureArray[texIdx]);
                 for (int m = 0; m < m_NumPanoMipLevels; m++)

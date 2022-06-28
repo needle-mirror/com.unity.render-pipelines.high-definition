@@ -1,3 +1,4 @@
+
 namespace UnityEditor.Rendering.HighDefinition
 {
     class SerializedGlobalPostProcessSettings

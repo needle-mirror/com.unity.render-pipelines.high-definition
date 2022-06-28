@@ -26,7 +26,7 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
     // however specularOcclusion can come from the graph, so need to be init here so it can be override.
     surfaceData.specularOcclusion = 1.0;
 
-    // copy across graph values, if defined
+	// copy across graph values, if defined
     $SurfaceDescription.BaseColor:                  surfaceData.baseColor =                 surfaceDescription.BaseColor;
     $SurfaceDescription.SpecularOcclusion:          surfaceData.specularOcclusion =         surfaceDescription.SpecularOcclusion;
     $SurfaceDescription.Smoothness:                 surfaceData.perceptualSmoothness =      surfaceDescription.Smoothness;
@@ -57,14 +57,14 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
     // and an iris normal map. Same for smoothness, IOR and for subsurface mask. So we don't do any operation here.
 
     // normal delivered to master node
-    $SurfaceDescription.NormalOS: GetNormalWS_SrcOS(fragInputs, surfaceDescription.NormalOS, surfaceData.normalWS, doubleSidedConstants);
+    $SurfaceDescription.NormalOS: surfaceData.normalWS = TransformObjectToWorldNormal(surfaceDescription.NormalOS);
     $SurfaceDescription.NormalTS: GetNormalWS(fragInputs, surfaceDescription.NormalTS, surfaceData.normalWS, doubleSidedConstants);
-    $SurfaceDescription.NormalWS: GetNormalWS_SrcWS(fragInputs, surfaceDescription.NormalWS, surfaceData.normalWS, doubleSidedConstants);
+    $SurfaceDescription.NormalWS: surfaceData.normalWS = surfaceDescription.NormalWS;
 
     surfaceData.irisNormalWS = surfaceData.normalWS;
-    $SurfaceDescription.IrisNormalOS: GetNormalWS_SrcOS(fragInputs, surfaceDescription.IrisNormalOS, surfaceData.irisNormalWS, doubleSidedConstants);
+    $SurfaceDescription.IrisNormalOS: surfaceData.irisNormalWS = TransformObjectToWorldNormal(surfaceDescription.IrisNormalOS);
     $SurfaceDescription.IrisNormalTS: GetNormalWS(fragInputs, surfaceDescription.IrisNormalTS, surfaceData.irisNormalWS, doubleSidedConstants);
-    $SurfaceDescription.IrisNormalWS: GetNormalWS_SrcWS(fragInputs, surfaceDescription.IrisNormalWS, surfaceData.irisNormalWS, doubleSidedConstants);
+    $SurfaceDescription.IrisNormalWS: surfaceData.irisNormalWS = surfaceDescription.IrisNormalWS;
 
     surfaceData.geomNormalWS = fragInputs.tangentToWorld[2];
 
@@ -82,7 +82,7 @@ void BuildSurfaceData(FragInputs fragInputs, inout SurfaceDescription surfaceDes
 
     bentNormalWS = surfaceData.irisNormalWS; // Use diffuse normal (iris) to fetch GI, unless users provide explicit bent normal (not affected by decals)
     $BentNormal: GetNormalWS(fragInputs, surfaceDescription.BentNormal, bentNormalWS, doubleSidedConstants);
-
+       
     #ifdef DEBUG_DISPLAY
         if (_DebugMipMapMode != DEBUGMIPMAPMODE_NONE)
         {

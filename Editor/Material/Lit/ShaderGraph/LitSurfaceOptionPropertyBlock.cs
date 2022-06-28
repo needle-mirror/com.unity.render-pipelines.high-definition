@@ -17,13 +17,13 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
     class LitSurfaceOptionPropertyBlock : SurfaceOptionPropertyBlock
     {
         HDLitData litData;
-
+    
         class Styles
         {
             public static GUIContent enableClearCoat = new GUIContent("Clear Coat", "Enable Clear Coat");
         }
 
-        public LitSurfaceOptionPropertyBlock(HDLitData litData) : base(SurfaceOptionPropertyBlock.Features.Lit)
+        public LitSurfaceOptionPropertyBlock(SurfaceOptionPropertyBlock.Features features, HDLitData litData) : base(features)
             => this.litData = litData;
 
         protected override void CreatePropertyGUI()

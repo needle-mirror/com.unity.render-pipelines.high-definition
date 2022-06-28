@@ -13,7 +13,7 @@ namespace UnityEditor.Rendering.HighDefinition
     sealed class PlanarReflectionProbeEditor : HDProbeEditor<PlanarReflectionProbeUISettingsProvider, SerializedPlanarReflectionProbe>
     {
         public static Material GUITextureBlit2SRGBMaterial
-            => HDRenderPipelineGlobalSettings.instance?.renderPipelineEditorResources?.materials.GUITextureBlit2SRGB;
+                => HDRenderPipeline.defaultAsset.renderPipelineEditorResources.materials.GUITextureBlit2SRGB;
 
         const float k_PreviewHeight = 128;
 
@@ -32,8 +32,8 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             get
             {
-                if (_previewMaterial == null && HDRenderPipeline.isReady)
-                    _previewMaterial = new Material(GUITextureBlit2SRGBMaterial);
+                if (_previewMaterial == null)
+                    _previewMaterial = new Material(HDRenderPipeline.defaultAsset.renderPipelineEditorResources.materials.GUITextureBlit2SRGB);
                 return _previewMaterial;
             }
         }
@@ -74,10 +74,10 @@ namespace UnityEditor.Rendering.HighDefinition
                 var row = i / rowSize;
                 var col = i % rowSize;
                 var itemRect = new Rect(
-                    r.x + size.x * row + ((row > 0) ? (row - 1) * space.x : 0),
-                    r.y + size.y * col + ((col > 0) ? (col - 1) * space.y : 0),
-                    size.x,
-                    size.y);
+                        r.x + size.x * row + ((row > 0) ? (row - 1) * space.x : 0),
+                        r.y + size.y * col + ((col > 0) ? (col - 1) * space.y : 0),
+                        size.x,
+                        size.y);
 
                 if (m_PreviewedTextures[i] != null)
                     EditorGUI.DrawPreviewTexture(itemRect, m_PreviewedTextures[i], previewMaterial, ScaleMode.ScaleToFit, 0, 1);
@@ -193,8 +193,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 // Setup the material to draw the quad with the exposure texture
                 var material = GUITextureBlit2SRGBMaterial;
                 material.SetTexture("_Exposure", exposureTex);
-                //this fixes the UI so it doesn't blow up when the probe is pre-exposed
-                material.SetFloat("_ExposureBias", (float)Math.Log(1.0f / p.ProbeExposureValue(), 2.0));
                 Graphics.DrawTexture(c, p.texture, new Rect(0, 0, 1, 1), 0, 0, 0, 0, GUI.color, material, -1);
 
                 // We now display the FoV and aspect used during the capture of the planar reflection
@@ -301,8 +299,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             k_PreviewMaterial.SetTexture("_MainTex", probe.texture);
             k_PreviewMaterial.SetMatrix("_CaptureVPMatrix", vp);
-            //this fixes the UI so it doesn't blow up when the probe is pre-exposed
-            k_PreviewMaterial.SetFloat("_Exposure", (float)Math.Log(1.0 / probe.ProbeExposureValue(), 2.0));
+            k_PreviewMaterial.SetFloat("_Exposure", 1.0f);
             k_PreviewMaterial.SetVector("_CameraPositionWS", new Vector4(cameraPositionWS.x, cameraPositionWS.y, -cameraPositionWS.z, 0));
             k_PreviewMaterial.SetVector("_CapturePositionWS", new Vector4(capturePositionWS.x, capturePositionWS.y, -capturePositionWS.z, 0));
             k_PreviewMaterial.SetPass(0);
@@ -335,13 +332,13 @@ namespace UnityEditor.Rendering.HighDefinition
             camera = new CameraSettingsOverride
             {
                 camera = (CameraSettingsFields)(-1) & ~(
-                    CameraSettingsFields.flipYMode
-                    | CameraSettingsFields.frustumAspect
-                    | CameraSettingsFields.cullingInvertFaceCulling
-                    | CameraSettingsFields.frustumMode
-                    | CameraSettingsFields.frustumProjectionMatrix
-                    | CameraSettingsFields.frustumFieldOfView
-                )
+                   CameraSettingsFields.flipYMode
+                   | CameraSettingsFields.frustumAspect
+                   | CameraSettingsFields.cullingInvertFaceCulling
+                   | CameraSettingsFields.frustumMode
+                   | CameraSettingsFields.frustumProjectionMatrix
+                   | CameraSettingsFields.frustumFieldOfView
+               )
             }
         };
 

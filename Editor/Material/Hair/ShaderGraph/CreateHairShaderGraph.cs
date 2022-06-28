@@ -1,19 +1,18 @@
-using System;
+﻿using System;
 using UnityEditor.ShaderGraph;
-using UnityEngine.Rendering;
 
 namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 {
     static class CreateHairShaderGraph
     {
-        [MenuItem("Assets/Create/Shader Graph/HDRP/Hair Shader Graph", priority = CoreUtils.Priorities.assetsCreateShaderMenuPriority + 4)]
+        [MenuItem("Assets/Create/Shader/HD Render Pipeline/Hair Shader Graph", false, 208)]
         public static void CreateHairGraph()
         {
             var target = (HDTarget)Activator.CreateInstance(typeof(HDTarget));
             target.TrySetActiveSubTarget(typeof(HairSubTarget));
 
-            var blockDescriptors = new[]
-            {
+            var blockDescriptors = new [] 
+            { 
                 BlockFields.VertexDescription.Position,
                 BlockFields.VertexDescription.Normal,
                 BlockFields.VertexDescription.Tangent,
@@ -34,7 +33,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 BlockFields.SurfaceDescription.Emission,
             };
 
-            GraphUtil.CreateNewGraphWithOutputs(new[] {target}, blockDescriptors);
+            GraphUtil.CreateNewGraphWithOutputs(new [] {target}, blockDescriptors);
         }
     }
 }

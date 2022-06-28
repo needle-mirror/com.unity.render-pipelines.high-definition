@@ -46,23 +46,15 @@ namespace UnityEngine.Rendering.HighDefinition
             /* Screen Space Global Illumination */
             SSGIRaySteps[(int)ScalableSettingLevelParameter.Level.Low] = 32;
             SSGIRaySteps[(int)ScalableSettingLevelParameter.Level.Medium] = 64;
-            SSGIRaySteps[(int)ScalableSettingLevelParameter.Level.High] = 128;
+            SSGIRaySteps[(int)ScalableSettingLevelParameter.Level.High] = 96;
 
-            SSGIDenoise[(int)ScalableSettingLevelParameter.Level.Low] = true;
-            SSGIDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = true;
-            SSGIDenoise[(int)ScalableSettingLevelParameter.Level.High] = true;
+            SSGIFullResolution[(int)ScalableSettingLevelParameter.Level.Low] = false;
+            SSGIFullResolution[(int)ScalableSettingLevelParameter.Level.Medium] = true;
+            SSGIFullResolution[(int)ScalableSettingLevelParameter.Level.High] = true;
 
-            SSGIHalfResDenoise[(int)ScalableSettingLevelParameter.Level.Low] = true;
-            SSGIHalfResDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = false;
-            SSGIHalfResDenoise[(int)ScalableSettingLevelParameter.Level.High] = false;
-
-            SSGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Low] = 0.75f;
-            SSGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 0.5f;
-            SSGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.High] = 0.5f;
-
-            SSGISecondDenoise[(int)ScalableSettingLevelParameter.Level.Low] = true;
-            SSGISecondDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = true;
-            SSGISecondDenoise[(int)ScalableSettingLevelParameter.Level.High] = true;
+            SSGIFilterRadius[(int)ScalableSettingLevelParameter.Level.Low] = 3;
+            SSGIFilterRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 5;
+            SSGIFilterRadius[(int)ScalableSettingLevelParameter.Level.High] = 7;
 
             // Ray Traced Ambient Occlusion
             RTAORayLength[(int)ScalableSettingLevelParameter.Level.Low] = 0.5f;
@@ -90,13 +82,13 @@ namespace UnityEngine.Rendering.HighDefinition
             RTGIFullResolution[(int)ScalableSettingLevelParameter.Level.Medium] = false;
             RTGIFullResolution[(int)ScalableSettingLevelParameter.Level.High] = true;
 
-            RTGIClampValue[(int)ScalableSettingLevelParameter.Level.Low] = 2.0f;
-            RTGIClampValue[(int)ScalableSettingLevelParameter.Level.Medium] = 3.0f;
-            RTGIClampValue[(int)ScalableSettingLevelParameter.Level.High] = 5.0f;
+            RTGIClampValue[(int)ScalableSettingLevelParameter.Level.Low] = 0.5f;
+            RTGIClampValue[(int)ScalableSettingLevelParameter.Level.Medium] = 0.8f;
+            RTGIClampValue[(int)ScalableSettingLevelParameter.Level.High] = 1.5f;
 
-            RTGIRaySteps[(int)ScalableSettingLevelParameter.Level.Low] = 32;
-            RTGIRaySteps[(int)ScalableSettingLevelParameter.Level.Medium] = 48;
-            RTGIRaySteps[(int)ScalableSettingLevelParameter.Level.High] = 64;
+            RTGIUpScaleRadius[(int)ScalableSettingLevelParameter.Level.Low] = 4;
+            RTGIUpScaleRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 4;
+            RTGIUpScaleRadius[(int)ScalableSettingLevelParameter.Level.High] = 4;
 
             RTGIDenoise[(int)ScalableSettingLevelParameter.Level.Low] = true;
             RTGIDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = true;
@@ -106,9 +98,9 @@ namespace UnityEngine.Rendering.HighDefinition
             RTGIHalfResDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = false;
             RTGIHalfResDenoise[(int)ScalableSettingLevelParameter.Level.High] = false;
 
-            RTGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Low] = 1.0f;
-            RTGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 1.0f;
-            RTGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.High] = 1.0f;
+            RTGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Low] = 0.75f;
+            RTGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 0.5f;
+            RTGIDenoiserRadius[(int)ScalableSettingLevelParameter.Level.High] = 0.25f;
 
             RTGISecondDenoise[(int)ScalableSettingLevelParameter.Level.Low] = true;
             RTGISecondDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = true;
@@ -131,13 +123,13 @@ namespace UnityEngine.Rendering.HighDefinition
             RTRClampValue[(int)ScalableSettingLevelParameter.Level.Medium] = 1.0f;
             RTRClampValue[(int)ScalableSettingLevelParameter.Level.High] = 1.2f;
 
+            RTRUpScaleRadius[(int)ScalableSettingLevelParameter.Level.Low] = 4;
+            RTRUpScaleRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 4;
+            RTRUpScaleRadius[(int)ScalableSettingLevelParameter.Level.High] = 3;
+
             RTRFullResolution[(int)ScalableSettingLevelParameter.Level.Low] = false;
             RTRFullResolution[(int)ScalableSettingLevelParameter.Level.Medium] = false;
             RTRFullResolution[(int)ScalableSettingLevelParameter.Level.High] = true;
-
-            RTRRayMaxIterations[(int)ScalableSettingLevelParameter.Level.Low] = 32;
-            RTRRayMaxIterations[(int)ScalableSettingLevelParameter.Level.Medium] = 48;
-            RTRRayMaxIterations[(int)ScalableSettingLevelParameter.Level.High] = 64;
 
             RTRDenoise[(int)ScalableSettingLevelParameter.Level.Low] = true;
             RTRDenoise[(int)ScalableSettingLevelParameter.Level.Medium] = true;
@@ -146,10 +138,6 @@ namespace UnityEngine.Rendering.HighDefinition
             RTRDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Low] = 8;
             RTRDenoiserRadius[(int)ScalableSettingLevelParameter.Level.Medium] = 12;
             RTRDenoiserRadius[(int)ScalableSettingLevelParameter.Level.High] = 16;
-
-            RTRSmoothDenoising[(int)ScalableSettingLevelParameter.Level.Low] = true;
-            RTRSmoothDenoising[(int)ScalableSettingLevelParameter.Level.Medium] = false;
-            RTRSmoothDenoising[(int)ScalableSettingLevelParameter.Level.High] = false;
 
             // Fog
             Fog_ControlMode[(int)ScalableSettingLevelParameter.Level.Low] = FogControl.Balance;
@@ -168,116 +156,100 @@ namespace UnityEngine.Rendering.HighDefinition
         internal static GlobalLightingQualitySettings NewDefault() => new GlobalLightingQualitySettings();
 
         // SSAO
-        /// <summary>Ambient Occlusion step count for each quality level. The array must have one entry per scalable setting level, and elements must be between 2 and 32.</summary>
-        [Range(2, 32)]
+        /// <summary>Ambient Occlusion step count for each quality level.</summary>
         public int[] AOStepCount = new int[s_QualitySettingCount];
-        /// <summary>Ambient Occlusion uses full resolution buffer for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Ambient Occlusion uses full resolution buffer for each quality level.</summary>
         public bool[] AOFullRes = new bool[s_QualitySettingCount];
-        /// <summary>Ambient Occlusion maximum radius for each quality level. The array must have one entry per scalable setting level, and elements must be between 16 and 256.</summary>
-        [Range(16, 256)]
+        /// <summary>Ambient Occlusion maximum radius for each quality level.</summary>
         public int[] AOMaximumRadiusPixels = new int[s_QualitySettingCount];
-        /// <summary>Ambient Occlusion uses bilateral upsample for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Ambient Occlusion uses bilateral upsample for each quality level.</summary>
         public bool[] AOBilateralUpsample = new bool[s_QualitySettingCount];
-        /// <summary>Ambient Occlusion direction count for each quality level. The array must have one entry per scalable setting level, and elements must be between 1 and 6.</summary>
-        [Range(1, 6)]
+        /// <summary>Ambient Occlusion direction count for each quality level.</summary>
         public int[] AODirectionCount = new int[s_QualitySettingCount];
 
         // Contact Shadows
-        /// <summary>Contact shadow sample count for each quality level. The array must have one entry per scalable setting level, and elements must be between 4 and 64.</summary>
-        [Range(4, 64)]
+        /// <summary>Contact shadow sample count for each quality level.</summary>
         public int[] ContactShadowSampleCount = new int[s_QualitySettingCount];
 
         // Screen Space Reflections
-        /// <summary>Maximum number of rays for Screen Space Reflection for each quality level. The array must have one entry per scalable setting level, and elements must above 0.</summary>
-        [Min(0)]
+        /// <summary>Maximum number of rays for Screen Space Reflection for each quality level.</summary>
         public int[] SSRMaxRaySteps = new int[s_QualitySettingCount];
 
         // Screen Space Global Illumination
-        /// <summary>Screen space global illumination step count for the ray marching. The array must have one entry per scalable setting level, and elements must above 0.</summary>
-        [Min(0)]
+        /// <summary>Screen space global illumination step count for the ray marching.</summary>
+        [NonSerialized]
         public int[] SSGIRaySteps = new int[s_QualitySettingCount];
-
-        /// <summary>Flag that enables the first denoising pass.</summary>
-        public bool[] SSGIDenoise = new bool[s_QualitySettingCount];
-        /// <summary>Flag that defines if the denoiser should be evaluated at half resolution.</summary>
-        public bool[] SSGIHalfResDenoise = new bool[s_QualitySettingCount];
-        /// <summary>Flag that defines the radius of the first denoiser.</summary>
-        public float[] SSGIDenoiserRadius = new float[s_QualitySettingCount];
-        /// <summary>Flag that enables the second denoising pass.</summary>
-        public bool[] SSGISecondDenoise = new bool[s_QualitySettingCount];
+        /// <summary>Screen space global illumination's world space maximal radius.</summary>
+        [NonSerialized]
+        public float[] SSGIRadius = new float[s_QualitySettingCount];
+        /// <summary>Screen space global illumination flag to define if the effect is computed at full resolution.</summary>
+        [NonSerialized]
+        public bool[] SSGIFullResolution = new bool[s_QualitySettingCount];
+        /// <summary>Screen space global illumination signal clamping value.</summary>
+        [NonSerialized]
+        public float[] SSGIClampValue = new float[s_QualitySettingCount];
+        /// <summary>Screen space global illumination's filter size.</summary>
+        [NonSerialized]
+        public int[] SSGIFilterRadius = new int[s_QualitySettingCount];
 
         // Ray Traced Ambient Occlusion
-        /// <summary>Controls the length of ray traced ambient occlusion rays. The array must have one entry per scalable setting level, and elements must above 0.01.</summary>
-        [Min(0.01f)]
+        /// <summary>Controls the length of ray traced ambient occlusion rays.</summary>
         public float[] RTAORayLength = new float[s_QualitySettingCount];
-        /// <summary>Number of samples for evaluating the effect. The array must have one entry per scalable setting level, and elements must be between 1 and 64.</summary>
-        [Range(1, 64)]
+        /// <summary>Number of samples for evaluating the effect.</summary>
         public int[] RTAOSampleCount = new int[s_QualitySettingCount];
-        /// <summary>Defines if the ray traced ambient occlusion should be denoised. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Defines if the ray traced ambient occlusion should be denoised.</summary>
         public bool[] RTAODenoise = new bool[s_QualitySettingCount];
-        /// <summary>Controls the radius of the ray traced ambient occlusion denoiser. The array must have one entry per scalable setting level, and elements must be between 0.001 and 1.</summary>
-        [Range(0.001f, 1.0f)]
+        /// <summary>Controls the radius of the ray traced ambient occlusion denoiser.</summary>
         public float[] RTAODenoiserRadius = new float[s_QualitySettingCount];
 
         // Ray Traced Global Illumination
-        /// <summary>Controls the length of ray traced global illumination rays. The array must have one entry per scalable setting level, and elements must above 0.01.</summary>
-        [Min(0.01f)]
+        /// <summary>Controls the length of ray traced global illumination rays.</summary>
         public float[] RTGIRayLength = new float[s_QualitySettingCount];
-        /// <summary>Controls if the effect should be computed at full resolution. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Controls if the effect should be computed at full resolution.</summary>
         public bool[] RTGIFullResolution = new bool[s_QualitySettingCount];
-        /// <summary>Clamp value used to reduce the variance in the integration signal. The array must have one entry per scalable setting level, and elements must be between 0.001 and 10.</summary>
-        [Range(0.001f, 10.0f)]
+        /// <summary>Clamp value used to reduce the variance in the integration signal.</summary>
         public float[] RTGIClampValue = new float[s_QualitySettingCount];
-        /// <summary>Controls the number of ray steps for hybrid tracing. The array must have one entry per scalable setting level, and elements must above 0.</summary>
-        [Min(0)]
-        public int[] RTGIRaySteps = new int[s_QualitySettingCount];
-        /// <summary>Flag that enables the first denoising pass. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Radius for the up-sample pass.</summary>
+        public int[] RTGIUpScaleRadius = new int[s_QualitySettingCount];
+        /// <summary>Flag that enables the first denoising pass.</summary>
         public bool[] RTGIDenoise = new bool[s_QualitySettingCount];
-        /// <summary>Flag that defines if the denoiser should be evaluated at half resolution. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Flag that defines if the denoiser should be evaluated at half resolution.</summary>
         public bool[] RTGIHalfResDenoise = new bool[s_QualitySettingCount];
-        /// <summary>Flag that defines the radius of the first denoiser. The array must have one entry per scalable setting level, and elements must be between 0.001 and 1.0.</summary>
-        [Range(0.001f, 1.0f)]
+        /// <summary>Flag that defines the radius of the first denoiser.</summary>
         public float[] RTGIDenoiserRadius = new float[s_QualitySettingCount];
-        /// <summary>Flag that enables the second denoising pass. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Flag that enables the second denoising pass.</summary>
         public bool[] RTGISecondDenoise = new bool[s_QualitySettingCount];
+        /// <summary>Flag that defines the radius of the second denoiser.</summary>
+        public float[] RTGISecondDenoiserRadius = new float[s_QualitySettingCount];
 
         // Ray Traced Reflections
-        /// <summary>Controls the minimal smoothness. The array must have one entry per scalable setting level, and elements must be between 0 and 1.</summary>
-        [Range(0.0f, 1.0f)]
+        /// <summary>Controls the minimal smoothness.</summary>
         public float[] RTRMinSmoothness = new float[s_QualitySettingCount];
-        /// <summary>Controls the minimal smoothness. The array must have one entry per scalable setting level, and elements must be between 0 and 1.</summary>
-        [Range(0.0f, 1.0f)]
+        /// <summary>Controls the minimal smoothness.</summary>
         public float[] RTRSmoothnessFadeStart = new float[s_QualitySettingCount];
-        /// <summary>Controls the length of ray traced reflection rays. The array must have one entry per scalable setting level, and elements must above 0.01.</summary>
-        [Min(0.01f)]
+        /// <summary>Controls the length of ray traced reflection rays.</summary>
         public float[] RTRRayLength = new float[s_QualitySettingCount];
-        /// <summary>Clamp value used to reduce the variance in the integration signal. The array must have one entry per scalable setting level, and elements must be between 0.001 and 10.</summary>
-        [Range(0.001f, 10.0f)]
+        /// <summary>Clamp value used to reduce the variance in the integration signal.</summary>
         public float[] RTRClampValue = new float[s_QualitySettingCount];
-        /// <summary>Controls if the effect should be computed at full resolution. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Radius for the up-sample pass.</summary>
+        public int[] RTRUpScaleRadius = new int[s_QualitySettingCount];
+        /// <summary>Controls if the effect should be computed at full resolution.</summary>
         public bool[] RTRFullResolution = new bool[s_QualitySettingCount];
-        /// <summary>Controls if the effect should be computed at full resolution. The array must have one entry per scalable setting level, and elements must above 0.</summary>
-        [Min(0)]
-        public int[] RTRRayMaxIterations = new int[s_QualitySettingCount];
-        /// <summary>Flag that enables the first denoising pass. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Flag that enables the first denoising pass.</summary>
         public bool[] RTRDenoise = new bool[s_QualitySettingCount];
-        /// <summary>Flag that defines the radius of the first denoiser. The array must have one entry per scalable setting level, and elements must be between 1 and 32.</summary>
-        [Range(1, 32)]
+        /// <summary>Flag that defines the radius of the first denoiser.</summary>
         public int[] RTRDenoiserRadius = new int[s_QualitySettingCount];
-        /// <summary>Flag that defines smooth denoising status. The array must have one entry per scalable setting level.</summary>
-        public bool[] RTRSmoothDenoising = new bool[s_QualitySettingCount];
 
         // TODO: Volumetric fog quality
-        /// <summary>Controls which control mode should be used to define the volumetric fog parameters. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Controls which control mode should be used to define the volumetric fog parameters.</summary>
         public FogControl[] Fog_ControlMode = new FogControl[s_QualitySettingCount];
-        /// <summary>Controls the budget of the volumetric fog effect. The array must have one entry per scalable setting level, and elements must be between 0 and 1.</summary>
-        [Range(0.0f, 1.0f)]
+        /// <summary>Controls the budget of the volumetric fog effect.</summary>
         public float[] Fog_Budget = new float[s_QualitySettingCount];
-        /// <summary>Controls how the budget is shared between screen resolution and depth. The array must have one entry per scalable setting level, and elements must be between 0 and 1.</summary>
-        [Range(0.0f, 1.0f)]
+        /// <summary>Controls how the budget is shared between screen resolution and depth.</summary>
         public float[] Fog_DepthRatio = new float[s_QualitySettingCount];
-
         // TODO: Shadows. This needs to be discussed further as there is an idiosyncracy here as we have different level of quality settings,
         //some for resolution per light (4 levels) some per volume (which are 3 levels everywhere). This needs to be discussed more.
+
+
     }
 }

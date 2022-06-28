@@ -1,19 +1,18 @@
 using System;
 using UnityEditor.ShaderGraph;
-using UnityEngine.Rendering;
 
 namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
 {
     static class CreateEyeShaderGraph
     {
-        [MenuItem("Assets/Create/Shader Graph/HDRP/Eye Shader Graph", priority = CoreUtils.Priorities.assetsCreateShaderMenuPriority + 3)]
+        [MenuItem("Assets/Create/Shader/HD Render Pipeline/Eye Shader Graph", false, 208)]
         public static void CreateEyeGraph()
         {
             var target = (HDTarget)Activator.CreateInstance(typeof(HDTarget));
             target.TrySetActiveSubTarget(typeof(EyeSubTarget));
 
-            var blockDescriptors = new[]
-            {
+            var blockDescriptors = new [] 
+            { 
                 BlockFields.VertexDescription.Position,
                 BlockFields.VertexDescription.Normal,
                 BlockFields.VertexDescription.Tangent,
@@ -28,7 +27,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
                 BlockFields.SurfaceDescription.Alpha,
             };
 
-            GraphUtil.CreateNewGraphWithOutputs(new[] {target}, blockDescriptors);
+            GraphUtil.CreateNewGraphWithOutputs(new [] {target}, blockDescriptors);
         }
     }
 }

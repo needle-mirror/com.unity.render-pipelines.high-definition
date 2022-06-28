@@ -1,5 +1,5 @@
 //
-// This file was automatically generated. Please don't edit by hand. Execute Editor command [ Edit > Rendering > Generate Shader Includes ] instead
+// This file was automatically generated. Please don't edit by hand. Execute Editor command [ Edit / Render Pipeline / Generate Shader Includes ] instead
 //
 
 #ifndef LIGHTDEFINITION_CS_HLSL
@@ -72,6 +72,7 @@ struct DirectionalLightData
     real minRoughness;
     int screenSpaceShadowIndex;
     real4 shadowMaskSelector;
+    float2 cascadesBorderFadeScaleBias;
     float diffuseDimmer;
     float specularDimmer;
     float penumbraTint;
@@ -79,6 +80,8 @@ struct DirectionalLightData
     float distanceFromCamera;
     float angularDiameter;
     float flareFalloff;
+    float flareCosInner;
+    float flareCosOuter;
     float __unused__;
     float3 flareTint;
     float flareSize;
@@ -156,11 +159,6 @@ struct EnvLightData
     float roughReflections;
     float distanceBasedRoughness;
     int envIndex;
-    float4 L0L1;
-    float4 L2_1;
-    float L2_2;
-    int normalizeWithAPV;
-    float2 padding;
 };
 
 

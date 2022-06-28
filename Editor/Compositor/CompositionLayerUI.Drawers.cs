@@ -1,8 +1,10 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.Rendering.HighDefinition.Attributes;
 using UnityEngine.Rendering.HighDefinition.Compositor;
-using UnityEngine.Experimental.Rendering;
 
+using UnityEditor;
 using UnityEditorInternal;
 
 namespace UnityEditor.Rendering.HighDefinition.Compositor
@@ -37,14 +39,14 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
             static public float infoBoxIconWidth = 100;
         }
 
-        static bool s_AsyncCompileState = false;
-        static bool s_HasStartedCompiling = false;
+        static bool s_AsyncCompileState = false; 
+        static bool s_HasStartedCompiling = false; 
 
         public static void DrawItemInList(Rect rect, SerializedCompositionLayer serialized, RenderTexture thumbnail, float aspectRatio, bool isAlphaEnbaled)
         {
             bool isCameraStack = serialized.outTarget.intValue == (int)CompositorLayer.OutputTarget.CameraStack;
 
-            // Compute the desired indentation
+            // Compute the desired indentation 
             {
                 const float listBorder = 2.0f;
                 rect.x = isCameraStack ? rect.x + CompositorStyle.k_ListItemStackPading + listBorder : rect.x + listBorder;
@@ -68,9 +70,9 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
                 rect.width -= previewRect.width + CompositorStyle.k_ThumbnailSpacing;
 
                 if (isAlphaEnbaled
-                    && (thumbnail.graphicsFormat == GraphicsFormat.R16G16B16A16_SFloat
-                        || thumbnail.graphicsFormat == GraphicsFormat.R32G32B32A32_SFloat
-                        || thumbnail.graphicsFormat == GraphicsFormat.R16G16B16A16_UNorm))
+                    && (thumbnail.format == RenderTextureFormat.ARGBHalf
+                    || thumbnail.format == RenderTextureFormat.ARGBFloat
+                    || thumbnail.format == RenderTextureFormat.ARGB64))
                 {
                     EditorGUI.DrawTextureAlpha(previewRect, thumbnail);
                     rect.x += previewRect.width + CompositorStyle.k_ThumbnailSpacing;
@@ -137,7 +139,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
             EditorGUI.PropertyField(rect, serializedProperties.outputRenderer, Styles.k_OutputRenderer);
             rect.y += CompositorStyle.k_Spacing;
 
-            EditorGUI.PropertyField(rect, serializedProperties.aovBitmask, Styles.k_AOVs);
+            EditorGUI.PropertyField(rect, serializedProperties.aovBitmask, Styles.k_AOVs);            
             rect.y += CompositorStyle.k_Spacing;
 
             if (serializedProperties.aovBitmask.intValue != 0)
@@ -231,7 +233,7 @@ namespace UnityEditor.Rendering.HighDefinition.Compositor
             EditorGUI.PropertyField(rect, serializedProperties.clearAlpha, Styles.k_ClearAlpha);
             rect.y += 1.0f * CompositorStyle.k_Spacing;
 
-            // Draw a min/max slider for tha alpha range
+            // Draw a min/max slider for tha alpha range 
             {
                 const float spacing = 5;
                 var labelRect = new Rect(rect.x, rect.y, EditorGUIUtility.labelWidth, rect.height);

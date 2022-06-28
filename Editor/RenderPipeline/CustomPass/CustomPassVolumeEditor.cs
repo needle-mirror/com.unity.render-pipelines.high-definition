@@ -7,11 +7,10 @@ using UnityEngine.Rendering.HighDefinition;
 using System;
 using System.Reflection;
 using System.Linq;
-using UnityEditor.Experimental.GraphView;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
-    [CustomEditor(typeof(CustomPassVolume)), CanEditMultipleObjects]
+    [CustomEditor(typeof(CustomPassVolume))]
     sealed class CustomPassVolumeEditor : Editor
     {
         ReorderableList         m_CustomPassList;
@@ -19,25 +18,21 @@ namespace UnityEditor.Rendering.HighDefinition
         CustomPassVolume        m_Volume;
         MaterialEditor[]        m_MaterialEditors = new MaterialEditor[0];
         int                     m_CustomPassMaterialsHash;
-        bool                    m_SupportListMultiEditing;
 
         const string            k_DefaultListName = "Custom Passes";
 
         static class Styles
         {
-            public static readonly GUIContent isGlobal = new GUIContent("Mode", "A global volume is applied to the whole scene. A local volume is applied only when the camera position is inside the volume. A camera volume is applied only for the target camera.");
+            public static readonly GUIContent isGlobal = new GUIContent("Mode", "A global volume is applied to the whole scene.");
             public static readonly GUIContent fadeRadius = new GUIContent("Fade Radius", "Radius from where your effect will be rendered, the _FadeValue in shaders will be updated using this radius");
             public static readonly GUIContent injectionPoint = new GUIContent("Injection Point", "Where the pass is going to be executed in the pipeline.");
             public static readonly GUIContent priority = new GUIContent("Priority", "Determine the execution order when multiple Custom Pass Volumes overlap with the same injection point.");
-            public static readonly GUIContent targetCamera = new GUIContent("Target Camera", "Determine on which camera this custom pass volume will be applied. If this property is null and the mode is set to camera, the volume is ignored.");
-            public static readonly GUIContent[] modes = { new GUIContent("Global"), new GUIContent("Local"), new GUIContent("Camera") };
+            public static readonly GUIContent[] modes = { new GUIContent("Global"), new GUIContent("Local") };
         }
 
         class SerializedPassVolume
         {
             public SerializedProperty   isGlobal;
-            public SerializedProperty   useTargetCamera;
-            public SerializedProperty   targetCamera;
             public SerializedProperty   fadeRadius;
             public SerializedProperty   customPasses;
             public SerializedProperty   injectionPoint;
@@ -56,8 +51,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 m_SerializedPassVolume = new SerializedPassVolume
                 {
                     isGlobal = o.Find(x => x.isGlobal),
-                    useTargetCamera = o.Find(x => x.useTargetCamera),
-                    targetCamera = o.Find(x => x.m_TargetCamera),
                     injectionPoint = o.Find(x => x.injectionPoint),
                     customPasses = o.Find(x => x.customPasses),
                     fadeRadius = o.Find(x => x.fadeRadius),
@@ -147,37 +140,19 @@ namespace UnityEditor.Rendering.HighDefinition
         void DrawSettingsGUI()
         {
             serializedObject.Update();
-
-            int GetMode() => m_SerializedPassVolume.useTargetCamera.boolValue ? 2 : (m_SerializedPassVolume.isGlobal.boolValue ? 0 : 1);
-            void SetMode(int value)
-            {
-                m_SerializedPassVolume.isGlobal.boolValue = value == 0;
-                m_SerializedPassVolume.useTargetCamera.boolValue = value == 2;
-            }
-
+            
             EditorGUI.BeginChangeCheck();
             {
                 Rect isGlobalRect = EditorGUILayout.GetControlRect();
                 EditorGUI.BeginProperty(isGlobalRect, Styles.isGlobal, m_SerializedPassVolume.isGlobal);
                 {
-                    EditorGUI.BeginChangeCheck();
-                    int selectedMode = EditorGUI.Popup(isGlobalRect, Styles.isGlobal, GetMode(), Styles.modes);
-                    if (EditorGUI.EndChangeCheck())
-                        SetMode(selectedMode);
+                    m_SerializedPassVolume.isGlobal.boolValue = EditorGUI.Popup(isGlobalRect, Styles.isGlobal, m_SerializedPassVolume.isGlobal.boolValue ? 0 : 1, Styles.modes) == 0;
                 }
                 EditorGUI.EndProperty();
-
-                if (m_SerializedPassVolume.useTargetCamera.boolValue)
-                {
-                    EditorGUILayout.PropertyField(m_SerializedPassVolume.targetCamera, Styles.targetCamera);
-                }
-                else
-                {
-                    EditorGUILayout.PropertyField(m_SerializedPassVolume.injectionPoint, Styles.injectionPoint);
-                    EditorGUILayout.PropertyField(m_SerializedPassVolume.priority, Styles.priority);
-                    if (!m_SerializedPassVolume.isGlobal.boolValue)
-                        EditorGUILayout.PropertyField(m_SerializedPassVolume.fadeRadius, Styles.fadeRadius);
-                }
+                EditorGUILayout.PropertyField(m_SerializedPassVolume.injectionPoint, Styles.injectionPoint);
+                EditorGUILayout.PropertyField(m_SerializedPassVolume.priority, Styles.priority);
+                if (!m_SerializedPassVolume.isGlobal.boolValue)
+                    EditorGUILayout.PropertyField(m_SerializedPassVolume.fadeRadius, Styles.fadeRadius);
             }
             if (EditorGUI.EndChangeCheck())
                 serializedObject.ApplyModifiedProperties();
@@ -185,12 +160,6 @@ namespace UnityEditor.Rendering.HighDefinition
 
         void DrawCustomPassReorderableList()
         {
-            if (targets.OfType<CustomPassVolume>().Count() > 1)
-            {
-                EditorGUILayout.HelpBox("Custom Pass List UI is not supported with multi-selection", MessageType.Warning, true);
-                return;
-            }
-
             // Sanitize list:
             for (int i = 0; i < m_SerializedPassVolume.customPasses.arraySize; i++)
             {
@@ -221,10 +190,9 @@ namespace UnityEditor.Rendering.HighDefinition
                 EditorGUI.LabelField(rect, k_DefaultListName, EditorStyles.largeLabel);
             };
 
-            m_CustomPassList.multiSelect = false;
             m_CustomPassList.drawElementCallback = (rect, index, active, focused) => {
                 EditorGUI.BeginChangeCheck();
-
+                
                 passList.serializedObject.ApplyModifiedProperties();
                 var customPass = passList.GetArrayElementAtIndex(index);
                 customPass.managedReferenceValue = m_Volume.customPasses[index];
@@ -249,10 +217,24 @@ namespace UnityEditor.Rendering.HighDefinition
             };
 
             m_CustomPassList.onAddCallback += (list) => {
-                var searchObject = ScriptableObject.CreateInstance<CustomPassListSearchWindow>();
-                searchObject.Initialize(AddCustomPass);
-                var windowPosition = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
-                SearchWindow.Open(new SearchWindowContext(windowPosition), searchObject);
+                Undo.RegisterCompleteObjectUndo(target, "Add custom pass");
+
+                var menu = new GenericMenu();
+                foreach (var customPassType in TypeCache.GetTypesDerivedFrom<CustomPass>())
+                {
+                    if (customPassType.IsAbstract)
+                        continue;
+
+                    menu.AddItem(new GUIContent(customPassType.Name), false, () => {
+                        passList.serializedObject.ApplyModifiedProperties();
+                        m_Volume.AddPassOfType(customPassType);
+                        UpdateMaterialEditors();
+                        passList.serializedObject.Update();
+                        // Notify the prefab that something have changed:
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(target);
+                   });
+                }
+                menu.ShowAsContext();
             };
 
             m_CustomPassList.onReorderCallback = (index) => ClearCustomPassCache();
@@ -262,21 +244,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 ReorderableList.defaultBehaviours.DoRemoveButton(list);
                 ClearCustomPassCache();
             };
-
-            void AddCustomPass(Type customPassType)
-            {
-                foreach (CustomPassVolume volume in targets)
-                {
-                    Undo.RegisterCompleteObjectUndo(volume, "Add custom pass");
-
-                    passList.serializedObject.ApplyModifiedProperties();
-                    volume.AddPassOfType(customPassType);
-                    UpdateMaterialEditors();
-                    passList.serializedObject.Update();
-                    // Notify the prefab that something have changed:
-                    PrefabUtility.RecordPrefabInstancePropertyModifications(volume);
-                }
-            }
         }
 
         void ClearCustomPassCache()

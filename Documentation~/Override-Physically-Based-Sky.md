@@ -2,9 +2,9 @@
 
 Physically Based Sky simulates a spherical planet with a two-part atmosphere that has an exponentially decreasing density with respect to its altitude. This means that the higher you go above sea level, the less dense the atmosphere is. For information on the implementation for this sky type, see [Implementation details](#ImplementationDetails).
 
-The simulation runs as a pre-process, meaning that it runs once instead of on every frame. The simulation evaluates the atmospheric scattering of all combinations of light and view angles and then stores the results in several 3D Textures, which Unity resamples at runtime. The pre-computation is Scene-agnostic, and only depends on the settings of the Physically Based Sky.
+The simulation runs as a pre-process, meaning that it runs once instead of on every frame. The simulation evaluates the atmospheric scattering of all combinations of light and view angles and then stores the results in several 3D Textures, which Unity resamples at runtime. The pre-computation is Scene-agnostic, and only depends on the settings of the Physically Based Sky. 
 
-The Physically Based Sky’s atmosphere is composed of two types of particles:
+The Physically Based Sky’s atmosphere is composed of two types of particles: 
 
 * Air particles with [Rayleigh scattering](<https://en.wikipedia.org/wiki/Rayleigh_scattering>).
 * Aerosol particles with anisotropic [Mie scattering](https://en.wikipedia.org/wiki/Mie_scattering). You can use aerosols to model pollution, height fog, or mist.
@@ -129,6 +129,24 @@ The default values in either mode make it so the planet's surface is at **0** on
 * If in **Spherical Mode**, either decrease the **Planetary  Radius**, or move the **Planet Center Position** down.
 
 * If not in **Spherical Mode**, decrease the **Sea Level**.
+
+## Warmup cost
+
+When you switch to or from a Physically Based Sky, it might cause a noticeable drop in framerate. This is because HDRP performs a large amount of precomputations to render a Physically Based Sky, so the first few frames (depending on the Number of bounces parameter) takes more time to render than other HDRP sky types.
+This also applies when HDRP uses the volume system to interpolate between two different Physically Based Skies with different sets of parameters. To do this, HDRP restarts the precomputation every frame in which it performs interpolation. This causes a noticeable drop in framerate. To avoid this, use a single set of Physically Based Sky parameters for a scene and change the sun light direction and intensity to achieve the result you want.
+
+HDRP restarts precomputation when you change the following parameters:
+- Type
+- Planetary Radius
+- Ground Tint
+- Air Maximum Altitude
+- Air Density
+- Air Tint
+- Aerosol Maximum Altitude
+- Aerosol Density
+- Aerosol Tint
+- Aerosol Anisotropy
+- Number of Bounces
 
 ### Reference list
 

@@ -1,17 +1,21 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
+using System.Linq;
+using UnityEngine.Rendering;
 
 // Include material common properties names
 using static UnityEngine.Rendering.HighDefinition.HDMaterialProperties;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
-    /// <summary>The UI block that represents the surface options for decal materials.</summary>
-    public class DecalSurfaceOptionsUIBlock : MaterialUIBlock
+    class DecalSurfaceOptionsUIBlock : MaterialUIBlock
     {
-        internal class Styles
+        public class Styles
         {
-            public static GUIContent header { get; } = EditorGUIUtility.TrTextContent("Surface Options");
+            public const string header = "Surface Options";
+
             public static GUIContent affectAlbedoText = new GUIContent("Affect BaseColor", "When enabled, this decal uses its base color. When disabled, the decal has no base color effect.");
             public static GUIContent affectNormalText = new GUIContent("Affect Normal", "When enabled, this decal uses its normal. When disabled, the decal has nonormal effect.");
             public static GUIContent affectMetalText = new GUIContent("Affect Metal", "When enabled, this decal uses the metallic channel of its Mask Map. When disabled, the decal has no metallic effect.");
@@ -21,6 +25,8 @@ namespace UnityEditor.Rendering.HighDefinition
             public static GUIContent supportLodCrossFadeText = new GUIContent("Support LOD CrossFade", "When enabled, this decal material supports LOD Cross fade if use on a Mesh.");
         }
 
+        Expandable  m_ExpandableBit;
+
         MaterialProperty affectsAlbedo = new MaterialProperty();
         MaterialProperty affectsNormal = new MaterialProperty();
         MaterialProperty affectsMetal = new MaterialProperty();
@@ -28,18 +34,11 @@ namespace UnityEditor.Rendering.HighDefinition
         MaterialProperty affectsSmoothness = new MaterialProperty();
         MaterialProperty affectsEmission = new MaterialProperty();
 
-        /// <summary>
-        /// Constructs a DecalSurfaceOptionsUIBlock based on the parameters.
-        /// </summary>
-        /// <param name="expandableBit">Bit index used to store the foldout state.</param>
-        public DecalSurfaceOptionsUIBlock(ExpandableBit expandableBit)
-            : base(expandableBit, Styles.header)
+        public DecalSurfaceOptionsUIBlock(Expandable expandableBit)
         {
+            m_ExpandableBit = expandableBit;
         }
 
-        /// <summary>
-        /// Loads the material properties for the block.
-        /// </summary>
         public override void LoadMaterialProperties()
         {
             affectsAlbedo = FindProperty(kAffectAlbedo);
@@ -50,10 +49,18 @@ namespace UnityEditor.Rendering.HighDefinition
             affectsEmission = FindProperty(kAffectEmission);
         }
 
-        /// <summary>
-        /// Renders the properties in the block.
-        /// </summary>
-        protected override void OnGUIOpen()
+        public override void OnGUI()
+        {
+            using (var header = new MaterialHeaderScope(Styles.header, (uint)m_ExpandableBit, materialEditor))
+            {
+                if (header.expanded)
+                {
+                    DrawDecalGUI();
+                }
+            }
+        }
+
+        void DrawDecalGUI()
         {
             bool perChannelMask = false;
             HDRenderPipelineAsset hdrp = HDRenderPipeline.currentAsset;
@@ -84,7 +91,7 @@ namespace UnityEditor.Rendering.HighDefinition
             if (!perChannelMask && (affectsMetal != null || affectsAO != null))
             {
                 EditorGUILayout.HelpBox("Enable 'Metal and AO properties' in your HDRP Asset if you want to control the Metal and AO properties of decals. There is a performance cost of enabling this option.",
-                    MessageType.Info);
+                                        MessageType.Info);
             }
         }
     }

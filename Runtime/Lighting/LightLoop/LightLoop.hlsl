@@ -1,6 +1,6 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Macros.hlsl"
 
-#if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+#if SHADEROPTIONS_PROBE_VOLUMES_EVALUATION_MODE == PROBEVOLUMESEVALUATIONMODES_LIGHT_LOOP
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/BuiltinUtilities.hlsl"
 #else
 // Required to have access to the indirectDiffuseMode enum in forward pass where we don't include BuiltinUtilities
@@ -9,7 +9,8 @@
 
 #ifndef SCALARIZE_LIGHT_LOOP
 // We perform scalarization only for forward rendering as for deferred loads will already be scalar since tiles will match waves and therefore all threads will read from the same tile.
-// More info on scalarization: https://flashypixels.wordpress.com/2018/11/10/intro-to-gpu-scalarization-part-2-scalarize-all-the-lights/
+// More info on scalarization: https://flashypixels.wordpress.com/2018/11/10/intro-to-gpu-scalarization-part-2-scalarize-all-the-lights/ .
+// Note that it is currently disabled on gamecore platforms for issues with wave intrinsics and the new compiler, it will be soon investigated, but we disable it in the meantime.
 #define SCALARIZE_LIGHT_LOOP (defined(PLATFORM_SUPPORTS_WAVE_INTRINSICS) && !defined(LIGHTLOOP_DISABLE_TILE_AND_CLUSTER) && !defined(SHADER_API_GAMECORE) && SHADERPASS == SHADERPASS_FORWARD)
 #endif
 
@@ -78,15 +79,6 @@ void ApplyDebugToLighting(LightLoopContext context, inout BuiltinData builtinDat
             builtinData.emissiveColor = real3(0.0, 0.0, 0.0);
         }
     }
-
-    if (_DebugLightingMode == DEBUGLIGHTINGMODE_PROBE_VOLUME_SAMPLED_SUBDIVISION)
-    {
-        aggregateLighting.direct.diffuse = real3(0.0, 0.0, 0.0);
-        aggregateLighting.direct.specular = real3(0.0, 0.0, 0.0);
-        aggregateLighting.indirect.specularReflected = real3(0.0, 0.0, 0.0);
-        aggregateLighting.indirect.specularTransmitted = real3(0.0, 0.0, 0.0);
-        builtinData.emissiveColor = real3(0.0, 0.0, 0.0);
-    }
 #endif
 }
 
@@ -104,7 +96,12 @@ bool UseScreenSpaceShadow(DirectionalLightData light, float3 normalWS)
 void ApplyDebug(LightLoopContext context, PositionInputs posInput, BSDFData bsdfData, inout LightLoopOutput lightLoopOutput)
 {
 #ifdef DEBUG_DISPLAY
-    if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
+    if (_DebugLightingMode == DEBUGLIGHTINGMODE_PROBE_VOLUME)
+    {
+        // Debug info is written to diffuseColor inside of light loop.
+        lightLoopOutput.specularLighting = float3(0.0, 0.0, 0.0);
+    }
+    else if (_DebugLightingMode == DEBUGLIGHTINGMODE_LUX_METER)
     {
         lightLoopOutput.specularLighting = float3(0.0, 0.0, 0.0); // Disable specular lighting
         // Take the luminance
@@ -390,74 +387,6 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
         }
 #endif
 
-
-#if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
-        float3 lightInReflDir = -1;
-        bool uninitializedGI = IsUninitializedGI(builtinData.bakeDiffuseLighting);
-        // If probe volume feature is enabled, this bit is enabled for all tiles to handle ambient probe fallback.
-        // Even so, the bound resources might be invalid in some cases, so we still need to check on _EnableProbeVolumes.
-        bool apvEnabled = (featureFlags & LIGHTFEATUREFLAGS_PROBE_VOLUME) && _EnableProbeVolumes;
-
-        if (!apvEnabled)
-        {
-            builtinData.bakeDiffuseLighting = (uninitializedGI && !apvEnabled) ? float3(0.0, 0.0, 0.0) : builtinData.bakeDiffuseLighting;
-            builtinData.backBakeDiffuseLighting = (uninitializedGI && !apvEnabled) ? float3(0.0, 0.0, 0.0) : builtinData.backBakeDiffuseLighting;
-        }
-
-        if (apvEnabled)
-        {
-            if (uninitializedGI)
-            {
-                float3 R = reflect(-V, bsdfData.normalWS);
-                // Need to make sure not to apply ModifyBakedDiffuseLighting() twice to our bakeDiffuseLighting data, which could happen if we are dealing with initialized data (light maps).
-                // Create a local BuiltinData variable here, and then add results to builtinData.bakeDiffuseLighting at the end.
-                BuiltinData apvBuiltinData;
-                ZERO_INITIALIZE(BuiltinData, apvBuiltinData);
-                SetAsUninitializedGI(apvBuiltinData.bakeDiffuseLighting);
-                SetAsUninitializedGI(apvBuiltinData.backBakeDiffuseLighting);
-
-                EvaluateAdaptiveProbeVolume(GetAbsolutePositionWS(posInput.positionWS),
-                    bsdfData.normalWS,
-                    -bsdfData.normalWS,
-                    R,
-                    V,
-                    posInput.positionSS,
-                    apvBuiltinData.bakeDiffuseLighting,
-                    apvBuiltinData.backBakeDiffuseLighting,
-                    lightInReflDir);
-
-                float indirectDiffuseMultiplier = GetIndirectDiffuseMultiplier(builtinData.renderingLayers);
-                apvBuiltinData.bakeDiffuseLighting *= indirectDiffuseMultiplier;
-                apvBuiltinData.backBakeDiffuseLighting *= indirectDiffuseMultiplier;
-
-#ifdef MODIFY_BAKED_DIFFUSE_LIGHTING
-#ifdef DEBUG_DISPLAY
-                // When the lux meter is enabled, we don't want the albedo of the material to modify the diffuse baked lighting
-                if (_DebugLightingMode != DEBUGLIGHTINGMODE_LUX_METER)
-#endif
-                    ModifyBakedDiffuseLighting(V, posInput, preLightData, bsdfData, apvBuiltinData);
-
-#endif
-
-#if (SHADERPASS == SHADERPASS_DEFERRED_LIGHTING)
-                // If we are deferred we should apply baked AO here as it was already apply for lightmap.
-                // When using probe volumes for the pixel (i.e. we have uninitialized GI), we include the surfaceData.ambientOcclusion as
-                // payload information alongside the un-init flag.
-                // It should not be applied in forward as in this case the baked AO is correctly apply in PostBSDF()
-                // This is applied only on bakeDiffuseLighting as ModifyBakedDiffuseLighting combine both bakeDiffuseLighting and backBakeDiffuseLighting
-                float surfaceDataAO = ExtractPayloadFromUninitializedGI(builtinData.bakeDiffuseLighting);
-                apvBuiltinData.bakeDiffuseLighting *= surfaceDataAO;
-#endif
-
-                ApplyDebugToBuiltinData(apvBuiltinData);
-
-                builtinData.bakeDiffuseLighting = uninitializedGI ? float3(0.0, 0.0, 0.0) : builtinData.bakeDiffuseLighting;
-                // Note: builtinDataProbeVolumes.bakeDiffuseLighting and builtinDataProbeVolumes.backBakeDiffuseLighting were combine inside of ModifyBakedDiffuseLighting().
-                builtinData.bakeDiffuseLighting += apvBuiltinData.bakeDiffuseLighting;
-            }
-        }
-#endif
-
         // Reflection probes are sorted by volume (in the increasing order).
         if (featureFlags & LIGHTFEATUREFLAGS_ENV)
         {
@@ -494,20 +423,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
                     v_envLightListOffset++;
                     if (reflectionHierarchyWeight < 1.0)
                     {
-                        if (IsMatchingLightLayer(s_envLightData.lightLayers, builtinData.renderingLayers))
-                        {
-                            IndirectLighting lighting = EvaluateBSDF_Env(context, V, posInput, preLightData, s_envLightData, bsdfData, s_envLightData.influenceShapeType, GPUIMAGEBASEDLIGHTINGTYPE_REFLECTION, reflectionHierarchyWeight);
-#if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
-
-                            if (s_envLightData.normalizeWithAPV > 0 && all(lightInReflDir >= 0))
-                            {
-                                float factor = GetReflectionProbeNormalizationFactor(lightInReflDir, bsdfData.normalWS, s_envLightData.L0L1, s_envLightData.L2_1, s_envLightData.L2_2);
-                                lighting.specularReflected *= factor;
-                            }
-#endif
-
-                            AccumulateIndirectLighting(lighting, aggregateLighting);
-                        }
+                        EVALUATE_BSDF_ENV(s_envLightData, REFLECTION, reflection);
                     }
                     // Refraction probe and reflection probe will process exactly the same weight. It will be good for performance to be able to share this computation
                     // However it is hard to deal with the fact that reflectionHierarchyWeight and refractionHierarchyWeight have not the same values, they are independent
@@ -614,6 +530,67 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
     }
 #endif
 
+#if SHADEROPTIONS_PROBE_VOLUMES_EVALUATION_MODE == PROBEVOLUMESEVALUATIONMODES_LIGHT_LOOP
+    bool uninitialized = IsUninitializedGI(builtinData.bakeDiffuseLighting);
+    builtinData.bakeDiffuseLighting = uninitialized ? float3(0.0, 0.0, 0.0) : builtinData.bakeDiffuseLighting;
+
+    // If probe volume feature is enabled, this bit is enabled for all tiles to handle ambient probe fallback.
+    // No need to branch internally on _EnableProbeVolumes uniform.
+    if (featureFlags & LIGHTFEATUREFLAGS_PROBE_VOLUME)
+    {
+#if !SHADEROPTIONS_PROBE_VOLUMES_ADDITIVE_BLENDING
+        if (uninitialized)
+#endif
+        {
+            // Need to make sure not to apply ModifyBakedDiffuseLighting() twice to our bakeDiffuseLighting data, which could happen if we are dealing with initialized data (light maps).
+            // Create a local BuiltinData variable here, and then add results to builtinData.bakeDiffuseLighting at the end.
+            BuiltinData builtinDataProbeVolumes;
+            ZERO_INITIALIZE(BuiltinData, builtinDataProbeVolumes);
+
+            float probeVolumeHierarchyWeight = uninitialized ? 0.0f : 1.0f;
+
+            // Note: we aren't suppose to access normalWS in lightloop, but bsdfData.normalWS is always define for any material. So this is safe.
+            ProbeVolumeEvaluateSphericalHarmonics(
+                posInput,
+                bsdfData.normalWS,
+                -bsdfData.normalWS,
+                builtinData.renderingLayers,
+                probeVolumeHierarchyWeight,
+                builtinDataProbeVolumes.bakeDiffuseLighting,
+                builtinDataProbeVolumes.backBakeDiffuseLighting
+            );
+
+            // Apply control from the indirect lighting volume settings (Remember there is no emissive here at this step)
+            float indirectDiffuseMultiplier = GetIndirectDiffuseMultiplier(builtinData.renderingLayers);
+            builtinDataProbeVolumes.bakeDiffuseLighting *= indirectDiffuseMultiplier;
+            builtinDataProbeVolumes.backBakeDiffuseLighting *= indirectDiffuseMultiplier;
+
+#ifdef MODIFY_BAKED_DIFFUSE_LIGHTING
+#ifdef DEBUG_DISPLAY
+            // When the lux meter is enabled, we don't want the albedo of the material to modify the diffuse baked lighting
+            if (_DebugLightingMode != DEBUGLIGHTINGMODE_LUX_METER)
+#endif
+                ModifyBakedDiffuseLighting(V, posInput, preLightData, bsdfData, builtinDataProbeVolumes);
+
+#endif
+
+#if (SHADERPASS == SHADERPASS_DEFERRED_LIGHTING)
+            // If we are deferred we should apply baked AO here as it was already apply for lightmap.
+            // But in deferred ambientOcclusion is white so we should use specularOcclusion instead. It is the
+            // same case than for Microshadow so we can reuse this function. It should not be apply in forward
+            // as in this case the baked AO is correctly apply in PostBSDF()
+            // This is apply only on bakeDiffuseLighting as ModifyBakedDiffuseLighting combine both bakeDiffuseLighting and backBakeDiffuseLighting
+            builtinDataProbeVolumes.bakeDiffuseLighting *= GetAmbientOcclusionForMicroShadowing(bsdfData);
+#endif
+
+            ApplyDebugToBuiltinData(builtinDataProbeVolumes);
+
+            // Note: builtinDataProbeVolumes.bakeDiffuseLighting and builtinDataProbeVolumes.backBakeDiffuseLighting were combine inside of ModifyBakedDiffuseLighting().
+            builtinData.bakeDiffuseLighting += builtinDataProbeVolumes.bakeDiffuseLighting;
+        }
+    }
+#endif
+
 #if !defined(_SURFACE_TYPE_TRANSPARENT)
     // If we use the texture ssgi for ssgi or rtgi, we want to combine it with the value in the bake diffuse lighting value
     if (_IndirectDiffuseMode != INDIRECTDIFFUSEMODE_OFF)
@@ -647,7 +624,7 @@ void LightLoop( float3 V, PositionInputs posInput, PreLightData preLightData, BS
 
     // Also Apply indiret diffuse (GI)
     // PostEvaluateBSDF will perform any operation wanted by the material and sum everything into diffuseLighting and specularLighting
-    PostEvaluateBSDF(context, V, posInput, preLightData, bsdfData, builtinData, aggregateLighting, lightLoopOutput);
+    PostEvaluateBSDF(   context, V, posInput, preLightData, bsdfData, builtinData, aggregateLighting, lightLoopOutput);
 
     ApplyDebug(context, posInput, bsdfData, lightLoopOutput);
 }

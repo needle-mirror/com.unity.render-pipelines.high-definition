@@ -29,24 +29,24 @@ To configure the properties of a Light, select a GameObject in your Scene with a
 
 HDRP includes multiple types of Light. Although HDRP Lights share many properties, each one has its own unique behavior and set of properties.
 
-For more detailed information on how to configure realistic light fixtures, see the [Create High-Quality Light Fixtures in Unity](https://docs.unity3d.com/uploads/ExpertGuides/Create_High-Quality_Light_Fixtures_in_Unity.pdf) expert guide. For general guidance on light intensities, see [Physical light units](Physical-Light-Units.md#light-intensities).
+For more detailed information on how to configure realistic light fixtures, see the [Create High-Quality Light Fixtures in Unity](https://pydonzallaz.files.wordpress.com/2019/02/create-high-quality-light-fixtures-in-unity.pdf) expert guide. For general guidance on light intensities, see [Physical light units](Physical-Light-Units.md#light-intensities).
 
 ## Properties
 
-The properties available for Lights are in separate sections. Each section contains some properties that all Lights share, and also properties that customize the behavior of the specific type of Light. These sections also contain [additional properties](More-Options.md) that you can expose if you want to fine-tune your light's behavior. The sections are:
+The properties available for Lights are in separate sections. Each section contains some properties that all Lights share, and also properties that customize the behavior of the specific type of Light. These sections also contain [more options](More-Options.md) that you can expose if you want to fine-tune your light's behavior. The sections are:
 
-- [General](#General)
-- [Shape](#Shape)
-- [Celestial Body](#CelestialBody)
-- [Emission](#Emission)
-- [Volumetrics](#Volumetric)
-- [Shadows](#Shadow)
+- [General](#GeneralProperties)
+- [Shape](#ShapeProperties)
+- [Celestial Body](#CelestialBodyProperties)
+- [Emission](#EmissionProperties)
+- [Volumetrics](#VolumetricProperties)
+- [Shadows](#ShadowProperties)
 
 ### Animation
 
 To make the Light work with the **Animation window**, when you click on the **Add Property** button, you need to use the properties inside the **HD Additional Light Data** component and not inside the Light component itself. If you do edit the properties inside the Light component, this modifies the built-in light values, which HDRP does not support. Alternatively, you can use the record button and modify the values directly inside the Inspector.
 
-<a name="General"></a>
+<a name="GeneralProperties"></a>
 
 ### General
 
@@ -56,7 +56,7 @@ To make the Light work with the **Animation window**, when you click on the **Ad
 | --------------- | ------------------------------------------------------------ |
 | **Type**        | Defines the Light’s type. Lights of different Types behave differently, so when you change the **Type**, the properties change in the Inspector. Possible types are:<br />&#8226; Directional<br />&#8226; Point<br />&#8226; Spot<br />&#8226; Area |
 | **Mode**        | Specify the [Light Mode](https://docs.unity3d.com/Manual/LightModes.html) that HDRP uses to determine how to bake a Light, if at all. Possible modes are:<br />&#8226; [Realtime](https://docs.unity3d.com/Manual/LightMode-Realtime.html): Unity performs the lighting calculations for Realtime Lights at runtime, once per frame. <br />&#8226; [Mixed](https://docs.unity3d.com/Manual/LightMode-Mixed.html): Mixed Lights combine elements of both realtime and baked lighting. <br />&#8226; [Baked](https://docs.unity3d.com/Manual/LightMode-Baked.html): Unity performs lighting calculations for Baked Lights in the Unity Editor, and saves the results to disk as lighting data. Note that soft falloff/range attenuation is not supported for Baked Area Lights. |
-| **Light Layer** | A  mask that allows you to choose which Light Layers this Light affects. The affected Light only lights up Mesh Renderers or Terrain with a matching **Rendering Layer Mask**. This property only appears if:<br/>&#8226; Your Project supports light layers. For information on how to set up light layers, see [light layers](Light-Layers.md).<br/>&#8226;  You enable [additional properties](More-Options.md) for this section. |
+| **Light Layer** | A  mask that allows you to choose which Light Layers this Light affects. The affected Light only lights up Mesh Renderers or Terrain with a matching **Rendering Layer Mask**.<br />This property only appears when you enable [more options](More-Options.md) for this section. |
 
 #### Light Types guide
 
@@ -71,7 +71,7 @@ To make the Light work with the **Animation window**, when you click on the **Ad
 
 [!include[](snippets/area-light-material-support-disclaimer.md)]
 
-<a name="Shape"></a>
+<a name="ShapeProperties"></a>
 
 ### **Shape**
 
@@ -83,7 +83,7 @@ These settings define the area this Light affects. Each Light **Type** has its o
 | ------------------- | ------------------------------------------------------------ |
 | **Shape**           | HDRP Spot Lights can use three shapes.<br />&#8226; **Cone** : Projects light from a single point at the GameObject’s position, out to a circular base, like a cone. Alter the radius of the circular base  by changing the **Outer Angle** and the **Range**.<br />&#8226; **Pyramid** : Projects light from a single point at the GameObject’s position onto a base that is a square with its side length equal to the diameter of the **Cone**.<br />&#8226; **Box** : Projects light evenly across a rectangular area defined by a horizontal and vertical size. This light has no attenuation unless **Range Attenuation** is checked. |
 | **Outer Angle**     | The angle in degrees at the base of a Spot Light’s cone. This property is only for Lights with a **Cone Shape**. |
-| **Inner Angle (%)** | Determines where the attenuation between the inner cone and the outer cone starts. Higher values cause the light at the edges of the Spot Light to fade out. Lower values stop the light from fading at the edges. This property is only for Lights with a **Cone Shape**. |
+| **Inner Angle (%)** | Determines where the attenuation between the inner cone and the outer cone starts. Lower values cause the light at the edges of the Spot Light to fade out. Higher values stop the light from fading at the edges. This property is only for Lights with a **Cone Shape**. |
 | **Spot Angle**      | The angle in degrees used to determine the size of a Spot Light using a **Pyramid** shape. |
 | **Aspect Ratio**    | Adjusts the shape of a Pyramid Spot Light to create rectangular Spot Lights. Set this to 1 for a square projection. Values lower than 1 make the Light wider, from the point of origin. Values higher than 1 make the Light longer. This property is only for Lights with a **Pyramid Shape**. |
 | **Radius**          | The radius of the light source. This has an impact on the size of specular highlights, diffuse lighting falloff, and the softness of baked, ray-traced, and PCSS shadows. |
@@ -116,7 +116,7 @@ These settings define the area this Light affects. Each Light **Type** has its o
 | **Length**   | For **Tube**. Defines the length of the Tube Light. The center of the Light is the Transform Position and the Light itself extends out from the center symmetrically. The **Length** is the distance from one end of the tube to the other. |
 | **Radius**   | For **Disc**. Define the radius of the Disc Light.           |
 
-<a name="CelestialBody"></a>
+<a name="CelestialBodyProperties"></a>
 
 ### **Celestial Body (Directional only)**
 
@@ -124,19 +124,19 @@ These settings define the behavior of the light when you use it as a celestial b
 
 | **Property**         | **Description**                                              |
 | -------------------- | ------------------------------------------------------------ |
-| **Affect Physically Based Sky** | When using a **Physically Based Sky**, this displays a sun disc in the sky in this Light's direction. The diameter, color, and intensity of the sun disc match the properties of this Directional Light.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
+| **Affect Physically Based Sky** | When using a **Physically Based Sky**, this displays a sun disc in the sky in this Light's direction. The diameter, color, and intensity of the sun disc match the properties of this Directional Light.<br />This property only appears when you enable [more options](More-Options.md) for this section. |
 | **- Flare Size** | Controls the size of the flare around the celestial body (in degrees).. |
 | **- Flare Falloff** | Controls the falloff rate of flare intensity as the angle from the light increases. |
 | **- Flare Tint** | Controls the tint of the flare of the celestial body. |
 | **- Surface Texture** | Sets a 2D (disk) Texture for the surface of the celestial body. This acts like a multiplier. |
 | **- Surface Tint** | Tints the surface of the celestial body. |
-| **- Distance** | Controls the distance of the sun disc. This is useful if you have multiple sun discs in the sky and want to change their sort order. HDRP draws sun discs with smaller **Distance** values on top of those with larger **Distance** values.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
+| **- Distance** | Controls the distance of the sun disc. This is useful if you have multiple sun discs in the sky and want to change their sort order. HDRP draws sun discs with smaller **Distance** values on top of those with larger **Distance** values.<br />This property only appears when you enable [more options](More-Options.md) for this section. |
 
-<a name="Emission"></a>
+<a name="EmissionProperties"></a>
 
 ### **Emission**
 
-These settings define the emissive behavior of your Light. You can set the Light’s color, strength, and maximum range. If you do not see these properties in the Light Inspector, make sure you enable [additional properties](More-Options.md). Most Lights share **Emission** properties. Below are the list of properties that more than one Light **Type** share, followed by unique properties only available for a single Light **Type**.
+These settings define the emissive behavior of your Light. You can set the Light’s color, strength, and maximum range. If you do not see these properties in the Light Inspector, make sure you expose [more options](More-Options.md). Most Lights share **Emission** properties. Below are the list of properties that more than one Light **Type** share, followed by unique properties only available for a single Light **Type**.
 
 #### Shared Properties
 
@@ -152,13 +152,13 @@ These settings define the emissive behavior of your Light. You can set the Light
 | **Cookie**                | An RGB Texture that the Light projects. For example, to create silhouettes or patterned illumination for the Light. Texture shapes should be 2D for Spot and Directional Lights and Cube for Point Lights. Always import **Cookie** textures as the default texture type. This property is available for **Spot**, **Area** (Rectangular only), **Directional**, and **Point** Lights.<br />Pyramid and Box lights will use an implicit 4x4 white cookie if none is specified. |
 | **IES Profile**                   | An IES File that describe the light profile. If a cookie and an IES profile are setup, a linear average of them is used. (In case of an IES profile and a cookie used at the same time during light baking, only the cookie will be used). |
 | **IES cutoff angle (%)**            | Cut off of the IES Profile, as a percentage of the Outer angle. During a baking of a light map this parameter is not used. |
-| **Affect Diffuse**        | Enable the checkbox to apply [diffuse](<https://docs.unity3d.com/Manual/shader-NormalDiffuse.html>) lighting to this Light.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
-| **Affect Specular**       | Enable the checkbox to apply [specular](https://docs.unity3d.com/Manual/shader-NormalSpecular.html) lighting to this Light.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
-| **Range Attenuation**     | Enable the checkbox to make this Light shine uniformly across its range. This stops light from fading around the edges. This setting is useful when the range limit is not visible on screen, and you do not want the edges of your light to fade out. This property is available for all **Light Types** except **Directional**.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode** for **Type** Area. |
-| **Fade Distance**         | The distance between the Light source and the Camera at which the Light begins to fade out. Measured in meters. This property is available for all **Light Types** except **Directional**.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
-| **Intensity Multiplier**                | A multiplier that gets applied to the intensity of the Light. Does not affect the intensity value, but only gets applied during the evaluation of the lighting. You can also modify this property via [Timeline](https://docs.unity3d.com/Manual/TimelineSection.html), Scripting or [animation](https://docs.unity3d.com/Manual/animeditor-AnimatingAGameObject.html). The parameter lets you fade the Light in and out without having to store its original intensity.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
-| **Display Emissive Mesh** | Enable the checkbox to make Unity automatically generate a Mesh with an emissive Material using the size, colour, and intensity of this Light. Unity automatically adds the Mesh and Material to the GameObject the Light component is attached to. This property is available for **Rectangle** and **Tube** Lights.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. (In case of an IES profile and a cookie used at the same time, only the cookie will be displayed). |
-| **Include For Ray Tracing ** | Enable the checkbox to make this Light active when the camera has the **Ray Tracing** [Frame Setting](Frame-Settings.md) enabled. This applies to both rasterization and [ray tracing](Ray-Tracing-Getting-Started.md) passes.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
+| **Affect Diffuse**        | Enable the checkbox to apply [diffuse](<https://docs.unity3d.com/Manual/shader-NormalDiffuse.html>) lighting to this Light.<br />This property only appears when you enable [more options](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
+| **Affect Specular**       | Enable the checkbox to apply [specular](https://docs.unity3d.com/Manual/shader-NormalSpecular.html) lighting to this Light.<br />This property only appears when you enable [more options](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
+| **Range Attenuation**     | Enable the checkbox to make this Light shine uniformly across its range. This stops light from fading around the edges. This setting is useful when the range limit is not visible on screen, and you do not want the edges of your light to fade out. This property is available for all **Light Types** except **Directional**.<br />This property only appears when you enable [more options](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode** for **Type** Area. |
+| **Fade Distance**         | The distance between the Light source and the Camera at which the Light begins to fade out. Measured in meters. This property is available for all **Light Types** except **Directional**.<br />This property only appears when you enable [more options](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
+| **Intensity Multiplier**                | A multiplier that gets applied to the intensity of the Light. Does not affect the intensity value, but only gets applied during the evaluation of the lighting. You can also modify this property via [Timeline](https://docs.unity3d.com/Manual/TimelineSection.html), Scripting or [animation](https://docs.unity3d.com/Manual/animeditor-AnimatingAGameObject.html). The parameter lets you fade the Light in and out without having to store its original intensity.<br />This property only appears when you enable [more options](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
+| **Display Emissive Mesh** | Enable the checkbox to make Unity automatically generate a Mesh with an emissive Material using the size, colour, and intensity of this Light. Unity automatically adds the Mesh and Material to the GameObject the Light component is attached to. This property is available for **Rectangle** and **Tube** Lights.<br />This property only appears when you enable [more options](More-Options.md) for this section. (In case of an IES profile and a cookie used at the same time, only the cookie will be displayed). |
+| **Include For Ray Tracing ** | Enable the checkbox to make this Light active when the camera has the **Ray Tracing** [Frame Setting](Frame-Settings.md) enabled. This applies to both rasterization and [ray tracing](Ray-Tracing-Getting-Started.md) passes.<br />This property only appears when you enable [more options](More-Options.md) for this section. It is only available in Realtime or Mixed light **Mode**. |
 
 #### Spot Light
 
@@ -173,7 +173,7 @@ These settings define the emissive behavior of your Light. You can set the Light
 | **Size X**   | The horizontal size of the projected cookie texture in pixels.<br />This property only appears when you set a **Cookie** in the Light Inspector. |
 | **Size Y**   | The vertical size of the projected cookie texture in pixels.<br />This property only appears when you set a **Cookie** in the Light Inspector. |
 
-<a name="Volumetric"></a>
+<a name="VolumetricProperties"></a>
 
 ### **Volumetrics**
 
@@ -187,7 +187,7 @@ These settings define the volumetric behavior of this Light. Alter these setting
 | **Dimmer**        | Dims the volumetric lighting effect of this Light.           |
 | **Shadow Dimmer** | Dims the volumetric fog effect of this Light. Set this property to 0 to make the volumetric scattering compute faster. |
 
-<a name="Shadow"></a>
+<a name="ShadowProperties"></a>
 
 ### **Shadows**
 
@@ -212,21 +212,21 @@ This section is only available in Realtime or Mixed light **Mode**.
 | **Resolution**             | Set the resolution of this Light’s shadow maps. Use the drop-down to select which quality mode to derive the resolution from. If you do not enable **Use Quality Settings**, or you select **Custom**, set the resolution, measured in pixels, in the input field.<br/>A higher resolution increases the fidelity of shadows at the cost of GPU performance and memory usage, so if you experience any performance issues, try using a lower value. |
 | **Near Plane**             | The distance, in meters, from the Light that GameObjects begin to cast shadows. |
 | **Shadowmask Mode**        | Defines how the shadowmask behaves for this Light. For detailed information on each **Shadowmask Mode**, see the documentation on [Shadowmasks](Shadows-in-HDRP.md#ShadowmaskModes). This property is only visible if you tet the **Mode**, under [General](#GeneralProperties), to **Mixed**. |
-| **Slope-Scale Depth Bias** | Use the slider to set the bias that HDRP adds to the distance in this Light's shadow map to avoid self intersection. This bias is proportional to the slope of the polygons represented in the shadow map.<br /> This property only appears when you enable [additional properties](More-Options.md) for this section. |
-| **Normal Bias**            | Controls the amount of normal [bias](https://docs.unity3d.com/Manual/ShadowOverview.html#LightBias) this Light applies along the [normal](https://docs.unity3d.com/Manual/AnatomyofaMesh.html) of the illuminated surface.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
-| **Custom Spot Angle**      | Enable the checkbox to use a custom angle to render shadow maps with.<br /> This property only appears if you select **Spot** from the **Type** drop-down and enable [additional properties](More-Options.md) for this section. |
-| **Shadow Angle**           | Use the slider to set a custom angle to use for shadow map rendering.<br /> This property only appears if you enable **Custom Spot Angle** and enable [additional properties](More-Options.md) for this section. |
+| **Slope-Scale Depth Bias** | Use the slider to set the bias that HDRP adds to the distance in this Light's shadow map to avoid self intersection. This bias is proportional to the slope of the polygons represented in the shadow map.<br /> This property only appears when you enable [more options](More-Options.md) for this section. |
+| **Normal Bias**            | Controls the amount of normal [bias](https://docs.unity3d.com/Manual/ShadowOverview.html#LightBias) this Light applies along the [normal](https://docs.unity3d.com/Manual/AnatomyofaMesh.html) of the illuminated surface.<br />This property only appears when you enable [more options](More-Options.md) for this section. |
+| **Custom Spot Angle**      | Enable the checkbox to use a custom angle to render shadow maps with.<br /> This property only appears if you select **Spot** from the **Type** drop-down and enable [more options](More-Options.md) for this section. |
+| **Shadow Angle**           | Use the slider to set a custom angle to use for shadow map rendering.<br /> This property only appears if you enable **Custom Spot Angle** and enable [more options](More-Options.md) for this section. |
 | **Shadow Cone**            | Use the slider to set the aperture of the shadow cone this area Light uses for shadowing. This property only appears if you select **Rectangle** from the **Type** drop-down. |
-| **EVSM Exponent**          | Use the slider to set the exponent this area Light uses for depth warping. [EVSM](Glossary.md#ExponentialVarianceShadowMap) modifies its shadow distribution representation by this exponent. Increase this value to reduce light leaking and change the appearance of the shadow. This property only appears if you select **Rectangle** from the **Type** drop-down and enable [additional properties](More-Options.md) for this section. |
-| **Light Leak Bias**        | Use this slider to set the bias that HDRP uses to prevent light leaking through Scene geometry. Increasing this value prevents light leaks, but removes some of the shadow softness. This property only appears if you select **Rectangle** from the **Type** drop-down and enable [additional properties](More-Options.md) for this section. |
-| **Variance Bias**          | Use the slider to fix numerical accuracy issues in the [EVSM](Glossary.md#ExponentialVarianceShadowMap).  This property only appears if you select **Rectangle** from the **Type** drop-down and enable [additional properties](More-Options.md) for this section. |
-| **Blur Passes**            | Use the slider to set the number of blur passes HDRP performs on this shadow map. Increasing this value softens shadows, but impacts performance. This property only appears if you select **Rectangle** from the **Type** drop-down and enable [additional properties](More-Options.md) for this section. |
-| **Dimmer**                 | Dims the shadows this Light casts so they become more faded and transparent.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
-| **Tint**                   | Specifies whether HDRP should tint the shadows this Light casts. This option affects dynamic shadows, [Contact Shadows](Override-Contact-Shadows.md), and [ShadowMask](Lighting-Mode-Shadowmask.md). It does not affect baked shadows. You can use this behavior to change the color and transparency of shadows.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
-| **Penumbra Tint**          | Specifies whether the tint should only affect the shadow's penumbra. If you enable this property, HDRP only applies the color tint to the shadow's penumbra. If you disable this property, HDRP applies the color tint to the entire shadow including the penumbra. To change the color HDRP tints the shadow to, see the above **Tint** property.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
-| **Fade Distance**          | The distance, in meters, between the Camera and the Light at which shadows fade out. This property is available for **Spot** and **Point** Lights.<br />This property only appears when you enable [additional properties](More-Options.md) for this section. |
-| **Custom Shadow Layer**    | Enable the checkbox to use a different [Light Layer](Light-Layers.md) for shadows than the one used for lighting. If you enable this feature, then HDRP uses the **Layer** drop-down in this section for shadowing. If you disable it, then HDRP uses the **Light Layer** drop-down in the **General** section for shadowing. <br />This property only appears when you enable [additional properties](More-Options.md) for this section. To access this property, enable **Light Layers** in your [HDRP Asset](HDRP-Asset.md). |
-| **Layer**                  | Use the drop-down to set the [Light Layer](Light-Layers.md) HDRP uses for shadowing. This Light therefore only casts shadows for GameObjects that use a matching Light Layer. For more information about using Light Layers for shadowing, see [Shadow Light Layers](Light-Layers.md#ShadowLightLayers).<br /> This property only appears when you enable [additional properties](More-Options.md) for this section. To access this property, enable the **Custom Shadow Layer** checkbox. |
+| **EVSM Exponent**          | Use the slider to set the exponent this area Light uses for depth warping. [EVSM](Glossary.md#ExponentialVarianceShadowMap) modifies its shadow distribution representation by this exponent. Increase this value to reduce light leaking and change the appearance of the shadow. This property only appears if you select **Rectangle** from the **Type** drop-down and enable [more options](More-Options.md) for this section. |
+| **Light Leak Bias**        | Use this slider to set the bias that HDRP uses to prevent light leaking through Scene geometry. Increasing this value prevents light leaks, but removes some of the shadow softness. This property only appears if you select **Rectangle** from the **Type** drop-down and enable [more options](More-Options.md) for this section. |
+| **Variance Bias**          | Use the slider to fix numerical accuracy issues in the [EVSM](Glossary.md#ExponentialVarianceShadowMap).  This property only appears if you select **Rectangle** from the **Type** drop-down and enable [more options](More-Options.md) for this section. |
+| **Blur Passes**            | Use the slider to set the number of blur passes HDRP performs on this shadow map. Increasing this value softens shadows, but impacts performance. This property only appears if you select **Rectangle** from the **Type** drop-down and enable [more options](More-Options.md) for this section. |
+| **Dimmer**                 | Dims the shadows this Light casts so they become more faded and transparent.<br />This property only appears when you enable [more options](More-Options.md) for this section. |
+| **Tint**                   | Specifies whether HDRP should tint the shadows this Light casts. This option affects dynamic shadows, [Contact Shadows](Override-Contact-Shadows.md), and [ShadowMask](Lighting-Mode-Shadowmask.md). It does not affect baked shadows. You can use this behavior to change the color and transparency of shadows.<br />This property only appears when you enable the [more options](More-Options.md) for this section. |
+| **Penumbra Tint**          | Specifies whether the tint should only affect the shadow's penumbra. If you enable this property, HDRP only applies the color tint to the shadow's penumbra. If you disable this property, HDRP applies the color tint to the entire shadow including the penumbra. To change the color HDRP tints the shadow to, see the above **Tint** property.<br />This property only appears when you enable the [more options](More-Options.md) for this section. |
+| **Fade Distance**          | The distance, in meters, between the Camera and the Light at which shadows fade out. This property is available for **Spot** and **Point** Lights.<br />This property only appears when you enable [more options](More-Options.md) for this section. |
+| **Link Light Layer**       | Enable the checkbox to use the same [Light Layer](Light-Layers.md) for shadows and lighting. If you enable this feature, then HDRP uses the Light Layer from the **Light Layer** drop-down in the **General** section for shadowing. If you disable this feature, then HDRP uses the **Light Layer** drop-down in this section for shadowing.<br /> This property only appears if you enable [more options](More-Options.md) for this section.To access this property, enable **Light Layers** in your [HDRP Asset](HDRP-Asset.md). |
+| **Light Layer**            | Use the drop-down to set the Light Layer HDRP uses for shadowing. This Light therefore only casts shadows for GameObjects that use a matching Light Layer. For more information about using Light Layers for shadowing, see [Shadow Light Layers](Light-Layers.md#ShadowLightLayers).<br /> This property only appears if you enable [more options](More-Options.md) for this section.To access this property, disable the **Link Light Layer** checkbox. |
 
 ##### Contact Shadows
 
@@ -259,3 +259,4 @@ In your [HDRP Asset](HDRP-Asset.md), select **High** from the **Filtering Qualit
 #### Real-time light cookies:
 
 HDRP allows you to use a RenderTexture as a light cookie. However, for the sake of performance, if you make any changes to the RenderTexture, HDRP does not automatically update the cookie atlas. To notify the system that the RenderTexture content has changed and thus make the system upload the change to the cookie atlas, call `IncrementUpdateCount()` on the RenderTexture. If you do not do this, the system does not update the cookie.
+

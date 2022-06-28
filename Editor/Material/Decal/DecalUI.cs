@@ -23,14 +23,25 @@ namespace UnityEditor.Rendering.HighDefinition
 
         MaterialUIBlockList uiBlocks = new MaterialUIBlockList
         {
-            new DecalSurfaceOptionsUIBlock((MaterialUIBlock.ExpandableBit)Expandable.SurfaceOptions),
-            new DecalSurfaceInputsUIBlock((MaterialUIBlock.ExpandableBit)Expandable.SurfaceInputs),
-            new DecalSortingInputsUIBlock((MaterialUIBlock.ExpandableBit)Expandable.Sorting),
+            new DecalSurfaceOptionsUIBlock((MaterialUIBlock.Expandable)Expandable.SurfaceOptions),
+            new DecalSurfaceInputsUIBlock((MaterialUIBlock.Expandable)Expandable.SurfaceInputs),
+            new DecalSortingInputsUIBlock((MaterialUIBlock.Expandable)Expandable.Sorting),
         };
 
         protected override void OnMaterialGUI(MaterialEditor materialEditor, MaterialProperty[] props)
         {
-            uiBlocks.OnGUI(materialEditor, props);
+            // always instanced
+            SerializedProperty instancing = materialEditor.serializedObject.FindProperty("m_EnableInstancingVariants");
+            instancing.boolValue = true;
+
+            using (var changed = new EditorGUI.ChangeCheckScope())
+            {
+                uiBlocks.OnGUI(materialEditor, props);
+                ApplyKeywordsAndPassesIfNeeded(changed.changed, uiBlocks.materials);
+            }
+
+            // We should always do this call at the end
+            materialEditor.serializedObject.ApplyModifiedProperties();
         }
 
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
@@ -89,6 +100,12 @@ namespace UnityEditor.Rendering.HighDefinition
             material.SetInt(kDecalStencilWriteMask, (int)StencilUsage.Decals);
             material.SetInt(kDecalStencilRef, (int)StencilUsage.Decals);
 
+            // Set render queue
+            var renderQueue = -1;
+            if (material.HasProperty(HDShaderIDs._DrawOrder))
+                renderQueue = (int)RenderQueue.Geometry + material.GetInt(HDShaderIDs._DrawOrder);
+            material.renderQueue = renderQueue;
+
             // always instanced
             material.enableInstancing = true;
         }
@@ -99,7 +116,7 @@ namespace UnityEditor.Rendering.HighDefinition
         protected const string kEmissiveColorMap = "_EmissiveColorMap";
 
         // All Setup Keyword functions must be static. It allow to create script to automatically update the shaders with a script if code change
-        static public void SetupDecalKeywordsAndPass(Material material)
+        static public void SetupMaterialKeywordsAndPass(Material material)
         {
             // Setup color mask properties
             SetupCommonDecalMaterialKeywordsAndPass(material);
@@ -110,6 +127,6 @@ namespace UnityEditor.Rendering.HighDefinition
             CoreUtils.SetKeyword(material, "_EMISSIVEMAP", material.GetTexture(kEmissiveColorMap));
         }
 
-        public override void ValidateMaterial(Material material) => SetupDecalKeywordsAndPass(material);
+        protected override void SetupMaterialKeywordsAndPassInternal(Material material) => SetupMaterialKeywordsAndPass(material);
     }
 }

@@ -1,9 +1,7 @@
 * [High Definition Render Pipeline](index.md)
 * [Requirements](System-Requirements.md)
 * [What's new](whats-new.md)
-  * [10 / Unity 2020.2](whats-new-10.md)
-  * [11 / Unity 2021.1](whats-new-11.md)
-  * [12 / Unity 2021.2](whats-new-12.md)
+  * [10](whats-new-10.md)
 * Features
   * [Features List](HDRP-Features.md)
   * [Comparison with the Built-in Render Pipeline](Feature-Comparison.md)
@@ -12,7 +10,7 @@
   * [Upgrading to HDRP](Upgrading-To-HDRP.md)
   * [Render Pipeline Wizard](Render-Pipeline-Wizard.md)
   * [Forward and Deferred Rendering](Forward-And-Deferred-Rendering.md)
-  * [Exposing Additional Properties](More-Options.md)
+  * [Exposing More Options](More-Options.md)
   * [Sample Content](HDRP-Sample-Content.md)
   * [Sample project](HDRP-Sample-Projects.md)
   * [Menu Items](Menu-Items.md)
@@ -22,8 +20,6 @@
   * [6.x to 7.x](Upgrading-from-2019.2-to-2019.3.md)
   * [7.x to 8.x](Upgrading-from-2019.3-to-2020.1.md)
   * [8.x to 9.x-preview/10.x](Upgrading-from-2020.1-to-2020.2.md)
-  * [10.x-preview to 11.x](Upgrading-from-2020.2-to-2021.1.md)
-  * [11.x to 12.x](Upgrading-from-2021.1-to-2021.2.md)
 * Volume Framework
   * [Volumes](Volumes.md)
   * [Volume Profiles](Volume-Profile.md)
@@ -61,17 +57,16 @@
       * [Micro Shadows](Override-Micro-Shadows.md)
       * [Shadows](Override-Shadows.md)
     * Sky
-      * [Cloud Layer](Override-Cloud-Layer.md)
       * [Gradient Sky](Override-Gradient-Sky.md)
       * [HDRI Sky](Override-HDRI-Sky.md)
       * [Physically Based Sky](Override-Physically-Based-Sky.md)
       * [Procedural Sky](Override-Procedural-Sky.md)
-      * [Volumetric Clouds](Override-Volumetric-Clouds.md)
     * [Visual Environment](Override-Visual-Environment.md)
+  * [Volumes API](Volumes-API.md)
 * Render Pipeline Settings
   * [HDRP Asset](HDRP-Asset.md)
   * [Frame Settings](Frame-Settings.md)
-  * [HDRP Global Settings](Default-Settings-Window.md)
+  * [Default Settings](Default-Settings-Window.md)
   * [HDRP Config Package](HDRP-Config-Package.md)
   * [Scalability](Scalability-Manual.md)
 * Materials
@@ -83,7 +78,6 @@
   * [Mask Map and Detail Map](Mask-Map-and-Detail-Map.md)
   * [Material Type](Material-Type.md)
   * [Renderer and Material Priority](Renderer-And-Material-Priority.md)
-  * [Tessellation](Tessellation.md)
   * [Decal](Decal.md)
   * [Surface Type](Surface-Type.md)
   * Subsurface Scattering
@@ -93,7 +87,7 @@
     * 3DSMaxPhysicalMaterial
       * [PhysicalMaterial3DsMax](3ds-physical-shader)
     * ArnoldStandardSurface
-      * [ArnoldStandardSurface](arnold-standard-surface-shader)
+      * [ArnoldStandardSurface](arnold-standard-surface-shader) 
     * Autodesk Interactive
       * [Autodesk Interactive Shader](Autodesk-Interactive-Shader.md)
       * [Autodesk Interactive Masked Shader](Autodesk-Interactive-Shader-Masked.md)
@@ -133,9 +127,8 @@
       * [Reflection Proxy Volume](Reflection-Proxy-Volume.md)
   * [Light](Light-Component.md)
   * [Environment Lighting](Environment-Lighting.md)
-  * [Clouds in HDRP](clouds-in-hdrp.md)
   * [Atmospheric Scattering](Atmospheric-Scattering.md)
-  * [Local Volumetric Fog](Local-Volumetric-Fog.md)
+  * [Density Volume](Density-Volume.md)
   * [Light Layers](Light-Layers.md)
   * [Shadows](Shadows-in-HDRP.md)
   * [Shadowmasks](Lighting-Mode-Shadowmask.md)
@@ -153,7 +146,6 @@
   * [Alpha Output](Alpha-Output.md)
   * [Arbitrary Output Variables](AOVs.md)
   * [Multiframe Rendering and Accumulation](Accumulation.md)
-  * [Deep learning super sampling](deep-learning-super-sampling-in-hdrp.md)
 * [Post-processing](Post-Processing-Main.md)
   * [Effect Execution Order](Post-Processing-Execution-Order.md)
   * [Effect List](post-processing-effect-list.md)
@@ -191,7 +183,7 @@
     * [User Options](Compositor-User-Options.md)
 * Debugging
   * [MatCap](MatCap.md)
-  * [Render Pipeline Debugger Window](Render-Pipeline-Debug-Window.md)
+  * [Render Pipeline Debug Window](Render-Pipeline-Debug-Window.md)
 * Virtual Reality
   * [VR Overview](VR-Overview.md)
 * Consoles
@@ -199,7 +191,6 @@
 * Customizing HDRP
   * [Camera-relative Rendering](Camera-Relative-Rendering.md)
   * [Creating a Custom Sky](Creating-a-Custom-Sky.md)
-  * [Creating Custom Clouds](Creating-Custom-Clouds.md)
   * [Creating a Custom Post-Process Effect](Custom-Post-Process.md)
   * [Custom Pass](Custom-Pass.md)
     * [Creating a Custom Pass](Custom-Pass-Creating.md)
@@ -208,12 +199,7 @@
     * [Viewing a Custom Pass in the Frame Debugger](Custom-Pass-Frame-Debugger.md)
     * [Scripting your own Custom Pass in C#](Custom-Pass-Scripting.md)
     * [Troubleshooting](Custom-Pass-Troubleshooting.md)
-  * [Custom Material Inspector](hdrp-custom-material-inspector.md)
-  * [Creating and Editing Lights at Runtime](creating-and-editing-lights-at-runtime.md)
-  * [Creating a Decal Projector at Runtime](creating-a-decal-projector-at-runtime.md)
-  * [Adjusting Emissive Intensity at Runtime](adjusting-emissive-intensity-at-runtime.md)
   * [Editing Frame Settings at Runtime](Frame-Settings-API.md)
-  * [Editing Volumes at Runtime](Volumes-API.md)
   * [Render Graph](render-graph.md)
 * [HDRP Glossary](Glossary.md)
 * [Known Issues and How To Fix Them](Known-Issues.md)

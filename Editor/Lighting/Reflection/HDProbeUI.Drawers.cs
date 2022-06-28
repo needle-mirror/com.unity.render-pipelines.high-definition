@@ -36,12 +36,12 @@ namespace UnityEditor.Rendering.HighDefinition
         }
 
         // Constants
-        const EditMode.SceneViewEditMode EditBaseShape = (EditMode.SceneViewEditMode) 100;
-        const EditMode.SceneViewEditMode EditInfluenceShape = (EditMode.SceneViewEditMode) 101;
-        const EditMode.SceneViewEditMode EditInfluenceNormalShape = (EditMode.SceneViewEditMode) 102;
-        const EditMode.SceneViewEditMode EditCapturePosition = (EditMode.SceneViewEditMode) 103;
-        const EditMode.SceneViewEditMode EditMirrorPosition = (EditMode.SceneViewEditMode) 104;
-        const EditMode.SceneViewEditMode EditMirrorRotation = (EditMode.SceneViewEditMode) 105;
+        const EditMode.SceneViewEditMode EditBaseShape = (EditMode.SceneViewEditMode)100;
+        const EditMode.SceneViewEditMode EditInfluenceShape = (EditMode.SceneViewEditMode)101;
+        const EditMode.SceneViewEditMode EditInfluenceNormalShape = (EditMode.SceneViewEditMode)102;
+        const EditMode.SceneViewEditMode EditCapturePosition = (EditMode.SceneViewEditMode)103;
+        const EditMode.SceneViewEditMode EditMirrorPosition = (EditMode.SceneViewEditMode)104;
+        const EditMode.SceneViewEditMode EditMirrorRotation = (EditMode.SceneViewEditMode)105;
         //Note: EditMode.SceneViewEditMode.ReflectionProbeOrigin is still used
         //by legacy reflection probe and have its own mecanism that we don't want
 
@@ -102,6 +102,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     k_ListContent[i] = listContent.ToArray();
                     k_ListModes[i] = listMode.ToArray();
                 }
+
             }
 
             // Tool bars
@@ -122,7 +123,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 IHDProbeEditor probeEditor = owner as IHDProbeEditor;
                 int selected = probeEditor.showChromeGizmo ? 0 : -1;
                 int newSelected = GUILayout.Toolbar(selected, new[] { k_ListContent[k_ListModes.Length - 1][0] }, GUILayout.Height(20), GUILayout.Width(30));
-                if (EditorGUI.EndChangeCheck())
+                if(EditorGUI.EndChangeCheck())
                 {
                     //allow deselection
                     if (selected >= 0 && newSelected == selected)
@@ -136,7 +137,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }
-
+            
             public static void DoToolbarShortcutKey(Editor owner)
             {
                 var provider = new TProvider();
@@ -186,30 +187,29 @@ namespace UnityEditor.Rendering.HighDefinition
                 EditorGUILayout.IntPopup(serialized.probeSettings.mode, k_ModeContents, k_ModeValues, k_BakeTypeContent);
 
 #if !ENABLE_BAKED_PLANAR
-            }
-
+                }
 #endif
 
                 switch ((ProbeSettings.Mode)serialized.probeSettings.mode.intValue)
                 {
                     case ProbeSettings.Mode.Realtime:
-                    {
-                        EditorGUILayout.PropertyField(serialized.probeSettings.realtimeMode);
-                        break;
-                    }
-                    case ProbeSettings.Mode.Custom:
-                    {
-                        Rect lineRect = EditorGUILayout.GetControlRect(true, 64);
-                        EditorGUI.BeginProperty(lineRect, k_CustomTextureContent, serialized.customTexture);
                         {
-                            EditorGUI.BeginChangeCheck();
-                            var customTexture = EditorGUI.ObjectField(lineRect, k_CustomTextureContent, serialized.customTexture.objectReferenceValue, provider.customTextureType, false);
-                            if (EditorGUI.EndChangeCheck())
-                                serialized.customTexture.objectReferenceValue = customTexture;
+                            EditorGUILayout.PropertyField(serialized.probeSettings.realtimeMode);
+                            break;
                         }
-                        EditorGUI.EndProperty();
-                        break;
-                    }
+                    case ProbeSettings.Mode.Custom:
+                        {
+                            Rect lineRect = EditorGUILayout.GetControlRect(true, 64);
+                            EditorGUI.BeginProperty(lineRect, k_CustomTextureContent, serialized.customTexture);
+                            {
+                                EditorGUI.BeginChangeCheck();
+                                var customTexture = EditorGUI.ObjectField(lineRect, k_CustomTextureContent, serialized.customTexture.objectReferenceValue, provider.customTextureType, false);
+                                if (EditorGUI.EndChangeCheck())
+                                    serialized.customTexture.objectReferenceValue = customTexture;
+                            }
+                            EditorGUI.EndProperty();
+                            break;
+                        }
                 }
             }
 
@@ -219,7 +219,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 ProbeSettingsUI.Draw(serialized.probeSettings, owner, provider.displayedCaptureSettings);
             }
 
-            public static void DrawCaptureSettingsAdditionalProperties(SerializedHDProbe serialized, Editor owner)
+            public static void DrawAdvancedCaptureSettings(SerializedHDProbe serialized, Editor owner)
             {
                 var provider = new TProvider();
                 ProbeSettingsUI.Draw(serialized.probeSettings, owner, provider.displayedAdvancedCaptureSettings);
@@ -257,15 +257,15 @@ namespace UnityEditor.Rendering.HighDefinition
                             k_ProxyInfluenceShapeMismatchHelpBoxText,
                             MessageType.Error,
                             true
-                        );
+                            );
                 }
                 else
                 {
                     EditorGUILayout.HelpBox(
-                        serialized.probeSettings.proxyUseInfluenceVolumeAsProxyVolume.boolValue ? k_NoProxyHelpBoxText : k_NoProxyInfiniteHelpBoxText,
-                        MessageType.Info,
-                        true
-                    );
+                            serialized.probeSettings.proxyUseInfluenceVolumeAsProxyVolume.boolValue ? k_NoProxyHelpBoxText : k_NoProxyInfiniteHelpBoxText,
+                            MessageType.Info,
+                            true
+                            );
                 }
 
                 // Don't display distanceBasedRoughness if the projection is infinite (as in this case we force distanceBasedRoughness to be 0 in code)
@@ -313,59 +313,59 @@ namespace UnityEditor.Rendering.HighDefinition
                 switch (mode)
                 {
                     case ProbeSettings.Mode.Custom:
-                    {
-                        if (ButtonWithDropdownList(
-                            EditorGUIUtility.TrTextContent(
-                                "Bake", "Bakes Probe's texture, overwriting the existing texture asset (if any)."
+                        {
+                            if (ButtonWithDropdownList(
+                                EditorGUIUtility.TrTextContent(
+                                    "Bake", "Bakes Probe's texture, overwriting the existing texture asset (if any)."
                                 ),
-                            k_BakeCustomOptionText,
-                            data =>
-                            {
-                                switch ((int)data)
+                                k_BakeCustomOptionText,
+                                data =>
                                 {
-                                    case 0:
-                                        RenderInCustomAsset(serialized.target, false);
-                                        break;
-                                }
-                            }))
-                        {
-                            RenderInCustomAsset(serialized.target, true);
-                        }
-                        break;
-                    }
-                    case ProbeSettings.Mode.Baked:
-                    {
-#pragma warning disable 618
-                        if (UnityEditor.Lightmapping.giWorkflowMode
-                            != UnityEditor.Lightmapping.GIWorkflowMode.OnDemand)
-                        {
-                            EditorGUILayout.HelpBox("Baking of this probe is automatic because this probe's type is 'Baked' and the Lighting window is using 'Auto Baking'. The texture created is stored in the GI cache.", MessageType.Info);
+                                    switch ((int)data)
+                                    {
+                                        case 0:
+                                            RenderInCustomAsset(serialized.target, false);
+                                            break;
+                                    }
+                                }))
+                            {
+                                RenderInCustomAsset(serialized.target, true);
+                            }
                             break;
                         }
-#pragma warning restore 618
-                        GUI.enabled = serialized.target.enabled;
-
-                        // Bake button in non-continous mode
-                        if (ButtonWithDropdownList(
-                            EditorGUIUtility.TrTextContent("Bake"),
-                            k_BakeButtonsText,
-                            data =>
-                            {
-                                if ((int)data == 0)
-                                {
-                                    var system = ScriptableBakedReflectionSystemSettings.system;
-                                    system.BakeAllReflectionProbes();
-                                }
-                            },
-                            GUILayout.ExpandWidth(true)))
+                    case ProbeSettings.Mode.Baked:
                         {
-                            HDBakedReflectionSystem.BakeProbes(serialized.serializedObject.targetObjects.OfType<HDProbe>().ToArray());
-                            GUIUtility.ExitGUI();
-                        }
+#pragma warning disable 618
+                            if (UnityEditor.Lightmapping.giWorkflowMode
+                                != UnityEditor.Lightmapping.GIWorkflowMode.OnDemand)
+                            {
+                                EditorGUILayout.HelpBox("Baking of this probe is automatic because this probe's type is 'Baked' and the Lighting window is using 'Auto Baking'. The texture created is stored in the GI cache.", MessageType.Info);
+                                break;
+                            }
+#pragma warning restore 618
+                            GUI.enabled = serialized.target.enabled;
 
-                        GUI.enabled = true;
-                        break;
-                    }
+                            // Bake button in non-continous mode
+                            if (ButtonWithDropdownList(
+                                    EditorGUIUtility.TrTextContent("Bake"),
+                                    k_BakeButtonsText,
+                                    data =>
+                                    {
+                                        if ((int)data == 0)
+                                        {
+                                            var system = ScriptableBakedReflectionSystemSettings.system;
+                                            system.BakeAllReflectionProbes();
+                                        }
+                                    },
+                                    GUILayout.ExpandWidth(true)))
+                            {
+                                HDBakedReflectionSystem.BakeProbes(serialized.serializedObject.targetObjects.OfType<HDProbe>().ToArray());
+                                GUIUtility.ExitGUI();
+                            }
+
+                            GUI.enabled = true;
+                            break;
+                        }
                     case ProbeSettings.Mode.Realtime:
                         break;
                     default: throw new ArgumentOutOfRangeException();
@@ -428,7 +428,7 @@ namespace UnityEditor.Rendering.HighDefinition
                     k_ProxyInfluenceShapeMismatchHelpBoxText,
                     MessageType.Error,
                     true
-                );
+                    );
             }
         }
 

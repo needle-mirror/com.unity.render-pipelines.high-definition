@@ -6,7 +6,7 @@ namespace UnityEditor.Rendering.HighDefinition
     /// <summary>
     /// SpeedTree 8 material upgrader for HDRP.
     /// </summary>
-    class HDSpeedTree8MaterialUpgrader : SpeedTree8MaterialUpgrader
+	class HDSpeedTree8MaterialUpgrader : SpeedTree8MaterialUpgrader
     {
         /// <summary>
         /// Creates a SpeedTree 8 material upgrader for HDRP.
@@ -14,16 +14,16 @@ namespace UnityEditor.Rendering.HighDefinition
         /// <param name="sourceShaderName">Original shader name.</param>
         /// <param name="destShaderName">Upgraded shader name.</param>
         public HDSpeedTree8MaterialUpgrader(string sourceShaderName, string destShaderName)
-            : base(sourceShaderName, destShaderName, HDSpeedTree8MaterialFinalizer)
-        {
+			: base(sourceShaderName, destShaderName, HDSpeedTree8MaterialFinalizer)
+	{
         }
 
         public static void HDSpeedTree8MaterialFinalizer(Material mat)
         {
             SetHDSpeedTree8Defaults(mat);
+            SpeedTree8MaterialFinalizer(mat);
             HDShaderUtils.ResetMaterialKeywords(mat);
         }
-
         /// <summary>
         /// Determines if a given material is using the default SpeedTree 8 shader for HDRP.
         /// </summary>
@@ -35,24 +35,19 @@ namespace UnityEditor.Rendering.HighDefinition
         }
 
         /// <summary>
-        /// (Obsolete) HDRP may reset SpeedTree-specific keywords which should not be modified. This method restores these keywords to their original state.
+        /// HDRP may reset SpeedTree-specific keywords which should not be modified. This method restores these keywords to their original state.
         /// </summary>
         /// <param name="mat">SpeedTree 8 material.</param>
-        [System.Obsolete("No longer needed from 21.2 onwards.")]
         public static void RestoreHDSpeedTree8Keywords(Material mat)
         {
-            // Since ShaderGraph now supports toggling keywords via float properties, keywords get
-            // correctly restored by default and this function is no longer needed.
+            if (mat.name.Contains("Billboard")) // Hacky but it'll hold until newer versions of shadergraph with keyword toggle support
+            {
+                mat.EnableKeyword("EFFECT_BILLBOARD");
+            }
         }
 
-        // Should match HDRenderPipelineEditorResources.defaultDiffusionProfileSettingsList[foliageIdx]
-        private const string kFoliageDiffusionProfilePath = "Runtime/RenderPipelineResources/FoliageDiffusionProfile.asset";
-        // Should match HDRenderPipelineEditorResources.defaultDiffusionProfileSettingsList[foliageIdx].name
-        private const string kDefaultDiffusionProfileName = "Foliage";
         private static void SetHDSpeedTree8Defaults(Material mat)
         {
-            // Since _DoubleSidedEnable controls _CullMode in HD,
-            // disable it for billboard LOD.
             if (mat.IsKeywordEnabled("EFFECT_BILLBOARD"))
             {
                 mat.SetFloat("_DoubleSidedEnable", 0.0f);
@@ -61,20 +56,27 @@ namespace UnityEditor.Rendering.HighDefinition
             {
                 mat.SetFloat("_DoubleSidedEnable", 1.0f);
             }
+            mat.SetFloat("_DoubleSidedNormalMode", (int)DoubleSidedNormalMode.Mirror);
 
             SetDefaultDiffusionProfile(mat);
         }
 
+        // Should match HDRenderPipelineEditorResources.defaultDiffusionProfileSettingsList[foliageIdx]
+        private const string kFoliageDiffusionProfilePath = "Runtime/RenderPipelineResources/FoliageDiffusionProfile.asset";
+        // Should match HDRenderPipelineEditorResources.defaultDiffusionProfileSettingsList[foliageIdx].name
+        private const string kDefaultDiffusionProfileName = "Foliage";
         private static void SetDefaultDiffusionProfile(Material mat)
         {
+            string matDiffProfile = HDUtils.ConvertVector4ToGUID(mat.GetVector("Diffusion_Profile_Asset"));
             string guid = "";
             long localID;
             uint diffusionProfileHash = 0;
-            foreach (var diffusionProfileAsset in HDRenderPipelineGlobalSettings.instance.diffusionProfileSettingsList)
+            foreach (var diffusionProfileAsset in HDRenderPipeline.defaultAsset.diffusionProfileSettingsList)
             {
-                if (diffusionProfileAsset != null && diffusionProfileAsset.name.Equals(kDefaultDiffusionProfileName))
+                if (diffusionProfileAsset != null)
                 {
-                    if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier<DiffusionProfileSettings>(diffusionProfileAsset, out guid, out localID))
+                    bool gotGuid = AssetDatabase.TryGetGUIDAndLocalFileIdentifier<DiffusionProfileSettings>(diffusionProfileAsset, out guid, out localID);
+                    if (gotGuid && (diffusionProfileAsset.name.Equals(kDefaultDiffusionProfileName) || guid.Equals(matDiffProfile)))
                     {
                         diffusionProfileHash = diffusionProfileAsset.profile.hash;
                         break;
@@ -100,5 +102,5 @@ namespace UnityEditor.Rendering.HighDefinition
                 mat.SetFloat("Diffusion_Profile", HDShadowUtils.Asfloat(diffusionProfileHash));
             }
         }
-    }
+	}
 }

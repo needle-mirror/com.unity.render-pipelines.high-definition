@@ -62,7 +62,6 @@ namespace UnityEngine.Rendering.HighDefinition
             viewport.y      *= renderPass.renderTargetDesc.height;
             viewport.height *= renderPass.renderTargetDesc.height;
         }
-
 #endif
     }
 
@@ -152,32 +151,6 @@ namespace UnityEngine.Rendering.HighDefinition
             return passInfo;
         }
 
-#if ENABLE_VR && ENABLE_XR_MODULE
-
-        internal void UpdateView(int viewId, XRDisplaySubsystem.XRRenderPass xrSdkRenderPass, XRDisplaySubsystem.XRRenderParameter xrSdkRenderParameter)
-        {
-            if (viewId >= views.Count)
-                throw new NotImplementedException($"Invalid XR setup to update, trying to update non-existing xr view.");
-
-            views[viewId] = new XRView(xrSdkRenderPass, xrSdkRenderParameter);
-        }
-
-#endif
-
-        internal void UpdateView(int viewId, Matrix4x4 proj, Matrix4x4 view, Rect vp, int textureArraySlice = -1)
-        {
-            if (viewId >= views.Count)
-                throw new NotImplementedException($"Invalid XR setup to update, trying to update non-existing xr view.");
-
-            views[viewId] = new XRView(proj, view, vp, textureArraySlice);
-        }
-
-        internal void UpdateCullingParams(int cullingPassId, ScriptableCullingParameters cullingParams)
-        {
-            this.cullingPassId = cullingPassId;
-            this.cullingParams = cullingParams;
-        }
-
         internal void AddView(Matrix4x4 proj, Matrix4x4 view, Rect vp, int textureArraySlice = -1)
         {
             AddViewInternal(new XRView(proj, view, vp, textureArraySlice));
@@ -208,7 +181,6 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             AddViewInternal(new XRView(xrSdkRenderPass, xrSdkRenderParameter));
         }
-
 #endif
 
         internal static void Release(XRPass xrPass)
@@ -399,11 +371,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
         internal void RenderOcclusionMeshes(CommandBuffer cmd, Color clearColor, RTHandle colorBuffer, RTHandle depthBuffer)
         {
-        #if DEVELOPMENT_BUILD || UNITY_EDITOR
-            if (XRGraphicsAutomatedTests.enabled && XRGraphicsAutomatedTests.running)
-                return;
-        #endif
-
             if (isOcclusionMeshSupported)
             {
                 CoreUtils.SetRenderTarget(cmd, colorBuffer, depthBuffer, ClearFlag.None, clearColor, 0, CubemapFace.Unknown, -1);

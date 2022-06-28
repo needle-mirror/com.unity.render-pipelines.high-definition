@@ -60,8 +60,7 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             AddSlot(new ColorRGBMaterialSlot(kExposureOutputSlotId, kExposureOutputSlotName, kExposureOutputSlotName , SlotType.Output, Color.black, ColorMode.Default));
 
-            RemoveSlotsNameNotMatching(new[]
-            {
+            RemoveSlotsNameNotMatching(new[] {
                 kExposureOutputSlotId,
             });
         }

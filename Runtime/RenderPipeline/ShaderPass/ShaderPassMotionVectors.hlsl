@@ -11,14 +11,9 @@ PackedVaryingsType Vert(AttributesMesh inputMesh,
                         AttributesPass inputPass)
 {
     VaryingsType varyingsType;
-#ifdef HAVE_VFX_MODIFICATION
-    AttributesElement inputElement;
-    varyingsType.vmesh = VertMesh(inputMesh, inputElement);
-    return MotionVectorVS(varyingsType, inputMesh, inputPass, inputElement);
-#else
     varyingsType.vmesh = VertMesh(inputMesh);
+
     return MotionVectorVS(varyingsType, inputMesh, inputPass);
-#endif
 }
 
 #ifdef TESSELLATION_ON
@@ -26,8 +21,15 @@ PackedVaryingsType Vert(AttributesMesh inputMesh,
 PackedVaryingsToPS VertTesselation(VaryingsToDS input)
 {
     VaryingsToPS output;
+
     output.vmesh = VertMeshTesselation(input.vmesh);
-    return MotionVectorTessellation(output, input);
+
+    MotionVectorPositionZBias(output);
+
+    output.vpass.positionCS = input.vpass.positionCS;
+    output.vpass.previousPositionCS = input.vpass.previousPositionCS;
+
+    return PackVaryingsToPS(output);
 }
 
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/TessellationShare.hlsl"
@@ -70,7 +72,7 @@ void Frag(  PackedVaryingsToPS packedInput
             #endif
 
             #ifdef _DEPTHOFFSET_ON
-            , out float outputDepth : DEPTH_OFFSET_SEMANTIC
+            , out float outputDepth : SV_Depth
             #endif
         )
 {
@@ -108,7 +110,7 @@ void Frag(  PackedVaryingsToPS packedInput
     bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
 
     // Setting the motionVector to a value more than 2 set as a flag for "force no motion". This is valid because, given that the velocities are in NDC,
-    // a value of >1 can never happen naturally, unless explicitely set.
+    // a value of >1 can never happen naturally, unless explicitely set. 
     if (forceNoMotion)
         outMotionVector = float4(2.0, 0.0, 0.0, 0.0);
 

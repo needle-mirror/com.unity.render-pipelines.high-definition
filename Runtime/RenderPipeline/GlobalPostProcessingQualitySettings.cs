@@ -30,6 +30,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public ScalableSettingLevelParameter(int level, bool useOverride, bool overrideState = false)
             : base(useOverride ? LevelCount : (int)level, overrideState)
         {
+
         }
 
         internal static int GetScalableSettingLevelParameterValue(int level, bool useOverride)
@@ -45,7 +46,7 @@ namespace UnityEngine.Rendering.HighDefinition
             get => value == LevelCount ? ((int)Level.Low, true) : (value, false);
             set
             {
-                var(level, useOverride) = value;
+                var (level, useOverride) = value;
                 this.value = GetScalableSettingLevelParameterValue(level, useOverride);
             }
         }
@@ -113,41 +114,35 @@ namespace UnityEngine.Rendering.HighDefinition
         internal static GlobalPostProcessingQualitySettings NewDefault() => new GlobalPostProcessingQualitySettings();
 
         /*  Depth of field */
-        /// <summary>Depth of field near blur sample count for each quality level. The array must have one entry per scalable setting level, and elements must be between 3 and 8.</summary>
-        [Range(3, 8)]
+        /// <summary>Depth of field near blur sample count for each quality level.</summary>
         public int[] NearBlurSampleCount                = new int[s_QualitySettingCount];
-        /// <summary>Depth of field near blur maximum radius for each quality level. The array must have one entry per scalable setting level, and elements must be between 0 and 8.</summary>
-        [Range(0, 8)]
+        /// <summary>Depth of field near blur maximum radius for each quality level.</summary>
         public float[] NearBlurMaxRadius                = new float[s_QualitySettingCount];
-        /// <summary>Depth of field far blur sample count for each quality level. The array must have one entry per scalable setting level, and elements must be between 3 and 16.</summary>
-        [Range(3, 16)]
-        public int[] FarBlurSampleCount = new int[s_QualitySettingCount];
-        /// <summary>Depth of field far blur maximum radius for each quality level. The array must have one entry per scalable setting level, and elements must be between 0 and 16.</summary>
-        [Range(0, 16)]
-        public float[] FarBlurMaxRadius = new float[s_QualitySettingCount];
-        /// <summary>Depth of field resolution for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Depth of field far blur sample count for each quality level.</summary>
+        public int[] FarBlurSampleCount                 = new int[s_QualitySettingCount];
+        /// <summary>Depth of field far blur maximum radius for each quality level.</summary>
+        public float[] FarBlurMaxRadius                 = new float[s_QualitySettingCount];
+        /// <summary>Depth of field resolution for each quality level.</summary>
         public DepthOfFieldResolution[] DoFResolution   = new DepthOfFieldResolution[s_QualitySettingCount];
-        /// <summary>Use Depth of field high quality filtering for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Use Depth of field high quality filtering for each quality level.</summary>
         public bool[] DoFHighQualityFiltering           = new bool[s_QualitySettingCount];
-        /// <summary>Use physically based Depth of field for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Use Depth of field high physically based setting for each quality level.</summary>
         public bool[] DoFPhysicallyBased                = new bool[s_QualitySettingCount];
 
         /* Motion Blur */
-        /// <summary>Motion Blur sample count for each quality level. The array must have one entry per scalable setting level, and elements must above 2.</summary>
-        [Min(2)]
+        /// <summary>Motion Blur sample count for each quality level.</summary>
         public int[] MotionBlurSampleCount              = new int[s_QualitySettingCount];
 
         /* Bloom */
-        /// <summary>Bloom resolution for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Bloom resolution for each quality level.</summary>
         public BloomResolution[] BloomRes               = new BloomResolution[s_QualitySettingCount];
-        /// <summary>Bloom high quality filtering for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Bloom high quality filtering for each quality level.</summary>
         public bool[] BloomHighQualityFiltering         = new bool[s_QualitySettingCount];
-        /// <summary>Bloom high quality prefiltering for each quality level. The array must have one entry per scalable setting level.</summary>
+        /// <summary>Bloom high quality prefiltering for each quality level.</summary>
         public bool[] BloomHighQualityPrefiltering         = new bool[s_QualitySettingCount];
 
         /* Chromatic Aberration */
-        /// <summary>Chromatic aberration maximum sample count for each quality level. The array must have one entry per scalable setting level, and elements must be between 3 and 24.</summary>
-        [Range(3, 24)]
+        /// <summary>Chromatic aberration maximum sample count for each quality level.</summary>
         public int[] ChromaticAberrationMaxSamples      = new int[s_QualitySettingCount];
     }
 }

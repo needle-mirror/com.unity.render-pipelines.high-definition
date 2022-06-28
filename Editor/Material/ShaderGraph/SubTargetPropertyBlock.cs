@@ -14,7 +14,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
     {
         // Null/Empty means no title
         protected virtual string title => null;
-
+        
         protected TargetPropertyGUIContext context;
         protected Action onChange;
         protected Action<String> registerUndo;
@@ -46,8 +46,8 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
             switch (getter())
             {
                 case bool b: elem = new Toggle { value = b, tooltip = displayName.tooltip } as BaseField<Data>; break;
-                case int i: elem = new IntegerField { value = i, tooltip = displayName.tooltip, isDelayed = true} as BaseField<Data>; break;
-                case float f: elem = new FloatField { value = f, tooltip = displayName.tooltip, isDelayed = true } as BaseField<Data>; break;
+                case int i: elem = new IntegerField { value = i, tooltip = displayName.tooltip } as BaseField<Data>; break;
+                case float f: elem = new FloatField { value = f, tooltip = displayName.tooltip } as BaseField<Data>; break;
                 case Enum e: elemEnum = new EnumField(e) { value = e, tooltip = displayName.tooltip }; break;
                 default: throw new Exception($"Can't create UI field for type {getter().GetType()}, please add it if it's relevant. If you can't consider using TargetPropertyGUIContext.AddProperty instead.");
             }
@@ -102,7 +102,7 @@ namespace UnityEditor.Rendering.HighDefinition.ShaderGraph
         {
             // We don't use UIElement HelpBox because it's width is not dynamic.
             int indentLevel = context.globalIndentLevel;
-            var imgui = new IMGUIContainer(() =>
+            var imgui = new IMGUIContainer(() => 
             {
                 float indentPadding = indentLevel * 15;
                 var rect = EditorGUILayout.GetControlRect(false, 42);

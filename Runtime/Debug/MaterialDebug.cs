@@ -83,8 +83,6 @@ namespace UnityEngine.Rendering.HighDefinition
             Lightmap,
             /// <summary>Display materials using instancing.</summary>
             Instancing,
-            /// <summary>Display deferred/forward shading capable materials.</summary>
-            DeferredMaterials,
         }
 
         /// <summary>
@@ -104,7 +102,7 @@ namespace UnityEngine.Rendering.HighDefinition
             AmbientOcclusion,
             /// <summary>Display metal (N/A for AxF).</summary>
             Metal,
-            /// <summary>Display the specular color (fresnel0). For materials using the metallic property, the corresponding fresnel0 term is displayed. (N/A for Unlit).</summary>
+            /// <summary>Display specular.</summary>
             Specular,
             /// <summary>Display alpha.</summary>
             Alpha,
@@ -176,7 +174,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (Attribute.IsDefined(field, typeof(PackingAttribute)))
                 {
                     var packingAttributes = (PackingAttribute[])field.GetCustomAttributes(typeof(PackingAttribute), false);
-                    foreach (PackingAttribute packAttr in packingAttributes)
+                    foreach(PackingAttribute packAttr in packingAttributes)
                     {
                         displayNames.AddRange(packAttr.displayNames);
                     }
@@ -276,7 +274,7 @@ namespace UnityEngine.Rendering.HighDefinition
                 List<MaterialItem> materialItems = GetAllMaterialDatas();
 
                 // Init list
-                List<GUIContent> debugViewMaterialStringsList = new List<GUIContent>();
+                List < GUIContent> debugViewMaterialStringsList = new List<GUIContent>();
                 List<int> debugViewMaterialValuesList = new List<int>();
                 List<GUIContent> debugViewEngineStringsList = new List<GUIContent>();
                 List<int> debugViewEngineValuesList = new List<int>();
@@ -447,8 +445,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>
         /// Current Debug View Material.
         /// </summary>
-        public int[] debugViewMaterial
-        {
+        public int[] debugViewMaterial {
             get => m_DebugViewMaterial;
             internal set
             {
@@ -618,7 +615,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <returns>True if Material debug is enabled.</returns>
         public bool IsDebugViewMaterialEnabled()
         {
-            int size = m_DebugViewMaterial ? [0] ?? 0;
+            int size = m_DebugViewMaterial?[0] ?? 0;
             bool enabled = false;
             for (int i = 1; i <= size; ++i)
             {

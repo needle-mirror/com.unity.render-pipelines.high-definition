@@ -1,9 +1,9 @@
+using System;
 using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering.HighDefinition
 {
-    [HDRPHelpURL("Default-Settings-Window")]
-    partial class HDRenderPipelineRayTracingResources : HDRenderPipelineResources
+    partial class HDRenderPipelineRayTracingResources : ScriptableObject
     {
         // Reflection
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Reflections/RaytracingReflections.raytrace")]
@@ -54,8 +54,12 @@ namespace UnityEngine.Rendering.HighDefinition
         public ComputeShader subSurfaceRayTracingCS;
 
         // Denoising
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/TemporalFilter.compute")]
+        public ComputeShader temporalFilterCS;
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/SimpleDenoiser.compute")]
         public ComputeShader simpleDenoiserCS;
+        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/DiffuseDenoiser.compute")]
+        public ComputeShader diffuseDenoiserCS;
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/ReflectionDenoiser.compute")]
         public ComputeShader reflectionDenoiserCS;
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Denoising/DiffuseShadowDenoiser.compute")]
@@ -71,10 +75,6 @@ namespace UnityEngine.Rendering.HighDefinition
         [Reload("Runtime/RenderPipeline/PathTracing/Shaders/PathTracingMain.raytrace")]
         public RayTracingShader pathTracing;
 
-        // Ray Marching
-        [Reload("Runtime/RenderPipeline/Raytracing/Shaders/RayMarching.compute")]
-        public ComputeShader rayMarchingCS;
-
         // Ray Binning
         [Reload("Runtime/RenderPipeline/Raytracing/Shaders/Common/RayBinning.compute")]
         public ComputeShader rayBinningCS;
@@ -86,5 +86,26 @@ namespace UnityEngine.Rendering.HighDefinition
         // Filtering for reflections
         [Reload("Runtime/RenderPipelineResources/Texture/ReflectionKernelMapping.png")]
         public Texture2D reflectionFilterMapping;
+
+#if UNITY_EDITOR
+        [UnityEditor.CustomEditor(typeof(HDRenderPipelineRayTracingResources))]
+        class RenderPipelineRayTracingResourcesEditor : UnityEditor.Editor
+        {
+            public override void OnInspectorGUI()
+            {
+                DrawDefaultInspector();
+
+                // Add a "Reload All" button in inspector when we are in developer's mode
+                if (UnityEditor.EditorPrefs.GetBool("DeveloperMode")
+                    && GUILayout.Button("Reload All"))
+                {
+                    foreach (var field in typeof(HDRenderPipelineRayTracingResources).GetFields())
+                        field.SetValue(target, null);
+
+                    ResourceReloader.ReloadAllNullIn(target, HDUtils.GetHDRenderPipelinePath());
+                }
+            }
+        }
+    #endif
     }
 }

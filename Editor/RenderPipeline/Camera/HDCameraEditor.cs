@@ -4,7 +4,6 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.Experimental.Rendering;
 
 namespace UnityEditor.Rendering.HighDefinition
 {
@@ -65,14 +64,14 @@ namespace UnityEditor.Rendering.HighDefinition
                 if (m_PreviewTexture != null)
                     m_PreviewTexture.Release();
 
-                m_PreviewTexture = new RenderTexture(width, height, 0, GraphicsFormat.R16G16B16A16_SFloat);
+                m_PreviewTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
                 m_PreviewTexture.enableRandomWrite = true;
                 m_PreviewTexture.Create();
             }
             return m_PreviewTexture;
         }
     }
-
+    
     [ScriptableRenderPipelineExtension(typeof(HDRenderPipelineAsset))]
     class HDCameraContextualMenu : IRemoveAdditionalDataContextualMenu<Camera>
     {

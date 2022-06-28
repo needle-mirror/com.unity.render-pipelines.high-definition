@@ -1,8 +1,5 @@
 #ifndef RAY_TRACING_COMMON_HLSL
 #define RAY_TRACING_COMMON_HLSL
-
-#include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Raytracing/Shaders/RaytracingSampling.hlsl"
-
 // This array converts an index to the local coordinate shift of the half resolution texture
 static const uint2 HalfResIndexToCoordinateShift[4] = { uint2(0,0), uint2(1, 0), uint2(0, 1), uint2(1, 1) };
 
@@ -57,4 +54,5 @@ uint2 ComputeSourceCoordinates(uint2 halfResCoord, int frameIndex)
 {
     return halfResCoord * 2;
 }
+
 #endif // RAY_TRACING_COMMON_HLSL

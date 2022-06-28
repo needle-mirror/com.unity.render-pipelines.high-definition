@@ -67,10 +67,10 @@ Once you have completed one of these, move onto [Final setup](#final-setup).
 
 You can use the [Render Pipeline Wizard](Render-Pipeline-Wizard.md) to set up ray tracing in your HDRP Project.
 
-1. To open the HDRP Wizard, go to Window > Rendering > HDRP Wizard.
+1. To open the Render Pipeline Wizard, go to Window > Render Pipeline and select HD Render Pipeline Wizard.
 2. Select the HDRP + DXR tab.
 3. Click the Fix All button.
-4. (Optional) Enable the HDRP asset features that are required for the ray tracing effects.
+4. (Optional) Enable the HDRP asset features that are required for the ray tracing effects. 
 
 Your HDRP Project now supports ray tracing. For information on how to set up ray tracing for your Scene, see [final setup](#final-setup).
 
@@ -228,7 +228,7 @@ Depending on which ray tracing mode you select, HDRP may expose different proper
 You can change which ray tracing mode HDRP uses on either a Project level or effect level. To change it for your entire Project:
 
 1. Click on your HDRP Asset in the Project window to view it in the Inspector.
-2. In the Rendering section, select a ray tracing mode from the **Supported Ray Tracing Mode** drop-down.
+2. In the Rendering section, select a ray tracing mode from the **Supported Ray Tracing Mode** drop-down. 
 
 If you select **Both**, you can change the ray tracing mode for each ray-traced effect. To do this:
 
@@ -258,6 +258,7 @@ HDRP ray tracing in Unity 2020.2 has the following limitations:
 - Does not support VFX and Terrain.
 - Does not have accurate culling for shadows, you may experience missing shadows in the ray traced effects.
 - Does not support MSAA.
+- For renderers that have [LODs](https://docs.unity3d.com/2019.3/Documentation/Manual/LevelOfDetail.html), the ray tracing acceleration structure only includes the highest level LOD and ignores the lower LODs.
 - Does not support [Graphics.DrawMesh](https://docs.unity3d.com/ScriptReference/Graphics.DrawMesh.html).
 - Ray tracing is not supported when rendering [Reflection Probes](Reflection-Probe.md).
 - HDRP does not support [orthographic projection](HDRP-Camera.md). If you enable orthographic projection mode, you might experience rendering problems for Transparent Materials, volumetrics and planar reflections.
@@ -268,6 +269,7 @@ When building your custom shaders using shader graph, some nodes are incompatibl
 - DDX, DDY and DDXY nodes.
 - All the nodes under Inputs > Geometry (Position, View Direction, Normal, etc.) in View Space mode.
 - Checkerboard node.
+Furthermore, Shader Graphs that use [Custom Interpolators](../../com.unity.shadergraph/Documentation~/Custom-Interpolators.md) are not supported in ray tracing.
 
 ### Unsupported features of path tracing
 

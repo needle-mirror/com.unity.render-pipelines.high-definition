@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Serialization;
 
-namespace UnityEditor.VFX.HDRP
+namespace UnityEditor.VFX
 {
     abstract class VFXAbstractDistortionOutput : VFXAbstractParticleOutput
     {
-        public VFXAbstractDistortionOutput(bool strip = false) : base(strip) {}
+        public VFXAbstractDistortionOutput(bool strip = false) : base(strip) { }
 
         public enum DistortionMode
         {
@@ -24,9 +23,30 @@ namespace UnityEditor.VFX.HDRP
         [SerializeField, VFXSetting(VFXSettingAttribute.VisibleFlags.All), Tooltip("Whether Distortion scales with the distance")]
         protected bool scaleByDistance = true;
 
-        public override sealed bool CanBeCompiled()
+        public class InputPropertiesDistortionScreenSpace
         {
-            return (VFXLibrary.currentSRPBinder is VFXHDRPBinder) && base.CanBeCompiled();
+            [Tooltip("Distortion Map: RG for Distortion (centered on .5 gray), B for Blur Mask.")]
+            public Texture2D distortionBlurMap = null;
+            [Tooltip("Screen-Space Distortion Scale")]
+            public Vector2 distortionScale = Vector2.one;
+        }
+
+        public class InputPropertiesDistortionNormalBased
+        {
+            [Tooltip("Normal Map")]
+            public Texture2D normalMap = null;
+            [Tooltip("Smoothness Map (Alpha)")]
+            public Texture2D smoothnessMap = null;
+            [Tooltip("Alpha Mask (Alpha)")]
+            public Texture2D alphaMask = null;
+            [Tooltip("World-space Distortion Scale")]
+            public float distortionScale = 1.0f;
+        }
+
+        public class InputPropertiesCommon
+        {
+            [Tooltip("Distortion Blur Scale")]
+            public float blurScale = 1.0f;
         }
 
         protected override IEnumerable<string> filteredOutSettings
@@ -56,23 +76,18 @@ namespace UnityEditor.VFX.HDRP
             get
             {
                 var properties = base.inputProperties;
-                foreach (var prop in properties)
-                    yield return prop;
 
                 switch (distortionMode)
                 {
                     case DistortionMode.ScreenSpace:
-                        yield return new VFXPropertyWithValue(new VFXProperty(GetFlipbookType(), "distortionBlurMap", new TooltipAttribute("Distortion Map: RG for Distortion (centered on .5 gray), B for Blur Mask.")), (usesFlipbook ? null : VFXResources.defaultResources.noiseTexture));
-                        yield return new VFXPropertyWithValue(new VFXProperty(typeof(Vector2), "distortionScale", new TooltipAttribute("Screen-Space Distortion Scale")), Vector2.one);
+                        properties = properties.Concat(PropertiesFromType("InputPropertiesDistortionScreenSpace"));
                         break;
                     case DistortionMode.NormalBased:
-                        yield return new VFXPropertyWithValue(new VFXProperty(GetFlipbookType(), "normalMap", new TooltipAttribute("Normal Map")));
-                        yield return new VFXPropertyWithValue(new VFXProperty(GetFlipbookType(), "smoothnessMap", new TooltipAttribute("Smoothness Map (Alpha)")));
-                        yield return new VFXPropertyWithValue(new VFXProperty(GetFlipbookType(), "alphaMask", new TooltipAttribute("Alpha Mask (Alpha)")));
-                        yield return new VFXPropertyWithValue(new VFXProperty(typeof(float), "distortionScale", new TooltipAttribute("World-space Distortion Scale")));
+                        properties = properties.Concat(PropertiesFromType("InputPropertiesDistortionNormalBased"));
                         break;
                 }
-                yield return new VFXPropertyWithValue(new VFXProperty(typeof(float), "blurScale", new TooltipAttribute("Distortion Blur Scale")));
+
+                return properties.Concat(PropertiesFromType("InputPropertiesCommon"));
             }
         }
 
@@ -122,7 +137,7 @@ namespace UnityEditor.VFX.HDRP
                 foreach (var define in base.additionalDefines)
                     yield return define;
 
-                switch (distortionMode)
+                switch(distortionMode)
                 {
                     case DistortionMode.ScreenSpace:
                         yield return "DISTORTION_SCREENSPACE";

@@ -152,15 +152,18 @@ float4 SampleEnv(LightLoopContext lightLoopContext, int index, float3 texCoord, 
             color.rgb = SAMPLE_TEXTURECUBE_ARRAY_LOD_ABSTRACT(_EnvCubemapTextures, s_trilinear_clamp_sampler, texCoord, _EnvSliceSize * index + sliceIdx, lod).rgb;
         }
 
+        // Planar and Reflection Probes aren't pre-expose, so best to clamp to max16 here in case of inf
+        color.rgb = ClampToFloat16Max(color.rgb);
+
         color.rgb *= rangeCompressionFactorCompensation;
     }
     else // SINGLE_PASS_SAMPLE_SKY
     {
         color.rgb = SampleSkyTexture(texCoord, lod, sliceIdx).rgb;
+        // Sky isn't pre-expose, so best to clamp to max16 here in case of inf
+        color.rgb = ClampToFloat16Max(color.rgb);
     }
 
-    // Planar, Reflection Probes and Sky aren't pre-expose, so best to clamp to max16 here in case of inf
-    color.rgb = ClampToFloat16Max(color.rgb);
 
     return color;
 }
@@ -272,24 +275,11 @@ uint FetchIndex(uint lightStart, uint lightOffset)
 }
 
 #else
-// Fallback case (mainly for raytracing right or for shader stages that don't define the keywords)
+// Fallback case (mainly for raytracing right now)
 uint FetchIndex(uint lightStart, uint lightOffset)
 {
     return 0;
 }
-
-uint GetTileSize()
-{
-    return 1;
-}
-
-void GetCountAndStart(PositionInputs posInput, uint lightCategory, out uint start, out uint lightCount)
-{
-    start = 0;
-    lightCount = 0;
-    return;
-}
-
 #endif // USE_FPTL_LIGHTLIST
 
 #else

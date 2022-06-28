@@ -1,4 +1,4 @@
-# Hair shader
+# Hair shader 
 The Hair shader is your starting point for rendering hair and fur in the High Definition Render Pipeline (HDRP). To create a realistic looking hair effect, it uses layers called hair cards. Each hair card represents a different section of hair. If you use semi-transparent hair cards, you must manually sort them so that they are in back-to-front order from every viewing direction.
 
 ![](Images/HDRPFeatures-HairShader.png)
@@ -7,13 +7,13 @@ Under the hood, the Hair shader is a pre-configured Shader Graph. To learn more 
 
 ## Importing the Hair Sample
 
-HDRP comes with a Hair Material sample to further help you get started. To find this Sample:
+HDRP includes the Hair sample scene to help you get started. To find this Sample:
 
-1. Go to **Windows > Package Manager**, and select **High Definition RP** from the package list.
-2. In the main window that shows the package's details, find the **Samples** section.
-3. To import a Sample into your Project, click the **Import into Project** button. This creates a **Samples** folder in your Project and imports the Sample you selected into it. This is also where Unity imports any future Samples into.
-4. In the Asset window, go to **Samples > High Definition RP > 11.0** and open the Hair scene. Here you will see the hair sample material set up in-context with a scene, and available for you to use.
-
+1. Go to **Window** > **Package Manager**, and select **High Definition RP** from the package list.
+2. In the main window that shows the package's details, open the **Samples** drop down.
+3. Find **Material Samples** and select **Import**. This creates a **Samples** folder in your Project and imports the Sample you selected into it. This is also where Unity imports any future Samples into.
+4. In the Asset window, go to **Samples** > **High Definition RP** and select the folder that corresponds with your HDRP version. 
+5. Open **Material Samples** > **Scenes** and select the **Hair** scene. Here you will see the hair sample material set up in-context with a scene, and available for you to use.
 ## Creating a Hair Material
 
 New Materials in HDRP use the [Lit shader](Lit-Shader.md) by default. To create a Hair Material from scratch, create a Material and then make it use the Hair shader. To do this:
@@ -24,7 +24,7 @@ New Materials in HDRP use the [Lit shader](Lit-Shader.md) by default. To create 
 
 3. Click the **Shader** drop-down at the top of the Material Inspector, and select **HDRP > Hair**.
 
-
+   
 
 ## Properties
 
@@ -58,3 +58,7 @@ New Materials in HDRP use the [Lit shader](Lit-Shader.md) by default. To create 
 | **Transmission Rim**              | Set the intensity of back lit hair around the edge of the hair. Set this to 0 to completely remove the transmission effect. |
 
 [!include[](snippets/shader-properties/advanced-options/lit-advanced-options.md)]
+
+## Limitations
+
+[!include[](snippets/area-light-material-support-disclaimer.md)]

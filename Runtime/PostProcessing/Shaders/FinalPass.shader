@@ -6,13 +6,13 @@ Shader "Hidden/HDRP/FinalPass"
         #pragma editor_sync_compilation
         #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
 
-        #pragma multi_compile_local_fragment _ FXAA
-        #pragma multi_compile_local_fragment _ GRAIN
-        #pragma multi_compile_local_fragment _ DITHER
-        #pragma multi_compile_local_fragment _ ENABLE_ALPHA
-        #pragma multi_compile_local_fragment _ APPLY_AFTER_POST
+        #pragma multi_compile_local _ FXAA
+        #pragma multi_compile_local _ GRAIN
+        #pragma multi_compile_local _ DITHER
+        #pragma multi_compile_local _ ENABLE_ALPHA
+        #pragma multi_compile_local _ APPLY_AFTER_POST
 
-        #pragma multi_compile_local_fragment _ BILINEAR CATMULL_ROM_4 LANCZOS BYPASS
+        #pragma multi_compile_local _ BILINEAR CATMULL_ROM_4 LANCZOS CONTRASTADAPTIVESHARPEN
         #define DEBUG_UPSCALE_POINT 0
 
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
@@ -92,16 +92,16 @@ Shader "Hidden/HDRP/FinalPass"
 
             #if defined(BILINEAR) || defined(CATMULL_ROM_4) || defined(LANCZOS)
             CTYPE outColor = UpscaledResult(positionNDC.xy);
-            #elif defined(BYPASS)
+            #elif defined(CONTRASTADAPTIVESHARPEN)
             CTYPE outColor = LOAD_TEXTURE2D_X(_InputTexture, ((input.texcoord.xy * _UVTransform.xy) + _UVTransform.zw) * _ViewPortSize.xy).CTYPE_SWIZZLE;
             #else
             CTYPE outColor = LOAD_TEXTURE2D_X(_InputTexture, positionSS).CTYPE_SWIZZLE;
             #endif
 
-            #if !defined(ENABLE_ALPHA)
+			#if !defined(ENABLE_ALPHA)
             float outAlpha = (_KeepAlpha == 1.0) ? LOAD_TEXTURE2D_X(_AlphaTexture, positionSS).x : 1.0;
-            #endif
-
+			#endif
+			
             #if FXAA
             CTYPE beforeFXAA = outColor;
             RunFXAA(_InputTexture, sampler_LinearClamp, outColor, positionSS, positionNDC);

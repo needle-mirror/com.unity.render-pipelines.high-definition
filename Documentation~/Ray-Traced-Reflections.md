@@ -45,3 +45,4 @@ For an example of a 75% smooth Lit material with different **Coat Mask** values,
 ## Properties
 
 HDRP implements ray-traced reflection on top of the Screen Space Reflection override. For information on the properties that control this effect, see [Ray-traced properties](Override-Screen-Space-Reflection.md#ray-traced).
+

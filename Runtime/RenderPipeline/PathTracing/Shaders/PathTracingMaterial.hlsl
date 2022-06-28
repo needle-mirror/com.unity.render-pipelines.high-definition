@@ -13,10 +13,8 @@ struct MaterialData
     bool     isSubsurface;
     float    subsurfaceWeightFactor;
 
-    // View vector, and altered shading normal
-    // (to be consistent with the view vector and geometric normal)
+    // View vector
     float3   V;
-    float3   Nv;
 };
 
 struct MaterialResult
@@ -77,36 +75,11 @@ bool IsBelow(MaterialData mtlData)
     return !IsAbove(mtlData);
 }
 
-float3 GetDiffuseNormal(MaterialData mtlData)
+float3x3 GetTangentFrame(MaterialData mtlData)
 {
-    return mtlData.bsdfData.normalWS;
-}
-
-float3 GetSpecularNormal(MaterialData mtlData)
-{
-    return mtlData.Nv;
-}
-
-float3 ComputeConsistentShadingNormal(float3 Wi, float3 G, float3 N)
-{
-    // Check in which hemisphere does the incoming view vector fall
-    float GdotWi = dot(G, Wi);
-    float Hi = sign(GdotWi);
-
-    // First project N back towards Wi if it's on the other side of the view plane
-    float NdotWi = Hi * dot(N, Wi);
-    float3 Ni = N - Hi * min(0.0, NdotWi) * Wi;
-
-    // Then check in which hemisphere does the reflected vector fall
-    float3 Wo = reflect(-Wi, Ni);
-    float GdotWo = dot(G, Wo);
-    float Ho = sign(GdotWo);
-
-    // Bring reflection direction back to the right hemisphere (slightly offset from the horizon, for more robustness)
-    Wo = normalize(Wo - (GdotWo + Ho * 0.001) * G);
-
-    // Compute a new, consistent shading normal accordingly
-    return Hi != Ho ? Hi * normalize(Wi + Wo) : N;
+    return mtlData.bsdfData.anisotropy != 0.0 ?
+        float3x3(mtlData.bsdfData.tangentWS, mtlData.bsdfData.bitangentWS, mtlData.bsdfData.normalWS) :
+        GetLocalFrame(mtlData.bsdfData.normalWS);
 }
 
 #endif // UNITY_PATH_TRACING_MATERIAL_INCLUDED

@@ -3,12 +3,12 @@ using System.Linq;
 using UnityEditor.VFX.Block;
 using UnityEngine;
 
-namespace UnityEditor.VFX.HDRP
+namespace UnityEditor.VFX
 {
     [VFXInfo(variantProvider = typeof(VFXPlanarPrimitiveVariantProvider))]
     class VFXLitPlanarPrimitiveOutput : VFXAbstractParticleHDRPLitOutput
     {
-        public override string name { get { return "Output Particle HDRP Lit " + primitiveType.ToString(); } }
+        public override string name { get { return "Output Particle Lit " + primitiveType.ToString(); } }
         public override string codeGeneratorTemplate { get { return RenderPipeTemplate("VFXParticleLitPlanarPrimitive"); } }
         public override VFXTaskType taskType { get { return VFXPlanarPrimitiveHelper.GetTaskType(primitiveType); } }
         public override bool supportsUV { get { return GetOrRefreshShaderGraphObject() == null; } }
@@ -31,7 +31,7 @@ namespace UnityEditor.VFX.HDRP
             get
             {
                 var properties = base.inputProperties;
-                if (normalBending && !GeneratesWithShaderGraph())
+                if (normalBending)
                     properties = properties.Concat(PropertiesFromType("NormalBendingProperties"));
                 if (primitiveType == VFXPrimitiveType.Octagon)
                     properties = properties.Concat(PropertiesFromType(typeof(VFXPlanarPrimitiveHelper.OctagonInputProperties)));
@@ -73,7 +73,7 @@ namespace UnityEditor.VFX.HDRP
             foreach (var exp in base.CollectGPUExpressions(slotExpressions))
                 yield return exp;
 
-            if (normalBending && !GeneratesWithShaderGraph())
+            if (normalBending)
                 yield return slotExpressions.First(o => o.name == "normalBendingFactor");
             if (primitiveType == VFXPrimitiveType.Octagon)
                 yield return slotExpressions.First(o => o.name == "cropFactor");
@@ -86,24 +86,12 @@ namespace UnityEditor.VFX.HDRP
                 foreach (var d in base.additionalDefines)
                     yield return d;
 
-                if (normalBending && !GeneratesWithShaderGraph())
+                if (normalBending)
                     yield return "USE_NORMAL_BENDING";
 
                 yield return "FORCE_NORMAL_VARYING"; // To avoid discrepancy between depth and color pass which could cause glitch with ztest
 
                 yield return VFXPlanarPrimitiveHelper.GetShaderDefine(primitiveType);
-            }
-        }
-
-        protected override IEnumerable<string> untransferableSettings
-        {
-            get
-            {
-                foreach (var setting in base.untransferableSettings)
-                {
-                    yield return setting;
-                }
-                yield return "primitiveType";
             }
         }
     }

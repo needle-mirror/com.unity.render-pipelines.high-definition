@@ -86,8 +86,8 @@ The tables that follow provide an overview of the Features that the High Definit
 
 | **Feature**            | **Built-in Render Pipeline** | **High Definition Render Pipeline (HDRP)** |
 | ------------------ | ------------------------ | ------------------------------- |
-| **Enlighten**      | Yes                      | Deprecated                   |
-| **Enlighten Realtime** | Yes                      | Yes                   |
+| **Enlighten**      | Yes                      | Not supported                   |
+| **Enlighten Realtime** | Yes                      | Not supported                   |
 | **Progressive CPU** | Yes                      | Yes                             |
 | **Progressive GPU** | Yes                      | Yes                             |
 
@@ -116,6 +116,7 @@ The tables that follow provide an overview of the Features that the High Definit
 | **Realtime**            | Yes                                                          | yes                                                          |
 | **Baked**               | Yes                                                          | Yes                                                          |
 | ***Sampling***          |                                                              |                                                              |
+| **Anchor Override**     | Yes                                                          | Not supported                                                |
 | **Simple**              | Yes                                                          | See [Reflection Hierarchy](Reflection-in-HDRP.md). |
 | **Blend Probes**        | Yes                                                          | See [Reflection Hierarchy](Reflection-in-HDRP.md). |
 | **Blend Probes and Skybox** | Yes                                                          | See [Reflection Hierarchy](Reflection-in-HDRP.md). |
@@ -306,7 +307,7 @@ Managing LOD in this way has two consequences:
 
 | **Feature**                  | **Built-in Render Pipeline** | **High Definition Render Pipeline (HDRP)** |
 | ------------------------ | ------------------------ | ------------------------------- |
-| **Speed Tree**           | Yes                      | SpeedTree 8 only.               |
+| **Speed Tree**           | Yes                      | SpeedTree 8 only. Expect visual changes to normals for correctness in 21.2. |
 | **Paint Trees**          | Yes                      | Yes                             |
 | **Detail**               | Yes                      | Not supported                   |
 | **Wind Zone**            | Yes                      | Not supported                   |

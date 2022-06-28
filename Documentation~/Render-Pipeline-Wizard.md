@@ -1,8 +1,8 @@
 # High Definition Render Pipeline Wizard
 
-The High Definition Render Pipeline (HDRP) includes the **HDRP Wizard** to help you configure your Unity Project so that it is compatible with HDRP.
+The High Definition Render Pipeline (HDRP) includes the **HD Render Pipeline Wizard** to help you configure your Unity Project so that it is compatible with HDRP. 
 
-To open the **Render Pipeline Wizard**, go to **Window > Rendering** and select **HDRP Wizard**.
+To open the **Render Pipeline Wizard**, go to **Window > Render Pipeline** and select **HD Render Pipeline Wizard**.
 
 ![](Images/RenderPipelineWizard1.png)
 
@@ -25,12 +25,12 @@ Your Unity Project must adhere to all the configuration tests in this section fo
 There are three tabs that you can use to set up your HDRP Project for different use cases.
 * [HDRP](#HDRPTab): Use this tab to set up a default HDRP Project.
 * [HDRP + VR](#VRTab): Use this tab to set up your HDRP Project and enable support for virtual reality.
-* [HDRP + DXR](#DXRTab): Use this tab to set up your HDRP Project and enable support for ray tracing.
+* [HDRP + DXR](#DXRTab): Use this tab to set up your HDRP Project and enable support for ray tracing. 
 
-Each configuration is separated in two scopes:
+Also every configuration is separated into two scopes:
 
-- **Global:** Changes the configuration settings in the Unity Editor, [HDRP Global Settings](Default-Settings-Window.md), or Graphics Settings'  [HDRP Asset](HDRP-Asset.md)
-- **Current Quality:** Changes the configuration settings in the [HDRP Asset](HDRP-Asset.md) set in Quality Settings. If no asset is assigned in Quality Settings, this mode uses the [HDRP Asset](HDRP-Asset.md) set in Graphics Settings.
+- **Global:** These settings are either in the Unity Editor, or in the [HDRP Asset](HDRP-Asset.md) set in Graphics Settings.
+- **Current Quality:** These settings in the [HDRP Asset](HDRP-Asset.md) set in Quality Settings. If there is no HDRP Asset set in Quality Settings, HDRP uses the one in global above.
 
 <a name="HDRPTab"></a>
 
@@ -38,7 +38,7 @@ Each configuration is separated in two scopes:
 
 This tab provides you with configuration options to help you make your Unity Project use HDRP.
 
-**Global:**
+#### Global
 
 | **Configuration Option**           | **Description**                                              |
 | -------------------------------- | ------------------------------------------------------------ |
@@ -46,16 +46,14 @@ This tab provides you with configuration options to help you make your Unity Pro
 | **Lightmap Encoding**            | Checks to make sure **Lightmap Encoding** is set to **High Quality**, which is the only mode that HDRP supports. <br />Press the **Fix** button to make Unity encode lightmaps in **High Quality** mode. This fixes lightmaps for all platforms. |
 | **Shadows**                      | Checks to make sure **Shadow Quality** is set to **All**. Unity hides this option when you install HDRP, and automatically sets it to **All**. <br />Press the **Fix** button to set **Shadow Quality** to **All**. |
 | **Shadowmask Mode**              | Checks to make sure **Shadowmask Mode** is set to **Distance Shadowmask** at the Project level. This allows you to change the **Shadowmask Mode** on a per-[Light](Light-Component.md) level. <br />Press the **Fix** button to set the **Shadowmask Mode** to **Distance Shadowmask**. |
-| **Assigned - Graphics** | Checks to make sure you have assigned an [HDRP Asset](HDRP-Asset.md) to the **Graphics Settings** field (menu: **Edit** > **Project Settings** > **Graphics**).<br />Press the **Fix** button to open a pop-up that allows you to either assign an HDRP Asset or create and assign a new one. |
-| **Assigned - HDRP Settings** | Checks to make sure you have assigned an **HDRenderPipelineGlobalSettings** asset to the **HDRP Settings** field (menu: **Edit** > **Project Settings** > **HDRP Graphics**).<br/>Press the **Fix** button to find and assign an available **HDRenderPipelineGlobalSettings** asset. If there isn't one available, Unity creates an **HDRenderPipelineGlobalSettings** in the **Default Resources Folder**. |
+| **Assigned - Graphics**        | Checks to make sure you have assigned an [HDRP Asset](HDRP-Asset.md) to the **Graphics Settings** field (menu: **Edit** > **Project Settings** > **Graphics**).<br />Press the **Fix** button to open a pop-up that allows you to either assign an HDRP Asset or create and assign a new one. |
 | **Runtime Resources**          | Checks to make sure that your HDRP Asset references a [**Render Pipeline Resources**](HDRP-Asset.md) Asset.<br />Press the **Fix** button to reload the runtime resources for the HDRP Asset. |
 | **Editor Resources**           | Checks to make sure that your HDRP Asset references a [**Render Pipeline Editor Resources**](HDRP-Asset.md)  Asset.<br />Press the **Fix** button to reload the runtime resources for the HDRP Asset. |
 | **Diffusion Profile**          | Checks to make sure that your HDRP Asset references a [**Diffusion Profile**](Diffusion-Profile.md) Asset.<br />Press the **Fix** button to reload the runtime resources for the HDRP Asset. |
-| **Default Volume Profile** | Checks to make sure you have assigned a **Default Volume Profile Asset** in **Edit** > **Project Settings** > **HDRP Settings** that is not the one included in the **High Definition RP** package.<br/>This check only needs to pass if you want to modify the **Default Volume Profile Asset**.<br/>Press the **Fix** button to copy the **Default Volume Profile Asset** from the **High Definition RP** package into the **Default Resource Folder** and assign it. |
-| **LookDev Volume Profile** | Checks to make sure you have assigned a **LookDev Volume Profile Asset** in **Edit** > **Project Settings** > **HDRP Settings** that is not the one included in the **High Definition RP** package.<br/>This check only needs to pass if you want to use LookDev and modify the profile used in it.<br/>Press the **Fix** button to copy the **LookDev Volume Profile Asset** from the **High Definition RP**  package into the **Default Resource Folder** and assign it. |
-| **Assets Migration** | Checks to make sure all **HDRenderPipelineAsset** used in quality levels and the current **HDRenderPipelineGlobalSettings** have been upgraded to current version of High Definition Render Pipeline. <br />Press the **Fix** button to upgrade any asset that require it. Asset that have been migrated will be logged in the console. You still need to save your project to save the changes. |
+| **Default Volume Profile** | Checks to make sure you have assigned a **Default Volume Profile Asset** in **Edit** > **Project Settings** > **HDRP Default Settings** that is not the one in the package.<br />It is only required to enable modification on the profile.<br />Press the **Fix** button to copy the one in package into the **Default Resource Folder** and use it instead. |
+| **LookDev Volume Profile** | Checks to make sure you have assigned a **LookDev Volume Profile Asset** in **Edit** > **Project Settings** > **HDRP Default Settings**  that is not the one in the package.<br />It is only required to use the LookDev and want to be able to modify the profile used in it.<br />Press the **Fix** button to copy the one in package into the **Default Resource Folder** and use it instead. |
 
-**Current Quality:**
+#### Current Quality
 
 | **Configuration Option** | **Description**                                              |
 | ------------------------ | ------------------------------------------------------------ |
@@ -66,7 +64,7 @@ This tab provides you with configuration options to help you make your Unity Pro
 
 ### HDRP + VR
 
-This tab provides all of the configuration options from the [HDRP tab](#HDRPTab) as well as extra configuration options to help you set your HDRP Project up to support virtual reality. If you can not find an option in this section of the documentation, check the [HDRP tab](#HDRPTab) above. This is only supported on Windows OS. You can adjust the extra configuration options in the  **Global** scope.
+This tab provides all of the configuration options from the [HDRP tab](#HDRPTab) as well as extra configuration options to help you set your HDRP Project up to support virtual reality. If you can not find an option in this section of the documentation, check the [HDRP tab](#HDRPTab) above. This is only supported on Windows OS. The extra configuration are all in the **Global** scope.
 
 | **Configuration Option**     | **Description**                                              |
 | -------------------------------- | ------------------------------------------------------------ |
@@ -84,7 +82,7 @@ This tab provides all of the configuration options from the [HDRP tab](#HDRPTab)
 
 Note that every **Fix** will be deactivated if your Hardware or OS do not support DXR.
 
-**Global:**
+#### Global
 
 | **Configuration Option**          | **Description**                                              |
 | -------------------------------- | ------------------------------------------------------------ |
@@ -99,7 +97,7 @@ Note that every **Fix** will be deactivated if your Hardware or OS do not suppor
 | **Screen Space Global Illumination (HDRP Frame Settings)** | Checks to make sure that your [Default Settings](Default-Settings-Window.md) have the **Screen Space Global Illumination** [Frame Setting](Frame-Settings.md) enabled by default for Cameras.<br/ >Press the **Fix** button to enable the **Screen Space Global Illumination** Frame Setting.<br />Note: This configuration option depends on **Screen Space Global Illumination (Asset)**. This means, before you fix this, you must fix **Screen Space Global Illumination (Asset)** first. |
 | **DXR Shader Config** | Checks to make sure that the **ShaderConfig.cs.hlsl**, in the **High Definition RP Config** package referenced in your Project, has **SHADEROPTIONS_RAYTRACING** set to **1**. <br />Press the **Fix** button to create a local copy of the **High Definition RP Config** package and, in the **ShaderConfig.cs.hlsl**, set **SHADEROPTIONS_RAYTRACING** to **1**. |
 
-**Current Quality:**
+#### Current Quality
 
 | **Configuration Option**                           | **Description**                                              |
 | -------------------------------------------------- | ------------------------------------------------------------ |
@@ -111,10 +109,10 @@ Note that every **Fix** will be deactivated if your Hardware or OS do not suppor
 
 ## Project Migration Quick-links
 
-When upgrading a project from the built-in render pipeline to HDRP, you need to do convert your Materials. Use the following utility functions to help with the upgrade process:
+When upgrading a project from the built-in render pipeline to HDRP, you need to do upgrade your Materials. Use the following utility functions to help with the upgrade process:
 
-- **Convert All Built-in Materials to HDRP**: Upgrades every Material in your Unity Project to HDRP Materials.
-- **Convert Selected Built-in Materials to HDRP**: Upgrades every Material currently selected to HDRP Materials.
+- **Upgrade Project Materials to High Definition Materials**: Upgrades every Material in your Unity Project to HDRP Materials.
+- **Upgrade Selected Materials to High Definition Materials**: Upgrades every Material currently selected to HDRP Materials.
 - **Upgrade HDRP Materials to Latest Version:** Upgrades every Material in your Unity Project to the latest version.
 
 The lighting will not match as HDRP use a different attenuation function than built-in and use correct math to handle lighting model. There is no function that can convert the look. Thus the lighting will require to be redone.

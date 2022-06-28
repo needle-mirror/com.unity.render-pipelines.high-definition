@@ -1,6 +1,3 @@
-using System.Linq;
-using UnityEditor.VFX.HDRP;
-using UnityEditor.VFX.UI;
 using UnityEngine.Rendering.HighDefinition;
 
 namespace UnityEditor.Rendering.HighDefinition
@@ -12,7 +9,6 @@ namespace UnityEditor.Rendering.HighDefinition
         SerializedHDRenderPipelineAsset m_SerializedHDRenderPipeline;
 
         internal bool largeLabelWidth = true;
-        internal bool needRefreshVfxWarnings = false;
 
         void OnEnable()
         {
@@ -36,7 +32,6 @@ namespace UnityEditor.Rendering.HighDefinition
                 EditorGUIUtility.labelWidth *= 0.5f;
 
             serialized.Apply();
-            VFXHDRPSettingsUtility.RefreshVfxErrorsIfNeeded(ref needRefreshVfxWarnings);
         }
     }
 }

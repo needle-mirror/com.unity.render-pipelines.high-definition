@@ -99,7 +99,7 @@ Shader "Hidden/HDRP/ApplyDistortion"
             float2 maxCoord = (mipSize << mipCeiled) * _Size.zw;
             // Take of the half pixel for bilinear
             maxCoord -= 0.5 * rcp(mipSize);
-
+            
             float2 uv = min(distordedUV, maxCoord) * _RTHandleScale.xy;
             float4 sampled = SAMPLE_TEXTURE2D_X_LOD(_ColorPyramidTexture, s_trilinear_clamp_sampler, uv, mip);
             return sampled;

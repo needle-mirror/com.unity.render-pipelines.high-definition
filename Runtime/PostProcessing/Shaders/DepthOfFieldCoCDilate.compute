@@ -108,3 +108,4 @@ void KMain(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, u
 
     VerticalPass(dispatchThreadId.xy, (groupThreadId.y << 3u) + groupThreadId.x);
 }
+

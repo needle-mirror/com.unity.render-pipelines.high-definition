@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 namespace UnityEngine.Rendering.HighDefinition
 {
+
     class CullingGroupManager
     {
         static CullingGroupManager m_Instance;
@@ -20,7 +21,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public CullingGroup Alloc()
         {
             CullingGroup group;
-            if (m_FreeList.Count > 0)
+            if(m_FreeList.Count > 0)
             {
                 group = m_FreeList.Pop();
             }
@@ -38,7 +39,7 @@ namespace UnityEngine.Rendering.HighDefinition
 
         public void Cleanup()
         {
-            foreach (CullingGroup group in m_FreeList)
+            foreach( CullingGroup group in m_FreeList)
             {
                 group.Dispose();
             }

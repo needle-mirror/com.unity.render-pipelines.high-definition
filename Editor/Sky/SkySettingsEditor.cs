@@ -75,18 +75,23 @@ namespace UnityEditor.Rendering.HighDefinition
         {
             if ((m_CommonUIElementsMask & (uint)SkySettingsUIElement.SkyIntensity) != 0)
             {
-                using (var scope = new OverridablePropertyScope(m_IntensityMode, m_SkyIntensityModeLabel, this))
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (scope.displayed)
+                    DrawOverrideCheckbox(m_IntensityMode);
+                    using (new EditorGUI.DisabledScope(!m_IntensityMode.overrideState.boolValue))
                     {
                         if (m_EnableLuxIntensityMode)
+                        {
                             m_IntensityMode.value.intValue = EditorGUILayout.IntPopup(m_SkyIntensityModeLabel, (int)m_IntensityMode.value.intValue, m_IntensityModes, m_IntensityModeValues);
+                        }
                         else
+                        {
                             m_IntensityMode.value.intValue = EditorGUILayout.IntPopup(m_SkyIntensityModeLabel, (int)m_IntensityMode.value.intValue, m_IntensityModesNoLux, m_IntensityModeValuesNoLux);
+                        }
                     }
                 }
 
-                using (new IndentLevelScope())
+                using (new HDEditorUtils.IndentScope())
                 {
                     if (m_IntensityMode.value.GetEnumValue<SkyIntensityMode>() == SkyIntensityMode.Exposure)
                         PropertyField(m_SkyExposure);
@@ -101,7 +106,7 @@ namespace UnityEditor.Rendering.HighDefinition
                             "Upper hemisphere lux value: {0}\nAbsolute multiplier: {1}",
                             m_UpperHemisphereLuxValue.value.floatValue,
                             (m_DesiredLuxValue.value.floatValue / m_UpperHemisphereLuxValue.value.floatValue)
-                            ), MessageType.Info);
+                        ), MessageType.Info);
                     }
                 }
             }
@@ -113,7 +118,7 @@ namespace UnityEditor.Rendering.HighDefinition
                 PropertyField(m_EnvUpdateMode);
                 if (!m_EnvUpdateMode.value.hasMultipleDifferentValues && m_EnvUpdateMode.value.intValue == (int)EnvironmentUpdateMode.Realtime)
                 {
-                    using (new IndentLevelScope())
+                    using (new HDEditorUtils.IndentScope())
                     {
                         PropertyField(m_EnvUpdatePeriod);
                     }

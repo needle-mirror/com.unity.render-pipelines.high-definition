@@ -8,7 +8,6 @@ namespace UnityEngine.Rendering.HighDefinition
         public enum MaterialFeatureFlags
         {
             HairKajiyaKay = 1 << 0,
-            HairMarschner = 1 << 1
         };
 
         //-----------------------------------------------------------------------------
@@ -71,12 +70,6 @@ namespace UnityEngine.Rendering.HighDefinition
 
             [SurfaceDataAttributes("Secondary Specular Shift")]
             public float secondarySpecularShift;
-
-            // Marschner
-            [SurfaceDataAttributes("Azimuthal Roughness")]
-            public float perceptualRadialSmoothness;
-            [SurfaceDataAttributes("Cuticle Angle")]
-            public float cuticleAngle;
         };
 
         //-----------------------------------------------------------------------------
@@ -113,13 +106,6 @@ namespace UnityEngine.Rendering.HighDefinition
             public Vector3 hairStrandDirectionWS;
             public float anisotropy;
 
-            // TEMP: Pathtracer Compatibility.
-            // Path tracer assumes this anisotropic fields generally exist (even though we don't use them).
-            public Vector3 tangentWS;
-            public Vector3 bitangentWS;
-            public float   roughnessT;
-            public float   roughnessB;
-
             // Kajiya kay
             public float secondaryPerceptualRoughness;
             public Vector3 secondarySpecularTint;
@@ -127,21 +113,6 @@ namespace UnityEngine.Rendering.HighDefinition
             public float secondarySpecularExponent;
             public float specularShift;
             public float secondarySpecularShift;
-
-            // Marschner
-            public Vector3 absorption;
-
-            public float lightPathLength;
-
-            public float cuticleAngleR;
-            public float cuticleAngleTT;
-            public float cuticleAngleTRT;
-
-            public float roughnessR;
-            public float roughnessTT;
-            public float roughnessTRT;
-
-            public float roughnessRadial;
         };
 
 
@@ -149,16 +120,12 @@ namespace UnityEngine.Rendering.HighDefinition
         // Init precomputed texture
         //-----------------------------------------------------------------------------
 
-        private Texture2D m_PreIntegratedAzimuthalScatteringLUT;
-
         public Hair() {}
 
-        public override void Build(HDRenderPipelineAsset hdAsset, HDRenderPipelineRuntimeResources defaultResources)
+        public override void Build(HDRenderPipelineAsset hdAsset, RenderPipelineResources defaultResources)
         {
             PreIntegratedFGD.instance.Build(PreIntegratedFGD.FGDIndex.FGD_GGXAndDisneyDiffuse);
             LTCAreaLight.instance.Build();
-
-            m_PreIntegratedAzimuthalScatteringLUT = defaultResources.textures.preintegratedAzimuthalScattering;
         }
 
         public override void Cleanup()
@@ -176,9 +143,6 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             PreIntegratedFGD.instance.Bind(cmd, PreIntegratedFGD.FGDIndex.FGD_GGXAndDisneyDiffuse);
             LTCAreaLight.instance.Bind(cmd);
-
-            if (m_PreIntegratedAzimuthalScatteringLUT != null)
-                cmd.SetGlobalTexture(HDShaderIDs._PreIntegratedAzimuthalScattering, m_PreIntegratedAzimuthalScatteringLUT);
         }
     }
 }

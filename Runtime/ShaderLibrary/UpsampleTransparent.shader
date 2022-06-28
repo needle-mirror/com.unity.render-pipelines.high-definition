@@ -4,7 +4,7 @@ Shader "Hidden/HDRP/UpsampleTransparent"
 
         #pragma target 4.5
         #pragma editor_sync_compilation
-        #pragma multi_compile_local_fragment BILINEAR NEAREST_DEPTH
+        #pragma multi_compile_local BILINEAR NEAREST_DEPTH
         #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
@@ -32,8 +32,6 @@ Shader "Hidden/HDRP/UpsampleTransparent"
             return output;
         }
 
-
-        float4 _Params; //x: targetResolutionMultiplier, y: 1.0/targetResolutionMultiplier, z: unused, w: unused
         TEXTURE2D_X(_LowResTransparent);
 #ifdef NEAREST_DEPTH
         TEXTURE2D_X_FLOAT(_LowResDepthTexture);
@@ -48,7 +46,7 @@ Shader "Hidden/HDRP/UpsampleTransparent"
             float2 uv = input.texcoord;
 
             float2 fullResTexelSize = _ScreenSize.zw;
-            float2 halfResTexelSize = _Params.y * fullResTexelSize;
+            float2 halfResTexelSize = 2.0f * fullResTexelSize;
 
         #ifdef NEAREST_DEPTH
 
@@ -97,7 +95,9 @@ Shader "Hidden/HDRP/UpsampleTransparent"
 #if DEBUG_EDGE
                 return float4(0.0, 10.0, 0.0, 1.0);
 #else
-                return SAMPLE_TEXTURE2D_X_LOD(_LowResTransparent, s_point_clamp_sampler, ClampAndScaleUVForPoint(nearestUV), 0);
+                // Important note! The reason we need to do ClampAndScaleUVForBilinear is because the candidate for nearestUV are going to be the ones
+                // used for bilinear. We are using the same UVs used for bilinear -hence the uv clamp for bilinear- it is just the filtering that is different.
+                return SAMPLE_TEXTURE2D_X_LOD(_LowResTransparent, s_point_clamp_sampler, ClampAndScaleUVForBilinear(nearestUV), 0);
 #endif
             }
         #else // BILINEAR

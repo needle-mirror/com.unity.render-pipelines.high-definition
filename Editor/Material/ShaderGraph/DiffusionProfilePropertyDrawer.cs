@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Reflection;
 using UnityEditor.ShaderGraph.Drawing;
 using UnityEditor.UIElements;
@@ -12,7 +11,7 @@ using UnityEditor.ShaderGraph.Drawing.Inspector;
 namespace UnityEditor.Rendering.HighDefinition
 {
     [SGPropertyDrawer(typeof(DiffusionProfileSettings))]
-    class ShaderGraphDiffusionProfilePropertyDrawer : IPropertyDrawer
+    class DiffusionProfilePropertyDrawer : IPropertyDrawer
     {
         internal delegate void ValueChangedCallback(DiffusionProfileSettings newValue);
 
@@ -27,7 +26,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             if (valueChangedCallback != null)
             {
-                objectField.RegisterValueChangedCallback(evt => { valueChangedCallback((DiffusionProfileSettings)evt.newValue); });
+                objectField.RegisterValueChangedCallback(evt => { valueChangedCallback((DiffusionProfileSettings) evt.newValue); });
             }
 
             propertyColorField = objectField;
@@ -45,19 +44,9 @@ namespace UnityEditor.Rendering.HighDefinition
             return this.CreateGUI(
                 // Use the setter from the provided property as the callback
                 newValue => propertyInfo.GetSetMethod(true).Invoke(actualObject, new object[] {newValue}),
-                (DiffusionProfileSettings)propertyInfo.GetValue(actualObject),
+                (DiffusionProfileSettings) propertyInfo.GetValue(actualObject),
                 attribute.labelName,
                 out var propertyVisualElement);
-        }
-    }
-
-    [CustomPropertyDrawer(typeof(DiffusionProfileSettings))]
-    class UIDiffusionProfilePropertyDrawer : PropertyDrawer
-    {
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-        {
-            EditorGUI.PropertyField(position, property, label);
-            DiffusionProfileMaterialUI.DrawDiffusionProfileWarning(property.objectReferenceValue as DiffusionProfileSettings);
         }
     }
 }

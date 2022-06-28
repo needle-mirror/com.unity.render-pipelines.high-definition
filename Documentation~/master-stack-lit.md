@@ -39,19 +39,8 @@ When you create a new Lit Master Stack, the Vertex Context contains the followin
 </table>
 
 #### Relevant
-Depending on the [Graph Settings](#graph-settings) you use, Shader Graph can add the following Blocks to the Vertex Context:
 
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-<th>Setting Dependency</th>
-<th>Default Value</th>
-</tr>
-[!include[](snippets/shader-graph-blocks/tessellation-factor.md)]
-[!include[](snippets/shader-graph-blocks/tessellation-displacement.md)]
-</table>
-
+This Master Stack material type adds all its Vertex Blocks to the Vertex Context by default and has no extra relevant Blocks.
 
 ### Fragment Context
 
@@ -151,8 +140,6 @@ Depending on the [Graph Settings](#graph-settings) you use, Shader Graph can add
 [!include[](snippets/shader-properties/surface-options/receive-ssr-transparent.md)]
 [!include[](snippets/shader-properties/surface-options/geometric-specular-aa.md)]
 [!include[](snippets/shader-properties/surface-options/ss-depth-offset.md)]
-[!include[](snippets/shader-properties/surface-options/conservative-depth-offset.md)]
-[!include[](snippets/shader-properties/surface-options/tessellation.md)]
 [!include[](snippets/shader-properties/surface-options/clear-coat.md)]
 [!include[](snippets/shader-properties/surface-options/transmission.md)]
 [!include[](snippets/shader-properties/transparency-inputs/refraction-model.md)]
@@ -184,14 +171,4 @@ This set of settings only appears if you set **Surface Type** to **Transparent**
 [!include[](snippets/shader-properties/advanced-options/override-baked-gi.md)]
 [!include[](snippets/shader-properties/advanced-options/support-lod-crossfade.md)]
 [!include[](snippets/shader-properties/advanced-options/add-precomputed-velocity.md)]
-</table>
-
-### Other top level settings
-
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-</tr>
-[!include[](snippets/shader-properties/support-vfx-graph.md)]
 </table>

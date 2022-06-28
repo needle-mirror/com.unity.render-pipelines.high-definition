@@ -28,8 +28,7 @@ namespace UnityEditor.Rendering.HighDefinition
 
             if (m_Type.value.intValue == (int)FilmGrainLookup.Custom)
             {
-                using (new IndentLevelScope())
-                    PropertyField(m_Texture);
+                PropertyField(m_Texture);
 
                 var texture = (target as FilmGrain).texture.value;
 

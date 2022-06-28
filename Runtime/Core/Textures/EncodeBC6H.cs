@@ -1,5 +1,4 @@
 using UnityEngine.Assertions;
-using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering
 {
@@ -37,9 +36,9 @@ namespace UnityEngine.Rendering
 
             m_Shader = shader;
             m_KEncodeFastCubemapMip = m_Shader.FindKernel("KEncodeFastCubemapMip");
-
+            
             // Disabling this code as we currently don't use BC6H encoding and it seems to create issue when enabling virtual texturing.
-            //uint x, y, z;
+            //uint x, y, z;	
             //m_Shader.GetKernelThreadGroupSizes(m_KEncodeFastCubemapMip, out x, out y, out z);
         }
 
@@ -72,7 +71,7 @@ namespace UnityEngine.Rendering
             {
                 autoGenerateMips = false,
                 bindMS = false,
-                graphicsFormat = GraphicsFormat.R32G32B32A32_SInt,
+                colorFormat = RenderTextureFormat.ARGBInt,
                 depthBufferBits = 0,
                 dimension = TextureDimension.Tex2DArray,
                 enableRandomWrite = true,

@@ -10,7 +10,7 @@ namespace UnityEngine.Rendering.HighDefinition
     /// It provides
     /// </summary>
     [ExecuteAlways]
-    [HDRPHelpURLAttribute("Custom-Pass")]
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Custom-Pass" + Documentation.endURL)]
     public class CustomPassVolume : MonoBehaviour
     {
         /// <summary>
@@ -42,29 +42,6 @@ namespace UnityEngine.Rendering.HighDefinition
         /// </summary>
         public CustomPassInjectionPoint injectionPoint = CustomPassInjectionPoint.BeforeTransparent;
 
-        [SerializeField]
-        internal Camera m_TargetCamera;
-
-        /// <summary>
-        /// Use this field to force the custom pass volume to be executed only for one camera.
-        /// </summary>
-        public Camera targetCamera
-        {
-            /// <summary>
-            /// Get the target camera of the custom pass. The target camera can be null if the custom pass is in local or global mode.
-            /// </summary>
-            get => useTargetCamera ? m_TargetCamera : null;
-            /// <summary>
-            /// Sets the target camera of the custom pass volume, this will bypass the volume mode (local or global) and the volume mask of the camera.
-            /// </summary>
-            /// <value>The new camera value. A null value will disable target camera mode and fall back to local or global.</value>
-            set
-            {
-                m_TargetCamera = value;
-                useTargetCamera = value != null;
-            }
-        }
-
         /// <summary>
         /// Fade value between 0 and 1. it represent how close you camera is from the collider of the custom pass.
         /// 0 when the camera is outside the volume + fade radius and 1 when it is inside the collider.
@@ -76,9 +53,6 @@ namespace UnityEngine.Rendering.HighDefinition
         [System.NonSerialized]
         bool visible = true;
 #endif
-
-        [SerializeField]
-        internal bool useTargetCamera;
 
         // The current active custom pass volume is simply the smallest overlapping volume with the trigger transform
         static HashSet<CustomPassVolume>    m_ActivePassVolumes = new HashSet<CustomPassVolume>();
@@ -125,7 +99,6 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             visible = !UnityEditor.SceneVisibilityManager.instance.IsHidden(gameObject);
         }
-
 #endif
 
         bool IsVisible(HDCamera hdCamera)
@@ -136,18 +109,38 @@ namespace UnityEngine.Rendering.HighDefinition
                 return false;
 #endif
 
-            if (useTargetCamera)
-                return targetCamera == hdCamera.camera;
-
             // We never execute volume if the layer is not within the culling layers of the camera
             // Special case for the scene view: we can't easily change it's volume later mask, so by default we show all custom passes
             if (hdCamera.camera.cameraType != CameraType.SceneView && (hdCamera.volumeLayerMask & (1 << gameObject.layer)) == 0)
                 return false;
-
+            
             return true;
         }
 
-        internal bool Execute(RenderGraph renderGraph, HDCamera hdCamera, CullingResults cullingResult, CullingResults cameraCullingResult, in CustomPass.RenderTargets targets)
+        internal bool Execute(ScriptableRenderContext renderContext, CommandBuffer cmd, HDCamera hdCamera, CullingResults cullingResult, SharedRTManager rtManager, CustomPass.RenderTargets targets)
+        {
+            bool executed = false;
+
+            if (!IsVisible(hdCamera))
+                return false;
+
+            Shader.SetGlobalFloat(HDShaderIDs._CustomPassInjectionPoint, (float)injectionPoint);
+            if (injectionPoint == CustomPassInjectionPoint.AfterPostProcess)
+                Shader.SetGlobalTexture(HDShaderIDs._AfterPostProcessColorBuffer, targets.cameraColorBuffer);
+
+            foreach (var pass in customPasses)
+            {
+                if (pass != null && pass.WillBeExecuted(hdCamera))
+                {
+                    pass.ExecuteInternal(renderContext, cmd, hdCamera, cullingResult, rtManager, targets, this);
+                    executed = true;
+                }
+            }
+
+            return executed;
+        }
+
+        internal bool Execute(RenderGraph renderGraph, HDCamera hdCamera, CullingResults cullingResult, in CustomPass.RenderTargets targets)
         {
             bool executed = false;
 
@@ -158,7 +151,7 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 if (pass != null && pass.WillBeExecuted(hdCamera))
                 {
-                    pass.ExecuteInternal(renderGraph, hdCamera, cullingResult, cameraCullingResult, targets, this);
+                    pass.ExecuteInternal(renderGraph, hdCamera, cullingResult, targets, this);
                     executed = true;
                 }
             }
@@ -203,13 +196,6 @@ namespace UnityEngine.Rendering.HighDefinition
             {
                 if (!volume.IsVisible(camera))
                     continue;
-
-                if (volume.useTargetCamera)
-                {
-                    if (volume.targetCamera == camera.camera)
-                        m_OverlappingPassVolumes.Add(volume);
-                    continue;
-                }
 
                 // Global volumes always have influence
                 if (volume.isGlobal)
@@ -442,7 +428,6 @@ namespace UnityEngine.Rendering.HighDefinition
                 }
             }
         }
-
 #endif
     }
 }

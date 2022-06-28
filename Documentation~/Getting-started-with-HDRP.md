@@ -1,24 +1,26 @@
 # Getting started with the High Definition Render Pipeline
 
-The [High Definition Render Pipeline (HDRP)](index.md) uses [Shaders](https://docs.unity3d.com/Manual/class-Shader.html) and lighting units that are different to those in Unity's built-in render pipeline. This means that you must either create a new Project that uses HDRP, or [upgrade an existing Project to use HDRP](#UpgradingToHDRP).
+The [High Definition Render Pipeline (HDRP)](index.md) uses [Shaders](https://docs.unity3d.com/Manual/class-Shader.html) and lighting units that are different to those in Unity's built-in render pipeline. This means that you must either create a new Project that uses HDRP, or [upgrade an existing Project to use HDRP](#UpgradingToHDRP). 
 
 This documentation describes how to create a Scene that uses HDRP, and introduces you to key features that help you produce high fidelity visuals.
 
 <a name="UpgradingToHDRP"></a>
 
-To upgrade an existing Project that doesn’t use HDRP, you need to convert the Materials to make them compatible with HDRP. For information about the upgrade process, see [Upgrading to HDRP](Upgrading-To-HDRP.md).
+To upgrade an existing Project that doesn’t use HDRP, you need to convert the Materials to make them compatible with HDRP. For information about the upgrade process, see [Upgrading to HDRP](Upgrading-To-HDRP.md). 
 
 ## Creating an HDRP Project from the Template
 
-To set up and manage your Unity Projects, install the [Unity Hub](https://docs.unity3d.com/Manual/GettingStartedInstallingHub.html).
+To set up and manage your Unity Projects, install the [Unity Hub](https://docs.unity3d.com/hub/manual/index.html).
 
-Unity provides an HDRP Template Project which you can use to quickly get set up with HDRP. To create an HDRP Template Project:
+Unity provides an HDRP Template Project which you can use to get set up with HDRP. To create an HDRP Template Project:
 
-1. Open the Unity Hub, go to the **Projects** tab, and click **New**.
-2. Enter a **Project Name** and, in the **Template** section, click on **High Definition RP**.
-3. Click **Create**.
+1. Open the Unity Hub,
+2. Go to **Projects**, and select **New Project**.
+3. Open the **Sample** tab and select **3D Sample Scene (HDRP)**.
+4. Enter a **Project name**.
+5. Select **Create project**.
 
-Unity creates a Project and automatically installs the HDRP package, and all of its dependencies. After Unity opens the Template Project, you can see the main Scene. Which looks like this:
+Unity creates a Project and automatically installs the HDRP package, and all its dependencies. After Unity opens the Template Project, you can see the main Scene.
 
 ![](Images/GettingStarted1.png)
 

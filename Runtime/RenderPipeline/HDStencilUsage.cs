@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace UnityEngine.Rendering.HighDefinition
 {
+
     [GenerateHLSL]
     internal enum StencilUsage
     {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEditor.ShaderGraph.Serialization;
 
 namespace UnityEditor.Rendering.HighDefinition.ShaderGraph

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
+using System.Linq;
 using UnityEditor;
 
 namespace UnityEngine.Rendering.HighDefinition
@@ -12,10 +12,12 @@ namespace UnityEngine.Rendering.HighDefinition
     public class VolumeDebugSettings
     {
         /// <summary>Current volume component to debug.</summary>
-        internal int selectedComponent = 0;
+        public int      selectedComponent = 0;
+
         int m_SelectedCamera = 0;
 
-        internal int selectedCameraIndex
+        /// <summary>Current camera index to debug.</summary>
+        public int selectedCameraIndex
         {
             get
             {
@@ -131,55 +133,68 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (s_ComponentTypes == null)
                 {
                     s_ComponentTypes = VolumeManager.instance.baseComponentTypeArray
-                        .Where(t => !t.IsDefined(typeof(HideInInspector), false))
-                        .Where(t => !t.IsDefined(typeof(ObsoleteAttribute), false))
-                        .OrderBy(t => ComponentDisplayName(t))
-                        .ToList();
+                    .Where(t => !t.IsDefined(typeof(VolumeComponentDeprecated), false))
+                    .OrderBy(t => ComponentDisplayName(t))
+                    .ToList();
                 }
                 return s_ComponentTypes;
             }
         }
 
-        /// <summary>Returns the name of a component from its VolumeComponentMenuForRenderPipeline.</summary>
+        /// <summary>Returns the name of a component from its VolumeComponentMenu.</summary>
         /// <param name="component">A volume component.</param>
         /// <returns>The component display name.</returns>
-        public static string ComponentDisplayName(Type component)
+        static public string ComponentDisplayName(Type component)
         {
-            if (component.GetCustomAttribute(typeof(VolumeComponentMenuForRenderPipeline), false) is VolumeComponentMenuForRenderPipeline volumeComponentMenuForRenderPipeline)
-                return volumeComponentMenuForRenderPipeline.menu;
-
-            if (component.GetCustomAttribute(typeof(VolumeComponentMenu), false) is VolumeComponentMenuForRenderPipeline volumeComponentMenu)
-                return volumeComponentMenu.menu;
-
+            Attribute attrib = component.GetCustomAttribute(typeof(VolumeComponentMenu), false);
+            if (attrib != null)
+                return (attrib as VolumeComponentMenu).menu;
             return component.Name;
         }
 
-        internal static List<HDAdditionalCameraData> cameras {get; private set; } = new List<HDAdditionalCameraData>();
+        /// <summary>List of HD Additional Camera data.</summary>
+        static public List<HDAdditionalCameraData> cameras {get; private set; } = new List<HDAdditionalCameraData>();
 
-        internal static void RegisterCamera(HDAdditionalCameraData camera)
+        /// <summary>Register HDAdditionalCameraData for DebugMenu</summary>
+        /// <param name="camera">The camera to register.</param>
+        public static void RegisterCamera(HDAdditionalCameraData camera)
         {
             if (!cameras.Contains(camera))
                 cameras.Add(camera);
         }
 
-        internal static void UnRegisterCamera(HDAdditionalCameraData camera)
+        /// <summary>Unregister HDAdditionalCameraData for DebugMenu</summary>
+        /// <param name="camera">The camera to unregister.</param>
+        public static void UnRegisterCamera(HDAdditionalCameraData camera)
         {
             if (cameras.Contains(camera))
                 cameras.Remove(camera);
         }
 
-        internal VolumeParameter GetParameter(VolumeComponent component, FieldInfo field)
+
+        /// <summary>Get a VolumeParameter from a VolumeComponent</summary>
+        /// <param name="component">The component to get the parameter from.</param>
+        /// <param name="field">The field info of the parameter.</param>
+        /// <returns>The volume parameter.</returns>
+        public VolumeParameter GetParameter(VolumeComponent component, FieldInfo field)
         {
             return (VolumeParameter)field.GetValue(component);
         }
 
-        internal VolumeParameter GetParameter(FieldInfo field)
+        /// <summary>Get a VolumeParameter from a VolumeComponent on the <see cref="selectedCameraVolumeStack"/></summary>
+        /// <param name="field">The field info of the parameter.</param>
+        /// <returns>The volume parameter.</returns>
+        public VolumeParameter GetParameter(FieldInfo field)
         {
             VolumeStack stack = selectedCameraVolumeStack;
             return stack == null ? null : GetParameter(stack.GetComponent(selectedComponentType), field);
         }
 
-        internal VolumeParameter GetParameter(Volume volume, FieldInfo field)
+        /// <summary>Get a VolumeParameter from a component of a volume</summary>
+        /// <param name="volume">The volume to get the component from.</param>
+        /// <param name="field">The field info of the parameter.</param>
+        /// <returns>The volume parameter.</returns>
+        public VolumeParameter GetParameter(Volume volume, FieldInfo field)
         {
             var profile = volume.HasInstantiatedProfile() ? volume.profile : volume.sharedProfile;
             if (!profile.TryGet(selectedComponentType, out VolumeComponent component))
@@ -277,7 +292,10 @@ namespace UnityEngine.Rendering.HighDefinition
             return false;
         }
 
-        internal bool RefreshVolumes(Volume[] newVolumes)
+        /// <summary>Updates the list of volumes and recomputes volume weights</summary>
+        /// <param name="newVolumes">The new list of volumes.</param>
+        /// <returns>True if the volume list have been updated.</returns>
+        public bool RefreshVolumes(Volume[] newVolumes)
         {
             bool ret = false;
             if (volumes == null || !newVolumes.SequenceEqual(volumes))
@@ -304,7 +322,10 @@ namespace UnityEngine.Rendering.HighDefinition
             return ret;
         }
 
-        internal float GetVolumeWeight(Volume volume)
+        /// <summary>Get the weight of a volume computed from the <see cref="selectedCameraPosition"/></summary>
+        /// <param name="volume">The volume to compute weight for.</param>
+        /// <returns>The weight of the volume.</returns>
+        public float GetVolumeWeight(Volume volume)
         {
             if (weights == null)
                 return 0;
@@ -323,7 +344,10 @@ namespace UnityEngine.Rendering.HighDefinition
             return 0f;
         }
 
-        internal bool VolumeHasInfluence(Volume volume)
+        /// <summary>Determines if a volume as an influence on the interpolated value</summary>
+        /// <param name="volume">The volume.</param>
+        /// <returns>True if the given volume as an influence.</returns>
+        public bool VolumeHasInfluence(Volume volume)
         {
             if (weights == null)
                 return false;

@@ -56,7 +56,7 @@ void EncodeMotionVector(float2 motionVector, out float4 outBuffer)
 
 bool PixelSetAsNoMotionVectors(float4 inBuffer)
 {
-    return inBuffer.x > 1.0f;
+	return inBuffer.x > 1.0f;
 }
 
 void DecodeMotionVector(float4 inBuffer, out float2 motionVector)

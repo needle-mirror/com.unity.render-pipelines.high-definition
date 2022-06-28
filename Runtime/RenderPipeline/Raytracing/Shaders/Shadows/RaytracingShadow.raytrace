@@ -218,12 +218,10 @@ void RayGenAreaShadows()
         rayDescriptor.TMin = 0.0;
         rayDescriptor.TMax = length(rayDestination - rayOrigin);
 
-        // Adjust world-space position to match the RAS setup with XR single-pass and camera relative
-        ApplyCameraRelativeXR(rayDescriptor.Origin);
-
         // Create and init the RayIntersection structure for this
         RayIntersection rayIntersection;
         rayIntersection.color = float3(0.0, 0.0, 0.0);
+        rayIntersection.incidentDirection = rayDescriptor.Direction;
 
         // Evaluate the ray visibility term and PDF
         TraceRay(_RaytracingAccelerationStructure, rayFlag | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, RAYTRACINGRENDERERFLAG_CAST_SHADOW, 0, 1, 0, rayDescriptor, rayIntersection);
@@ -344,12 +342,10 @@ void RayGenAreaShadowSingle()
     rayDescriptor.TMin = 0.0;
     rayDescriptor.TMax = rayDistance;
 
-    // Adjust world-space position to match the RAS setup with XR single-pass and camera relative
-    ApplyCameraRelativeXR(rayDescriptor.Origin);
-
     // Create and init the RayIntersection structure for this
     RayIntersection rayIntersection;
     rayIntersection.color = float3(0.0, 0.0, 0.0);
+    rayIntersection.incidentDirection = rayDescriptor.Direction;
 
     // Evaluate the ray visibility term and PDF
     TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, RAYTRACINGRENDERERFLAG_CAST_SHADOW, 0, 1, 0, rayDescriptor, rayIntersection);
@@ -414,9 +410,6 @@ void RayGenDirectionalShadowSingle()
     rayDescriptor.Direction = rayDirection;
     rayDescriptor.TMin = 0.0;
     rayDescriptor.TMax = _DirectionalMaxRayLength;
-
-    // Adjust world-space position to match the RAS setup with XR single-pass and camera relative
-    ApplyCameraRelativeXR(rayDescriptor.Origin);
 
     // Create and init the RayIntersection structure for this
     RayIntersection rayIntersection;
@@ -484,9 +477,6 @@ void RayGenDirectionalColorShadowSingle()
     rayDescriptor.TMin = 0.0;
     rayDescriptor.TMax = _DirectionalMaxRayLength;
 
-    // Adjust world-space position to match the RAS setup with XR single-pass and camera relative
-    ApplyCameraRelativeXR(rayDescriptor.Origin);
-
     // Create and init the RayIntersection structure for this
     RayIntersection rayIntersection;
     rayIntersection.color = float3(0.0, 0.0, 0.0);
@@ -506,8 +496,9 @@ void RayGenDirectionalColorShadowSingle()
         rayIntersection.color = float3(1.0, 1.0, 1.0);
         rayIntersection.t = MISS_RAY_TRACING_SHADOW_DISTANCE;
 
-        // Evaluate the ray visibility term
-        TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_FRONT_FACING_TRIANGLES, RAYTRACINGRENDERERFLAG_CAST_SHADOW_TRANSPARENT, 0, 1, 1, rayDescriptor, rayIntersection);
+        TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_FRONT_FACING_TRIANGLES 
+            | RAY_FLAG_FORCE_NON_OPAQUE, 
+            RAYTRACINGRENDERERFLAG_CAST_SHADOW_TRANSPARENT, 0, 1, 1, rayDescriptor, rayIntersection);
     }
 
     _RaytracedColorShadowIntegration[COORD_TEXTURE2D_X(currentPixelCoord)] = float4(previousIntergrationValue + rayIntersection.color / (float)_RaytracingNumSamples, 1.0);
@@ -582,12 +573,10 @@ void RayGenShadowSegmentSingle()
     rayDescriptor.TMin = 0.0;
     rayDescriptor.TMax = rayDistance;
 
-    // Adjust world-space position to match the RAS setup with XR single-pass and camera relative
-    ApplyCameraRelativeXR(rayDescriptor.Origin);
-
     // Create and init the RayIntersection structure for this
     RayIntersection rayIntersection;
     rayIntersection.color = float3(0.0, 0.0, 0.0);
+    rayIntersection.incidentDirection = rayDescriptor.Direction;
     rayIntersection.velocity = 0.0;
     rayIntersection.t = MISS_RAY_TRACING_SHADOW_DISTANCE;
 
@@ -670,12 +659,10 @@ void RayGenSemiTransparentShadowSegmentSingle()
     rayDescriptor.TMin = 0.0;
     rayDescriptor.TMax = rayDistance;
 
-    // Adjust world-space position to match the RAS setup with XR single-pass and camera relative
-    ApplyCameraRelativeXR(rayDescriptor.Origin);
-
     // Create and init the RayIntersection structure for this
     RayIntersection rayIntersection;
     rayIntersection.color = float3(0.0, 0.0, 0.0);
+    rayIntersection.incidentDirection = rayDescriptor.Direction;
     rayIntersection.velocity = 0.0;
     rayIntersection.t = MISS_RAY_TRACING_SHADOW_DISTANCE;
 
@@ -693,8 +680,9 @@ void RayGenSemiTransparentShadowSegmentSingle()
         rayIntersection.color = float3(1.0, 1.0, 1.0);
         rayIntersection.t = MISS_RAY_TRACING_SHADOW_DISTANCE;
 
-        // Evaluate the ray visibility term
-        TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_FRONT_FACING_TRIANGLES, RAYTRACINGRENDERERFLAG_CAST_SHADOW_TRANSPARENT, 0, 1, 1, rayDescriptor, rayIntersection);
+        TraceRay(_RaytracingAccelerationStructure, RAY_FLAG_CULL_FRONT_FACING_TRIANGLES 
+            | RAY_FLAG_FORCE_NON_OPAQUE, 
+            RAYTRACINGRENDERERFLAG_CAST_SHADOW_TRANSPARENT, 0, 1, 1, rayDescriptor, rayIntersection);
     }
 
     // Add the contribution of this sample

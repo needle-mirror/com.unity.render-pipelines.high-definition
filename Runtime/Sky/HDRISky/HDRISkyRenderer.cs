@@ -23,7 +23,8 @@ namespace UnityEngine.Rendering.HighDefinition
 
         public override void Build()
         {
-            m_SkyHDRIMaterial = CoreUtils.CreateEngineMaterial(HDRenderPipelineGlobalSettings.instance.renderPipelineResources.shaders.hdriSkyPS);
+            var hdrp = HDRenderPipeline.defaultAsset;
+            m_SkyHDRIMaterial = CoreUtils.CreateEngineMaterial(hdrp.renderPipelineResources.shaders.hdriSkyPS);
         }
 
         public override void Cleanup()
@@ -34,8 +35,8 @@ namespace UnityEngine.Rendering.HighDefinition
         private void GetParameters(out float intensity, out float phi, out float backplatePhi, BuiltinSkyParameters builtinParams, HDRISky hdriSky)
         {
             intensity       = GetSkyIntensity(hdriSky, builtinParams.debugSettings);
-            phi             = -Mathf.Deg2Rad * hdriSky.rotation.value; // -rotation to match Legacy...
-            backplatePhi    = phi - Mathf.Deg2Rad * hdriSky.plateRotation.value;
+            phi             = -Mathf.Deg2Rad*hdriSky.rotation.value; // -rotation to match Legacy...
+            backplatePhi    = phi - Mathf.Deg2Rad*hdriSky.plateRotation.value;
         }
 
         private Vector4 GetBackplateParameters0(HDRISky hdriSky)
@@ -56,7 +57,7 @@ namespace UnityEngine.Rendering.HighDefinition
         {
             // x: BackplateType, y: BlendAmount, zw: backplate rotation (cosPhi_plate, sinPhi_plate)
             float type = 3.0f;
-            float blendAmount = hdriSky.blendAmount.value / 100.0f;
+            float blendAmount = hdriSky.blendAmount.value/100.0f;
             switch (hdriSky.backplateType.value)
             {
                 case BackplateType.Disc:
@@ -79,7 +80,7 @@ namespace UnityEngine.Rendering.HighDefinition
         private Vector4 GetBackplateParameters2(HDRISky hdriSky)
         {
             // xy: BackplateTextureRotation (cos/sin), zw: Backplate Texture Offset
-            float localPhi = -Mathf.Deg2Rad * hdriSky.plateTexRotation.value;
+            float localPhi = -Mathf.Deg2Rad*hdriSky.plateTexRotation.value;
             return new Vector4(Mathf.Cos(localPhi), Mathf.Sin(localPhi), hdriSky.plateTexOffset.value.x, hdriSky.plateTexOffset.value.y);
         }
 
@@ -92,6 +93,10 @@ namespace UnityEngine.Rendering.HighDefinition
         public override void PreRenderSky(BuiltinSkyParameters builtinParams)
         {
             var hdriSky = builtinParams.skySettings as HDRISky;
+            if (hdriSky.enableBackplate.value == false)
+            {
+                return;
+            }
 
             float intensity, phi, backplatePhi;
             GetParameters(out intensity, out phi, out backplatePhi, builtinParams, hdriSky);
@@ -130,10 +135,10 @@ namespace UnityEngine.Rendering.HighDefinition
                 }
             }
 
-            if (hdriSky.distortionMode.value != HDRISky.DistortionMode.None)
+            if (hdriSky.enableDistortion.value == true)
             {
                 m_SkyHDRIMaterial.EnableKeyword("SKY_MOTION");
-                if (hdriSky.distortionMode.value == HDRISky.DistortionMode.Flowmap)
+                if (hdriSky.procedural.value == false)
                 {
                     m_SkyHDRIMaterial.EnableKeyword("USE_FLOWMAP");
                     m_SkyHDRIMaterial.SetTexture(HDShaderIDs._Flowmap, hdriSky.flowmap.value);
@@ -142,13 +147,13 @@ namespace UnityEngine.Rendering.HighDefinition
                     m_SkyHDRIMaterial.DisableKeyword("USE_FLOWMAP");
 
                 var hdCamera = builtinParams.hdCamera;
-                float rot = Mathf.Deg2Rad * (hdriSky.scrollOrientation.GetValue(hdCamera) - hdriSky.rotation.value);
-                bool upperHemisphereOnly = hdriSky.upperHemisphereOnly.value || (hdriSky.distortionMode.value == HDRISky.DistortionMode.Procedural);
-                Vector4 flowmapParam = new Vector4(upperHemisphereOnly ? 1.0f : 0.0f, scrollFactor / 200.0f, -Mathf.Cos(rot), -Mathf.Sin(rot));
+                float rot = -Mathf.Deg2Rad*hdriSky.scrollDirection.value;
+                bool upperHemisphereOnly = hdriSky.upperHemisphereOnly.value || hdriSky.procedural.value;
+                Vector4 flowmapParam = new Vector4(upperHemisphereOnly ? 1.0f : 0.0f, scrollFactor, Mathf.Cos(rot), Mathf.Sin(rot));
 
                 m_SkyHDRIMaterial.SetVector(HDShaderIDs._FlowmapParam, flowmapParam);
 
-                scrollFactor += hdCamera.animateMaterials ? hdriSky.scrollSpeed.GetValue(hdCamera) * (hdCamera.time - lastTime) * 0.01f : 0.0f;
+                scrollFactor += hdCamera.animateMaterials ? hdriSky.scrollSpeed.value * (hdCamera.time - lastTime) * 0.01f : 0.0f;
                 lastTime = hdCamera.time;
             }
             else

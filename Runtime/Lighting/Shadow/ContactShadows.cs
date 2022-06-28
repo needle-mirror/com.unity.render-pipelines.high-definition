@@ -6,8 +6,8 @@ namespace UnityEngine.Rendering.HighDefinition
     /// <summary>
     /// A volume component that holds settings for the Contact Shadows effect.
     /// </summary>
-    [Serializable, VolumeComponentMenuForRenderPipeline("Shadowing/Contact Shadows", typeof(HDRenderPipeline))]
-    [HDRPHelpURLAttribute("Override-Contact-Shadows")]
+    [Serializable, VolumeComponentMenu("Shadowing/Contact Shadows")]
+    [HelpURL(Documentation.baseURL + Documentation.version + Documentation.subURL + "Override-Contact-Shadows" + Documentation.endURL)]
     public class ContactShadows : VolumeComponentWithQuality
     {
         /// <summary>
